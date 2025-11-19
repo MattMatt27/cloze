@@ -29,7 +29,7 @@ def main():
 
     # Import after path is set up
     from llm_chat import create_app
-    from report.unified_report_generator import UnifiedReportGenerator
+    from report.generator import UnifiedReportGenerator
 
     print(f"Generating report for Chat Window ID: {WINDOW_ID}")
     print("=" * 60)

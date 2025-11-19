@@ -45,6 +45,7 @@ htmlcov/
 
 # PDF/Report exports
 *.pdf
+report*.html
 
 # DEPLOYMENT FILES (ignore for now)
 DEPLOYMENT.md

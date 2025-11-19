@@ -72,6 +72,18 @@ class HTMLRenderer(Renderer):
         ).strftime('%B %d, %Y')
 
         summary = report_data.get('summary', {})
+        models_used = report_data.get('models_used', {})
+
+        # Build models display
+        models_html = ""
+        if models_used:
+            model_list = ", ".join([f"{name} ({info['provider']})" for name, info in models_used.items()])
+            models_html = f"""
+                <div class="meta-item">
+                    <div class="meta-label">Models Used</div>
+                    <div class="meta-value meta-value-models">{model_list}</div>
+                </div>
+            """
 
         return f"""
         <div class="report-header">
@@ -90,6 +102,7 @@ class HTMLRenderer(Renderer):
                     <div class="meta-label">Total Messages</div>
                     <div class="meta-value">{summary.get('total_user_messages', 0) + summary.get('total_model_messages', 0)}</div>
                 </div>
+                {models_html}
             </div>
         </div>
         """
@@ -121,6 +134,10 @@ class HTMLRenderer(Renderer):
 
     def _render_ai_summary(self, data: Dict[str, Any]) -> str:
         """Render AI summary component."""
+        # Format summary text with proper line breaks
+        summary_text = data.get('summary', 'No summary available')
+        formatted_summary = self._format_text_with_breaks(summary_text)
+
         html = f"""
         <div class="report-component ai-summary">
             <div class="component-header">
@@ -128,24 +145,25 @@ class HTMLRenderer(Renderer):
                 <h3 class="component-title">AI Summary</h3>
             </div>
             <div class="summary-content">
-                <p class="summary-text">{data.get('summary', 'No summary available')}</p>
+                <div class="summary-text">{formatted_summary}</div>
         """
 
         if data.get('themes'):
             html += """
                 <div class="themes-section">
                     <h4>Key Themes Identified:</h4>
-                    <ul class="themes-list">
+                    <ul class="themes-list-simple">
             """
             for theme in data['themes']:
                 html += f"<li>{theme}</li>"
             html += "</ul></div>"
 
         if data.get('progress_notes'):
+            formatted_notes = self._format_text_with_breaks(data['progress_notes'])
             html += f"""
                 <div class="progress-notes">
                     <h4>Progress Notes:</h4>
-                    <p>{data['progress_notes']}</p>
+                    <div class="progress-notes-text">{formatted_notes}</div>
                 </div>
             """
 
@@ -294,6 +312,40 @@ class HTMLRenderer(Renderer):
             return "Negative"
         else:
             return "Neutral"
+
+    def _format_text_with_breaks(self, text: str) -> str:
+        """Format text with proper HTML paragraph breaks."""
+        import re
+
+        if not text:
+            return ""
+
+        # Split text into sentences (rough approximation)
+        sentences = re.split(r'(?<=[.!?])\s+', text)
+
+        # Group sentences into paragraphs (roughly 3-4 sentences per paragraph)
+        paragraphs = []
+        current_para = []
+        sentence_count = 0
+
+        for sentence in sentences:
+            current_para.append(sentence)
+            sentence_count += 1
+
+            # Create paragraph break every 3-4 sentences
+            if sentence_count >= 3:
+                paragraphs.append(' '.join(current_para))
+                current_para = []
+                sentence_count = 0
+
+        # Add remaining sentences
+        if current_para:
+            paragraphs.append(' '.join(current_para))
+
+        # Convert to HTML paragraphs
+        html_paragraphs = [f'<p>{para}</p>' for para in paragraphs if para.strip()]
+
+        return '\n'.join(html_paragraphs)
 
     def _render_cooccurrence_analysis(self, data: Dict[str, Any]) -> str:
         """Render co-occurrence analysis component."""

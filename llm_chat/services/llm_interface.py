@@ -100,8 +100,15 @@ class LLMInterface:
         print("========================\n")
 
     @classmethod
-    def call_llm(cls, model, messages: List[Dict], system_prompt: Optional[str] = None) -> Tuple[str, float]:
-        """Call LLM with messages and return (response_text, response_time_sec)"""
+    def call_llm(cls, model, messages: List[Dict], system_prompt: Optional[str] = None, config_override: Optional[Dict] = None) -> Tuple[str, float]:
+        """Call LLM with messages and return (response_text, response_time_sec)
+
+        Args:
+            model: Model object to use
+            messages: List of message dicts with 'role' and 'content'
+            system_prompt: Optional system prompt to prepend
+            config_override: Optional config overrides (e.g., {'timeout': 180})
+        """
         start_time = time.time()
 
         # Format messages with system prompt
@@ -111,6 +118,9 @@ class LLMInterface:
         formatted_messages.extend(messages)
 
         config = json.loads(model.config or '{}')
+        # Apply config overrides if provided
+        if config_override:
+            config.update(config_override)
 
         try:
             if model.provider == 'openai':
@@ -193,7 +203,7 @@ class LLMInterface:
                         'max_tokens': config.get('max_tokens', 1000),
                         'stream': False  # Disable streaming for simpler response handling
                     },
-                    timeout=60,
+                    timeout=config.get('timeout', 60),  # Use custom timeout if provided
                 )
                 response.raise_for_status()
                 result = response.json()['choices'][0]['message']['content']

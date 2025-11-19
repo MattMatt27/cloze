@@ -52,6 +52,26 @@ class UnifiedReportGenerator:
         self.pdf_renderer = PDFRenderer()
         self.components_data = {}
 
+    def _get_models_used(self) -> Dict[str, Dict[str, Any]]:
+        """Get information about models used in conversations."""
+        models_used = {}
+        conversations = Conversation.query.filter_by(window_id=self.window_id).all()
+
+        for conv in conversations:
+            if conv.model:
+                model_name = conv.model.name
+                model_provider = conv.model.provider if conv.model.provider else "Unknown"
+
+                if model_name not in models_used:
+                    models_used[model_name] = {
+                        "provider": model_provider,
+                        "conversation_count": 0
+                    }
+
+                models_used[model_name]["conversation_count"] += 1
+
+        return models_used
+
     def generate(self) -> Dict[str, Any]:
         """Generate all configured report components."""
         # Build metadata
@@ -64,7 +84,8 @@ class UnifiedReportGenerator:
             'start_date': self.window.start_date,
             'end_date': self.window.end_date,
             'generated_at': time.time(),
-            'components': {}
+            'components': {},
+            'models_used': self._get_models_used()
         }
 
         # Execute all registered components
