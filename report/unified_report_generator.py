@@ -744,6 +744,26 @@ class UnifiedReportGenerator:
         </html>
         """
 
+    def _get_models_used(self) -> Dict[str, Dict[str, Any]]:
+        """Get information about models used in conversations"""
+        models_used = {}
+        conversations = Conversation.query.filter_by(window_id=self.window_id).all()
+
+        for conv in conversations:
+            if conv.model:
+                model_name = conv.model.name
+                model_provider = conv.model.provider if conv.model.provider else "Unknown"
+
+                if model_name not in models_used:
+                    models_used[model_name] = {
+                        "provider": model_provider,
+                        "conversation_count": 0
+                    }
+
+                models_used[model_name]["conversation_count"] += 1
+
+        return models_used
+
     def _render_header(self, report_data: Dict[str, Any], for_print: bool = False) -> str:
         """Render report header"""
         generated_date = datetime.fromtimestamp(report_data.get('generated_at', 0)).strftime('%B %d, %Y')
@@ -751,7 +771,21 @@ class UnifiedReportGenerator:
         # Get summary stats
         summary = report_data.get('summary', {})
 
+        # Get models used from conversations
+        models_used = self._get_models_used()
+
         header_class = "report-header print-header" if for_print else "report-header"
+
+        # Build models display
+        models_html = ""
+        if models_used:
+            model_list = ", ".join([f"{name} ({info['provider']})" for name, info in models_used.items()])
+            models_html = f"""
+                <div class="meta-item meta-item-full">
+                    <div class="meta-label">Models Used</div>
+                    <div class="meta-value meta-value-models">{model_list}</div>
+                </div>
+            """
 
         return f"""
         <div class="{header_class}">
@@ -770,6 +804,7 @@ class UnifiedReportGenerator:
                     <div class="meta-label">Total Messages</div>
                     <div class="meta-value">{summary.get('total_user_messages', 0) + summary.get('total_model_messages', 0)}</div>
                 </div>
+                {models_html}
             </div>
         </div>
         """
@@ -819,6 +854,15 @@ class UnifiedReportGenerator:
             padding: 0.75rem;
             border-radius: 8px;
             text-align: center;
+        }
+
+        .unified-report .meta-item-full {
+            grid-column: 1 / -1;
+        }
+
+        .unified-report .meta-value-models {
+            font-size: 0.95rem;
+            word-wrap: break-word;
         }
 
         .unified-report .meta-label {
