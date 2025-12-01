@@ -52,6 +52,10 @@ def get_base_css() -> str:
         text-align: center;
     }
 
+    .unified-report .meta-item-full {
+        grid-column: 1 / -1;
+    }
+
     .unified-report .meta-label {
         font-size: 0.9rem;
         color: rgba(255,255,255,0.9);
@@ -62,6 +66,11 @@ def get_base_css() -> str:
         font-size: 1.1rem;
         font-weight: 600;
         color: #ffffff;
+    }
+
+    .unified-report .meta-value-models {
+        font-size: 0.95rem;
+        word-wrap: break-word;
     }
 
     .unified-report .report-content {
@@ -98,17 +107,50 @@ def get_base_css() -> str:
     }
 
     .unified-report .summary-content {
-        background: #f0f8ff;
-        border-radius: 12px;
+        background: #ffffff;
+        border-radius: 8px;
         padding: 1.5rem;
-        border-left: 4px solid #0066cc;
+        border: 1px solid #e0e0e0;
     }
 
     .unified-report .summary-text {
-        font-size: 1.05rem;
-        line-height: 1.6;
+        font-size: 1rem;
+        line-height: 1.7;
+        color: #333;
+        margin-bottom: 1.5rem;
+    }
+
+    .unified-report .summary-text p {
+        margin: 0 0 1rem 0;
+    }
+
+    .unified-report .summary-text p:last-child {
+        margin-bottom: 0;
+    }
+
+    .unified-report .themes-section {
+        margin: 1.5rem 0;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e0e0e0;
+    }
+
+    .unified-report .themes-section h4 {
+        font-size: 1.1rem;
+        font-weight: 600;
         color: #1a1a1a;
-        margin-bottom: 1rem;
+        margin: 0 0 0.75rem 0;
+    }
+
+    .unified-report .themes-list-simple {
+        list-style: disc;
+        padding-left: 1.5rem;
+        margin: 0;
+    }
+
+    .unified-report .themes-list-simple li {
+        color: #333;
+        margin: 0.5rem 0;
+        line-height: 1.6;
     }
 
     .unified-report .themes-list {
@@ -124,6 +166,42 @@ def get_base_css() -> str:
         border-radius: 8px;
         border-left: 3px solid #0066cc;
         color: #1a1a1a;
+    }
+
+    .unified-report .progress-notes {
+        margin: 1.5rem 0 0 0;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e0e0e0;
+    }
+
+    .unified-report .progress-notes h4 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin: 0 0 0.75rem 0;
+    }
+
+    .unified-report .progress-notes-text {
+        font-size: 1rem;
+        line-height: 1.7;
+        color: #333;
+    }
+
+    .unified-report .progress-notes-text p {
+        margin: 0 0 1rem 0;
+        text-indent: 0;
+    }
+
+    .unified-report .progress-notes-text p:last-child {
+        margin-bottom: 0;
+    }
+
+    /* Ensure no list styling bleeds into progress notes */
+    .unified-report .progress-notes-text ul,
+    .unified-report .progress-notes-text ol {
+        list-style: none;
+        padding: 0;
+        margin: 0;
     }
 
     .unified-report .stats-grid {

@@ -46,18 +46,30 @@ class AISummaryComponent(ReportComponent):
             conversation_text = self._prepare_conversation_text()
             prompt = self._build_prompt(conversation_text)
 
-            # Use LLMInterface to call the model
+            # Use LLMInterface to call the model with extended timeout for reports
             messages = [{"role": "user", "content": prompt}]
-            response_text, _ = LLMInterface.call_llm(model, messages)
+            config_override = {"timeout": 180}  # 3 minutes for report generation
+            response_text, _ = LLMInterface.call_llm(model, messages, config_override=config_override)
 
             return self._parse_ai_response(response_text, model.name)
 
         except Exception as e:
+            error_msg = str(e)
+
+            # Provide user-friendly error messages
+            if "timed out" in error_msg.lower() or "timeout" in error_msg.lower():
+                summary_text = "The AI model took too long to generate a summary (timeout after 3 minutes). This can happen with longer conversations or slower models. The conversation data is still available in other sections of this report."
+            elif "connection" in error_msg.lower():
+                summary_text = "Unable to connect to the AI model service. Please ensure the model service is running."
+            else:
+                summary_text = f"Error generating AI summary: {error_msg}"
+
             return {
-                "summary": f"Error generating AI summary: {str(e)}",
+                "summary": summary_text,
                 "themes": [],
                 "progress_notes": "",
-                "error": str(e)
+                "error": error_msg,
+                "generated_with": model.name if 'model' in locals() else "Unknown"
             }
 
     def _select_llama_model(self) -> Optional[Model]:
@@ -143,27 +155,68 @@ class AISummaryComponent(ReportComponent):
 
     def _parse_ai_response(self, response_text: str, model_name: str) -> Dict[str, Any]:
         """Parse the AI response into structured data."""
+        import re
+
         summary = ""
         themes = []
         progress_notes = ""
 
+        # Remove markdown bold markers (**text**)
+        response_text = re.sub(r'\*\*([^*]+)\*\*', r'\1', response_text)
+
         current_section = None
+        summary_lines = []
+        progress_lines = []
+
         for line in response_text.split('\n'):
-            if 'SUMMARY:' in line:
+            line_upper = line.upper()
+            stripped = line.strip()
+
+            # Check for section headers
+            if 'SUMMARY:' in line_upper or 'SUMMARY' == stripped.upper() or stripped.upper().startswith('SUMMARY'):
                 current_section = 'summary'
-            elif 'THEMES:' in line:
+                continue
+            elif 'THEMES:' in line_upper or 'THEMES' == stripped.upper() or 'KEY THEMES' in line_upper or stripped.upper().startswith('THEMES'):
                 current_section = 'themes'
-            elif 'PROGRESS NOTES:' in line:
+                continue
+            elif 'PROGRESS NOTES:' in line_upper or 'PROGRESS NOTES' == stripped.upper() or 'PROGRESS' in line_upper:
                 current_section = 'progress'
-            elif current_section == 'summary' and line.strip():
-                summary += line.strip() + " "
-            elif current_section == 'themes' and line.strip().startswith('-'):
-                themes.append(line.strip()[1:].strip())
-            elif current_section == 'progress' and line.strip():
-                progress_notes += line.strip() + " "
+                continue
+
+            # Collect content for each section
+            if current_section == 'summary' and stripped:
+                summary_lines.append(stripped)
+            elif current_section == 'themes' and stripped:
+                # Handle both bulleted and non-bulleted themes
+                cleaned = stripped
+                if cleaned.startswith('-') or cleaned.startswith('*') or cleaned.startswith('•'):
+                    cleaned = cleaned[1:].strip()
+                if cleaned and len(cleaned) > 2:  # Skip very short lines
+                    themes.append(cleaned)
+            elif current_section == 'progress' and stripped:
+                progress_lines.append(stripped)
+
+        # Join summary lines with paragraph breaks (double line breaks create new paragraphs)
+        if summary_lines:
+            summary = ' '.join(summary_lines)
+
+        # Join progress notes and clean up bullet markers
+        if progress_lines:
+            # Remove leading asterisks/bullets that might be in the text
+            cleaned_progress = []
+            for line in progress_lines:
+                # Remove bullet markers at start of lines
+                cleaned = re.sub(r'^[\*\-\•]\s*', '', line)
+                cleaned_progress.append(cleaned)
+            progress_notes = ' '.join(cleaned_progress)
+
+        # Fallback: if parsing failed, use the whole response as summary with basic formatting
+        if not summary.strip() and not themes and not progress_notes.strip():
+            # Try to break up the text into paragraphs
+            summary = response_text.strip()
 
         return {
-            "summary": summary.strip(),
+            "summary": summary.strip() if summary.strip() else "AI generated summary is not available in expected format.",
             "themes": themes,
             "progress_notes": progress_notes.strip(),
             "generated_with": model_name
