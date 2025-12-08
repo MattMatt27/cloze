@@ -4,6 +4,9 @@ import json
 import requests
 from typing import List, Dict, Optional, Tuple
 
+# Ollama host configuration (default: localhost for local development)
+OLLAMA_HOST = os.environ.get('OLLAMA_HOST', 'http://localhost:11434')
+
 # Provider clients (optional imports)
 try:
     from openai import OpenAI
@@ -81,16 +84,17 @@ class LLMInterface:
 
         # Local Ollama
         try:
-            response = requests.get('http://localhost:11434/api/tags', timeout=2)
+            ollama_url = f"{OLLAMA_HOST}/api/tags"
+            response = requests.get(ollama_url, timeout=2)
             if response.status_code == 200:
                 cls._provider_clients['local'] = True
                 models = response.json().get('models', [])
                 model_names = [m['name'] for m in models]
-                print(f"✓ Ollama local server detected with models: {model_names}")
+                print(f"✓ Ollama server detected at {OLLAMA_HOST} with models: {model_names}")
             else:
-                print("✗ Ollama server responded but with an error")
+                print(f"✗ Ollama server at {OLLAMA_HOST} responded but with an error")
         except requests.exceptions.RequestException:
-            print("✗ Ollama local server not available (run './setup_ollama.sh' to set up)")
+            print(f"✗ Ollama server not available at {OLLAMA_HOST}")
 
         print("\n=== LLM Client Status ===")
         print(f"Initialized providers: {list(cls._provider_clients.keys())}")
