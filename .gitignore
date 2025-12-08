@@ -47,8 +47,8 @@ htmlcov/
 *.pdf
 report*.html
 
-# DEPLOYMENT FILES (ignore for now)
-DEPLOYMENT.md
+# Docs
+.docs/
 
 # AWS deployment files (ignore for now)
 .aws/

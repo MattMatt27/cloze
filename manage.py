@@ -1,4 +1,5 @@
 import json
+import os
 import time
 from flask import Flask
 from llm_chat import create_app
@@ -71,8 +72,17 @@ def initialize_database():
                       config=json.dumps({'temperature': 0.7, 'max_tokens': 1000})),
                 Model(name='Gemini 1.5 Pro', provider='google', model_identifier='gemini-1.5-pro',
                       config=json.dumps({'temperature': 0.7, 'max_tokens': 1000})),
-                Model(name='Local Llama 3.2 1B', provider='local', api_endpoint='http://localhost:11434/v1/chat/completions',
+                Model(name='Llama 3.2 1B (Fast)', provider='local',
+                      api_endpoint=f"{os.environ.get('OLLAMA_HOST', 'http://localhost:11434')}/v1/chat/completions",
                       model_identifier='llama3.2:1b',
+                      config=json.dumps({'temperature': 0.7, 'max_tokens': 2000})),
+                Model(name='Llama 3.2 3B (Balanced)', provider='local',
+                      api_endpoint=f"{os.environ.get('OLLAMA_HOST', 'http://localhost:11434')}/v1/chat/completions",
+                      model_identifier='llama3.2:3b',
+                      config=json.dumps({'temperature': 0.7, 'max_tokens': 2000})),
+                Model(name='Llama 3.1 8B (Quality)', provider='local',
+                      api_endpoint=f"{os.environ.get('OLLAMA_HOST', 'http://localhost:11434')}/v1/chat/completions",
+                      model_identifier='llama3.1:8b',
                       config=json.dumps({'temperature': 0.7, 'max_tokens': 2000})),
             ]
             for m in models:
