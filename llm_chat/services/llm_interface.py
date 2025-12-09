@@ -207,7 +207,7 @@ class LLMInterface:
                         'max_tokens': config.get('max_tokens', 1000),
                         'stream': False  # Disable streaming for simpler response handling
                     },
-                    timeout=config.get('timeout', 60),  # Use custom timeout if provided
+                    timeout=config.get('timeout', 250),  # Use custom timeout if provided (250s for CPU inference)
                 )
                 response.raise_for_status()
                 result = response.json()['choices'][0]['message']['content']

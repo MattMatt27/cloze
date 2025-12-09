@@ -67,4 +67,8 @@ def create_app():
     with app.app_context():
         report_scheduler.start()
 
+    # Initialize LLM provider clients
+    from .services.llm_interface import LLMInterface
+    LLMInterface.initialize_clients()
+
     return app
