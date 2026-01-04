@@ -15,10 +15,11 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: linear-gradient(135deg, #87CEEB 0%, #4682B4 100%);
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
+            padding: 1rem;
         }
         
         .login-container {
@@ -129,26 +130,6 @@
             font-size: 0.9rem;
         }
         
-        .demo-credentials {
-            margin-top: 2rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid #e0e0e0;
-            font-size: 0.85rem;
-            color: #666;
-        }
-        
-        .demo-credentials h3 {
-            margin-bottom: 0.5rem;
-            color: #333;
-        }
-        
-        .credential-item {
-            margin: 0.5rem 0;
-            padding: 0.5rem;
-            background: #f9f9f9;
-            border-radius: 4px;
-            font-family: monospace;
-        }
     </style>
 </head>
 <body>
@@ -180,18 +161,6 @@
             <button type="submit" class="login-btn" id="loginBtn">Login as User</button>
         </form>
         
-        <div class="demo-credentials">
-            <h3>Demo Credentials</h3>
-            <!-- <div class="credential-item">
-                Admin: admin / admin123
-            </div> -->
-            <div class="credential-item">
-                Provider: provider1 / provider123
-            </div>
-            <div class="credential-item">
-                User: user1 / user123
-            </div>
-        </div>
     </div>
     
     <script>
