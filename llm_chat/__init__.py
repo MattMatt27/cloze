@@ -3,6 +3,7 @@ import secrets
 from pathlib import Path
 from dotenv import load_dotenv
 from flask import Flask
+from werkzeug.middleware.proxy_fix import ProxyFix
 from .extensions import db, migrate, login_manager
 from .routes.auth import auth_bp
 from .routes.auth import auth_blp
@@ -25,6 +26,9 @@ else:
 
 def create_app():
     app = Flask(__name__, template_folder="../templates", static_folder="../static")
+
+    # Trust proxy headers (for Cloudflare/reverse proxy HTTPS)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 
     # Read from environment (with fallbacks)
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", secrets.token_hex(32))
