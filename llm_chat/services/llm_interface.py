@@ -154,13 +154,19 @@ class LLMInterface:
                     else:
                         anthropic_messages.append(msg)
 
-                response = client.messages.create(
-                    model=model.model_identifier,
-                    max_tokens=config.get('max_tokens', 1000),
-                    temperature=config.get('temperature', 0.7),
-                    system=system_msg,
-                    messages=anthropic_messages,
-                )
+                # Build request kwargs
+                request_kwargs = {
+                    'model': model.model_identifier,
+                    'max_tokens': config.get('max_tokens', 1000),
+                    'temperature': config.get('temperature', 0.7),
+                    'messages': anthropic_messages,
+                }
+
+                # Newer Claude models (4.5+) require system as a list of content blocks
+                if system_msg:
+                    request_kwargs['system'] = [{"type": "text", "text": system_msg}]
+
+                response = client.messages.create(**request_kwargs)
                 # anthropic SDK returns list of content blocks
                 result = response.content[0].text
 
