@@ -62,15 +62,15 @@ def initialize_database():
         # Default models (only if none exist)
         if not Model.query.first():
             models = [
-                Model(name='GPT-4', provider='openai', model_identifier='gpt-4',
+                Model(name='GPT-4o', provider='openai', model_identifier='gpt-4o',
                       config=json.dumps({'temperature': 0.7, 'max_tokens': 1000})),
-                Model(name='GPT-3.5 Turbo', provider='openai', model_identifier='gpt-3.5-turbo',
+                Model(name='GPT-4o Mini', provider='openai', model_identifier='gpt-4o-mini',
                       config=json.dumps({'temperature': 0.7, 'max_tokens': 1000})),
-                Model(name='Claude 3 Opus', provider='anthropic', model_identifier='claude-3-opus-20240229',
+                Model(name='Claude Opus 4.5', provider='anthropic', model_identifier='claude-opus-4-5-20251101',
                       config=json.dumps({'temperature': 0.7, 'max_tokens': 1000})),
-                Model(name='Claude 3.5 Sonnet', provider='anthropic', model_identifier='claude-3-5-sonnet-20241022',
+                Model(name='Claude Sonnet 4.5', provider='anthropic', model_identifier='claude-sonnet-4-5-20250514',
                       config=json.dumps({'temperature': 0.7, 'max_tokens': 1000})),
-                Model(name='Gemini 1.5 Pro', provider='google', model_identifier='gemini-1.5-pro',
+                Model(name='Gemini 2.0 Flash', provider='google', model_identifier='gemini-2.0-flash',
                       config=json.dumps({'temperature': 0.7, 'max_tokens': 1000})),
                 Model(name='Llama 3.2 1B (Fast)', provider='local',
                       api_endpoint=f"{os.environ.get('OLLAMA_HOST', 'http://localhost:11434')}/v1/chat/completions",
