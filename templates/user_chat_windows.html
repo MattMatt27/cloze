@@ -668,10 +668,16 @@
       </div>`;
 
       try {
-        const response = await fetch(`/api/reports/live/${windowId}`);
-        if (!response.ok) throw new Error('Failed to load report');
+        // First get the report for this window
+        const reportRes = await fetch(`/api/reports/window/${windowId}`);
+        if (!reportRes.ok) throw new Error('Report not found');
+        const report = await reportRes.json();
 
-        const data = await response.json();
+        // Then get the HTML
+        const htmlRes = await fetch(`/api/reports/html/${report.id}`);
+        if (!htmlRes.ok) throw new Error('Failed to load report HTML');
+        const data = await htmlRes.json();
+
         content.innerHTML = data.html;
       } catch (error) {
         console.error('Error loading report:', error);
