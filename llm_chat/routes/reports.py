@@ -82,7 +82,8 @@ def get_window_report(window_id):
     elif current_user.is_provider() and window.provider_id != current_user.id:
         abort(403)
 
-    report = Report.query.filter_by(window_id=window_id, report_type='default').first()
+    # Get most recent report for this window (any type)
+    report = Report.query.filter_by(window_id=window_id).order_by(Report.generated_at.desc()).first()
 
     if not report:
         return jsonify({'error': 'Report not found'}), 404
