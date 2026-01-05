@@ -13,16 +13,24 @@ reports_bp = Blueprint("reports", __name__, url_prefix="/api/reports")
 @reports_bp.route("/", methods=["GET"])
 @login_required
 def get_reports():
-    """Get reports accessible to current user"""
+    """Get reports accessible to current user (only from visible windows)"""
     if current_user.is_patient():
-        # Patients see their own reports
-        reports = Report.query.filter_by(patient_id=current_user.id).order_by(Report.generated_at.desc()).all()
+        # Patients see their own reports from visible windows
+        reports = Report.query.join(ChatWindow).filter(
+            Report.patient_id == current_user.id,
+            ChatWindow.visible == True
+        ).order_by(Report.generated_at.desc()).all()
     elif current_user.is_provider():
-        # Providers see reports for their patients
-        reports = Report.query.filter_by(provider_id=current_user.id).order_by(Report.generated_at.desc()).all()
+        # Providers see reports for their patients from visible windows
+        reports = Report.query.join(ChatWindow).filter(
+            Report.provider_id == current_user.id,
+            ChatWindow.visible == True
+        ).order_by(Report.generated_at.desc()).all()
     elif current_user.is_admin():
-        # Admins see all reports
-        reports = Report.query.order_by(Report.generated_at.desc()).all()
+        # Admins see all reports from visible windows
+        reports = Report.query.join(ChatWindow).filter(
+            ChatWindow.visible == True
+        ).order_by(Report.generated_at.desc()).all()
     else:
         abort(403)
 
@@ -47,7 +55,7 @@ def get_report(report_id):
 @reports_bp.route("/patient/<int:patient_id>", methods=["GET"])
 @login_required
 def get_patient_reports(patient_id):
-    """Get all reports for a specific patient (provider only)"""
+    """Get all reports for a specific patient (provider only, visible windows only)"""
     if not current_user.is_provider() and not current_user.is_admin():
         abort(403)
 
@@ -55,7 +63,10 @@ def get_patient_reports(patient_id):
     if current_user.is_provider() and not current_user.can_access_patient(patient_id):
         abort(403)
 
-    reports = Report.query.filter_by(patient_id=patient_id).order_by(Report.generated_at.desc()).all()
+    reports = Report.query.join(ChatWindow).filter(
+        Report.patient_id == patient_id,
+        ChatWindow.visible == True
+    ).order_by(Report.generated_at.desc()).all()
     return jsonify([r.to_dict() for r in reports])
 
 

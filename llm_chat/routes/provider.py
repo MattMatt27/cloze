@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, jsonify, request, abort
 from flask_login import current_user
 from ..utils.decorators import role_required
 from ..extensions import db
-from ..models import User, Conversation, ProviderPatient, ProviderSettings
+from ..models import User, Conversation, ProviderPatient, ProviderSettings, ChatWindow
 
 provider_bp = Blueprint("provider", __name__, url_prefix="")
 
@@ -35,11 +35,17 @@ def get_provider_patients():
         conv = u.conversations.order_by(Conversation.updated_at.desc()).first()
         return conv.updated_at if conv else None
 
+    def visible_conversation_count(u: User):
+        return Conversation.query.join(ChatWindow).filter(
+            Conversation.user_id == u.id,
+            ChatWindow.visible == True
+        ).count()
+
     return jsonify([{
         'id': p.id,
         'username': p.username,
         'email': p.email,
-        'conversation_count': p.conversations.count(),
+        'conversation_count': visible_conversation_count(p),
         'last_active': last_active_for(p)
     } for p in patients])
 
