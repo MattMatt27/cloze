@@ -165,6 +165,26 @@
     </div>
   </div>
 
+  <!-- Report Modal -->
+  <div id="reportModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/50" onclick="closeReportModal()"></div>
+    <div class="absolute inset-4 sm:inset-8 md:inset-12 lg:inset-16 flex flex-col rounded-2xl bg-white shadow-2xl overflow-hidden">
+      <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+        <h3 class="text-lg font-semibold text-slate-900">Session Report</h3>
+        <button onclick="closeReportModal()" class="rounded-md p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M6 6l12 12M6 18L18 6"/>
+          </svg>
+        </button>
+      </div>
+      <div id="reportModalContent" class="flex-1 overflow-y-auto p-6">
+        <div class="flex items-center justify-center h-32">
+          <p class="text-slate-500">Loading report...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Create/Edit Modal -->
   <div id="windowModal"
        class="hidden fixed inset-0 z-50 items-center justify-center bg-black/50 p-4">
@@ -492,6 +512,10 @@
                 </div>
               </div>
               <div class="flex gap-2">
+                ${w.status === 'report_ready' ? `
+                <button class="rounded-md bg-indigo-600 px-3 py-1 text-sm font-medium text-white hover:bg-indigo-700"
+                        onclick="openReportModal(${w.id})">View Report</button>
+                ` : ''}
                 ${w.allowEdit ? `
                 <button class="rounded-md border border-slate-200 px-2 py-1 text-sm hover:bg-slate-100"
                         title="Edit" onclick="editWindow(${w.id})">✏️</button>
@@ -513,8 +537,11 @@
                     ${t.purpose ? `<div class="mb-2 text-sm text-slate-600">${t.purpose}</div>` : ''}
                     <div class="flex items-center justify-between text-xs text-slate-600">
                       <span class="rounded-md bg-sky-100 px-2 py-0.5 font-medium text-sky-700">${t.model || 'Unknown Model'}</span>
-                      <!--<span>${t.max_messages ? `Max: ${t.max_messages}` : 'Unlimited'}</span>-->
                     </div>
+                    ${t.conversation_id ? `
+                    <button class="mt-2 w-full rounded-md bg-slate-200 px-2 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-300"
+                            onclick="viewTranscript(${t.conversation_id})">View Transcript</button>
+                    ` : ''}
                   </div>
                 `).join('')}
               </div>
@@ -807,6 +834,40 @@
         alert(`Failed to generate enhanced report: ${e.message}`);
       }
     });
+
+    // ===== Report Modal =====
+    async function openReportModal(windowId) {
+      const modal = document.getElementById('reportModal');
+      const content = document.getElementById('reportModalContent');
+
+      modal.classList.remove('hidden');
+      content.innerHTML = '<div class="flex items-center justify-center h-32"><p class="text-slate-500">Loading report...</p></div>';
+
+      try {
+        // First get the report for this window
+        const reportRes = await fetch(`/api/reports/window/${windowId}`);
+        if (!reportRes.ok) throw new Error('Report not found');
+        const report = await reportRes.json();
+
+        // Then get the HTML content
+        const htmlRes = await fetch(`/api/reports/html/${report.id}`);
+        if (!htmlRes.ok) throw new Error('Failed to load report HTML');
+        const htmlData = await htmlRes.json();
+
+        content.innerHTML = htmlData.html;
+      } catch (e) {
+        console.error('Error loading report:', e);
+        content.innerHTML = `<div class="flex items-center justify-center h-32"><p class="text-rose-500">Failed to load report: ${e.message}</p></div>`;
+      }
+    }
+
+    function closeReportModal() {
+      document.getElementById('reportModal').classList.add('hidden');
+    }
+
+    function viewTranscript(conversationId) {
+      window.location.href = `/chat?cid=${conversationId}`;
+    }
 
     // ===== Auth =====
     async function logout(){ await fetch('/logout'); window.location.href='/login'; }
