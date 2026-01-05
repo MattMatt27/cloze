@@ -181,8 +181,10 @@
     }
 
     function renderStats(patients, windows) {
-      const active   = windows.filter(w => w.is_current);
-      const templates= windows.reduce((s,w)=> s + (w.templates?.length || 0), 0);
+      // Only count visible windows
+      const visibleWindows = windows.filter(w => w.visible);
+      const active   = visibleWindows.filter(w => w.is_current);
+      const templates= visibleWindows.reduce((s,w)=> s + (w.templates?.length || 0), 0);
 
       const card = (label, value) => `
         <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
@@ -192,7 +194,7 @@
 
       document.getElementById('statsGrid').innerHTML =
         card('Total Patients', patients.length) +
-        card('Chat Windows', windows.length) +
+        card('Chat Windows', visibleWindows.length) +
         card('Active Windows', active.length) +
         card('Chat Templates', templates);
     }

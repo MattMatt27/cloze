@@ -172,16 +172,16 @@ def get_conversations():
         if c.window_id:
             window = ChatWindow.query.get(c.window_id)
             if window:
+                # Skip conversations in hidden windows
+                if not window.visible:
+                    continue
                 window_end_date = window.end_date
                 window_start_date = window.start_date
                 window_title = window.title
                 window_description = window.description
                 window_status = window.compute_status(now)
                 is_upcoming = window_status == 'scheduled'
-                if not window.visible:
-                    is_active = False
-                else:
-                    is_active = window_status == 'active'
+                is_active = window_status == 'active'
 
         if len(msgs) == 0 and not c.visible:
             continue
@@ -197,6 +197,7 @@ def get_conversations():
             'visible': c.visible,
             'is_active': is_active,
             'is_upcoming': is_upcoming,
+            'window_id': c.window_id,
             'window_status': window_status,
             'window_end_date': window_end_date,
             'window_start_date': window_start_date,
