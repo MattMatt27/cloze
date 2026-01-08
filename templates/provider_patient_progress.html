@@ -91,7 +91,7 @@
         <section id="patientSelectionView">
           <div class="mb-6 border-b border-slate-200 pb-4">
             <h2 class="mb-1 text-xl font-semibold text-slate-900">Select a Patient to View Progress</h2>
-            <p class="text-slate-600">Choose a patient to review their reports, active windows, and recent conversations.</p>
+            <p class="text-slate-600">Choose a patient to review their session completion reports.</p>
           </div>
           <div id="patientGrid" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <!-- injected -->
@@ -107,39 +107,12 @@
             <div class="mb-6 border-b border-slate-200 pb-4">
               <h2 id="patientName" class="text-xl font-semibold">Patient Name</h2>
               <p id="patientEmail" class="text-slate-600">patient@email.com</p>
-
-              <!-- Tabs -->
-              <div class="mt-4">
-                <div class="flex gap-6">
-                  <button class="tab-btn relative -mb-px border-b-2 border-transparent px-2 py-3 text-sm font-medium text-slate-600 hover:text-slate-900"
-                          onclick="showTab('reports', this)">Reports</button>
-                  <button class="tab-btn relative -mb-px border-b-2 border-transparent px-2 py-3 text-sm font-medium text-slate-600 hover:text-slate-900"
-                          onclick="showTab('active-windows', this)">Active Windows</button>
-                  <button class="tab-btn relative -mb-px border-b-2 border-transparent px-2 py-3 text-sm font-medium text-slate-600 hover:text-slate-900"
-                          onclick="showTab('conversations', this)">Recent Conversations</button>
-                </div>
-              </div>
             </div>
 
-            <div class="space-y-8">
-              <!-- Reports Tab -->
-              <div id="reports-tab" class="tab-panel">
-                <h3 class="mb-3 text-base font-semibold">Window Completion Reports</h3>
-                <div id="reportsList" class="grid gap-4">
-                  <!-- injected -->
-                </div>
-              </div>
-
-              <!-- Active Windows Tab -->
-              <div id="active-windows-tab" class="tab-panel hidden">
-                <h3 class="mb-3 text-base font-semibold">Currently Active Windows</h3>
-                <div id="activeWindowsList"></div>
-              </div>
-
-              <!-- Conversations Tab -->
-              <div id="conversations-tab" class="tab-panel hidden">
-                <h3 class="mb-3 text-base font-semibold">Recent Conversations</h3>
-                <div id="conversationsList"></div>
+            <div>
+              <h3 class="mb-3 text-base font-semibold">Session Completion Reports</h3>
+              <div id="reportsList" class="grid gap-4">
+                <!-- injected -->
               </div>
             </div>
           </div>
@@ -239,35 +212,12 @@
       document.getElementById('progressView').classList.remove('hidden');
 
       await loadPatientReports(patientId);
-      await loadActiveWindows(patientId);
-
-      // default to Reports tab
-      activateTabButton(document.querySelectorAll('.tab-btn')[0]);
-      showPanel('reports');
     }
 
     function showPatientSelection() {
       document.getElementById('patientSelectionView').classList.remove('hidden');
       document.getElementById('progressView').classList.add('hidden');
       currentPatient = null;
-    }
-
-    // ===== Tabs =====
-    function showTab(tabName, el) {
-      activateTabButton(el);
-      showPanel(tabName);
-    }
-    function activateTabButton(el) {
-      document.querySelectorAll('.tab-btn').forEach(b => {
-        b.classList.remove('border-indigo-500','text-slate-900');
-        b.classList.add('border-transparent','text-slate-600');
-      });
-      el.classList.remove('border-transparent','text-slate-600');
-      el.classList.add('border-indigo-500','text-slate-900');
-    }
-    function showPanel(name) {
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
-      document.getElementById(`${name}-tab`).classList.remove('hidden');
     }
 
     // ===== Reports =====
@@ -326,66 +276,6 @@
           </div>
         `;
       }).join('');
-    }
-
-    // ===== Active Windows =====
-    async function loadActiveWindows(patientId) {
-      try {
-        const res = await fetch(`/api/windows?patient_id=${patientId}`);
-        const all = await res.json();
-        const now = Date.now() / 1000;
-        const active = all.filter(w => w.visible && w.is_current);
-
-        const list = document.getElementById('activeWindowsList');
-        if (!active.length) {
-          list.innerHTML = `<div class="rounded-xl bg-white p-6 text-center text-slate-600 shadow-sm ring-1 ring-slate-100">No active windows</div>`;
-          return;
-        }
-
-        list.innerHTML = `
-          <div class="grid gap-4">
-            ${active.map(w => `
-              <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-100">
-                <div class="border-b border-slate-200 bg-slate-50 p-4">
-                  <div class="text-base font-semibold text-slate-900">${w.title}</div>
-                  <div class="mt-1 text-sm text-slate-600">
-                    Period: ${new Date(w.start_date * 1000).toLocaleDateString()} - ${new Date(w.end_date * 1000).toLocaleDateString()} |
-                    Status: <span class="font-semibold text-emerald-700">Active</span>
-                  </div>
-                </div>
-                <div class="p-4">
-                  ${w.description ? `<p class="mb-3 text-slate-700">${w.description}</p>` : ''}
-                  <div class="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-                    <div class="rounded-lg bg-slate-50 p-3 text-center">
-                      <div class="text-2xl font-bold text-indigo-600">${w.templates ? w.templates.length : 0}</div>
-                      <div class="text-xs text-slate-600">Chat Templates</div>
-                    </div>
-                    <div class="rounded-lg bg-slate-50 p-3 text-center">
-                      <div class="text-2xl font-bold text-indigo-600">${Math.max(0, Math.ceil((w.end_date - now) / 86400))}</div>
-                      <div class="text-xs text-slate-600">Days Remaining</div>
-                    </div>
-                  </div>
-                  ${w.templates && w.templates.length ? `
-                    <div>
-                      <h4 class="mb-2 text-sm font-semibold text-slate-800">Configured Chats:</h4>
-                      <div class="grid gap-2">
-                        ${w.templates.map(t => `
-                          <div class="rounded-md border-l-4 border-indigo-500 bg-slate-50 p-3">
-                            <strong>${t.title}</strong>
-                            ${t.purpose ? `<div class="mt-1 text-sm text-slate-600">${t.purpose}</div>` : ''}
-                          </div>
-                        `).join('')}
-                      </div>
-                    </div>
-                  ` : ''}
-                </div>
-              </div>
-            `).join('')}
-          </div>
-        `;
-      } catch (e) {
-        console.error('Error loading windows:', e);
-      }
     }
 
     // ===== Report modal =====
