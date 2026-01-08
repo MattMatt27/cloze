@@ -494,7 +494,7 @@
 
     async function loadExistingConversations() {
       try {
-        const response = await fetch('/api/windows');
+        const response = await fetch('/api/windows/');
         if (!response.ok) {
           if (response.status === 401) {
             window.location.href = '/login';

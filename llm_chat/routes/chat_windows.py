@@ -13,8 +13,8 @@ window_bp = Blueprint("chat_windows", __name__, url_prefix="/api/windows")
 def get_chat_windows():
     """Get chat windows for current user or managed patients"""
     if current_user.is_patient():
-        # Get windows for current patient
-        windows = ChatWindow.query.filter_by(patient_id=current_user.id).all()
+        # Get visible windows for current patient
+        windows = ChatWindow.query.filter_by(patient_id=current_user.id, visible=True).all()
     elif current_user.is_provider():
         # Get windows for all patients managed by provider
         patient_id = request.args.get('patient_id')
