@@ -1,126 +1,191 @@
-# LLM Chat
+# Cloze
 
-LLM Chat is a chatbot leveraging industry-standard LLM models (OpenAI, Gemini, Anthropic) to converse and capture patient's behavior in between therapy sessions. This allows clinicians to have a good understanding of their patients.
+Cloze is a clinical conversation platform that enables structured, AI-mediated communication between patients and providers. Providers configure time-boxed conversation windows with specific therapeutic prompts, patients engage asynchronously, and the system generates clinical reports when windows close.
 
-## TODO
-- [ ] Clarify on different workflows and states
-- [ ] User active chat should show both started and non-started chat
-- [x] Add filtering/sorting order for rovider chat window / potentially rearrange order
-- [ ] CHeck if report generate per convo or per window
-- [ ] Add more informational for when creating new chat window
-- [ ] Adding model for report
-- [x] Adding header, standardizing language across pages and chat creation
-- [x] Navigation standardization, settings hiding, lock ability to recreate chat, showing inactive/past convo
-## Quick Start for Mac
+Live at [cloze.uk](https://cloze.uk)
+
+## Quick Start
 
 ### Prerequisites
 
-1. **Open Terminal** (press `Cmd + Space`, type "Terminal", and press Enter)
-
-2. **Install Homebrew** (if you don't have it):
-   ```bash
-   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-   ```
-
-3. **Install Python and Git**:
-   ```bash
-   brew install python@3.11 git
-   ```
+- Python 3.9+
+- [Homebrew](https://brew.sh) (macOS)
 
 ### Installation
 
-1. **Download the project**:
-   ```bash
-   cd ~/Desktop
-   git clone https://github.com/yourusername/cosmos.git
-   cd cosmos
-   ```
-
-2. **Set up Python environment**:
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   pip install -r requirements.txt
-   ```
-
-   **Note**: Run `source .venv/bin/activate` each time you open a new Terminal window to work on this project.
-
-3. **Configure API keys**:
-   ```bash
-   cp .env.example .env
-   open -a TextEdit .env
-   ```
-
-   In TextEdit, add at least one API key and save the file. The app will automatically load it when you start.
-
-4. **Start the application**:
-   ```bash
-   python manage.py
-   ```
-
-   Open your browser and go to: `http://localhost:5000`
-
-### (Optional) Local LLM with Ollama
-
-For complete privacy without cloud APIs:
-
 ```bash
-brew install ollama
-ollama serve              # Keep this running in one Terminal window
-ollama pull llama3.2:1b   # Run in a new Terminal window
-```
+git clone https://github.com/MattMatt27/cloze.git
+cd cloze
 
-**Trade-offs**: Complete privacy and free to use, but slower responses (30-60s vs 5-10s) and lower quality than cloud models.
-
-### Updating the Code
-
-```bash
-cd ~/Desktop/cosmos
-git pull
+python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+```
+
+### Configuration
+
+```bash
+cp .env.example .env
+```
+
+Add at least one LLM provider API key to `.env`:
+
+```
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+GOOGLE_API_KEY=AI...
+```
+
+### Run
+
+```bash
 python manage.py
 ```
 
-## Features
+Open [http://localhost:5051](http://localhost:5051). The first run seeds the database with demo users.
 
-### Conversation Context
-All conversations maintain context across messages, sending the **last 20 messages** to the LLM with each new message. This allows the AI to remember earlier parts of the conversation and provide contextually relevant responses.
+**Demo accounts:**
 
-- System prompts are included at the beginning of each request
-- Older messages (beyond the last 20) are automatically dropped to manage token limits
-- To adjust the context window, modify the `limit(20)` value in `llm_chat/routes/conversations.py:260`
+| Role | Username | Password |
+|------|----------|----------|
+| Admin | `admin` | `admin123` |
+| Provider | `provider1` | `provider123` |
+| Patient | `user1` | `user123` |
 
-### Performance Notes
-- **Cloud APIs** (OpenAI, Anthropic, Google): Fast responses (5-10 seconds)
-- **Local Ollama on M1 MacBook Air**: Slower responses (~30-60 seconds for Llama 3.2 1B)
-- Local models prioritize privacy over speed - ideal for development and sensitive data
+### PDF Reports (optional)
 
-## Documentation
-API documentation implemented with Swagger available at /docs
-
-## Project Structure
 ```bash
-|-- main
-|   |-- llm_chat              # backend
-|       |-- models            # database model
-|       |-- routes            # api routes
-|       |-- services          # setup LLM interface
-|       |-- utils             # role management
-|       |--__init__.py
-|       |--extensions.py
-|   |-- client                # frontend (soon)
-|   |-- templates             # frontend (current)
-|   |-- manage.py             # app entry point
-|   |-- README.md
+brew install pango
 ```
 
-## Contributing
+This enables PDF export alongside HTML. Without it, PDF downloads fall back to HTML.
 
-Pull requests are welcome. For major changes, please open an issue first
-to discuss what you would like to change.
+### Local LLM with Ollama (optional)
 
-Please make sure to update tests as appropriate.
+```bash
+brew install ollama
+ollama serve              # keep running in one terminal
+ollama pull llama3.2:1b   # in another terminal
+```
+
+Provides on-device AI summaries in reports without cloud API calls.
+
+## Architecture
+
+Flask + SQLAlchemy + Jinja2 templates + Tailwind CSS (CDN). SQLite in development, PostgreSQL-ready for production.
+
+```
+cloze/
+├── llm_chat/                 # Flask application
+│   ├── models/               # SQLAlchemy models
+│   │   ├── core.py           #   User, ProviderPatient, Model, SystemPrompt
+│   │   ├── chat_window.py    #   ChatWindow, ChatTemplate
+│   │   ├── chat.py           #   Conversation, Message, Selection
+│   │   ├── report.py         #   Report
+│   │   ├── safety_plan.py    #   SafetyPlan
+│   │   └── settings.py       #   ProviderSettings
+│   ├── routes/               # API + page routes
+│   │   ├── auth.py           #   Login/logout
+│   │   ├── admin.py          #   Admin dashboard
+│   │   ├── provider.py       #   Provider dashboard + patient management
+│   │   ├── chat_windows.py   #   Window CRUD, conversation lifecycle
+│   │   ├── conversations.py  #   Patient-facing pages
+│   │   ├── reports.py        #   Report generation, download, config
+│   │   └── safety_plan.py    #   Safety plan CRUD + approval workflow
+│   ├── services/
+│   │   ├── llm_interface.py  #   Multi-provider LLM client (OpenAI, Anthropic, Google, Ollama)
+│   │   ├── report_utils.py   #   Report generation orchestration
+│   │   └── report_scheduler.py
+│   └── utils/
+│       └── decorators.py     #   @role_required
+├── prompts/                  # Layered prompt system
+│   ├── composer.py           #   compose_system_prompt() — assembles all layers
+│   ├── registry.py           #   Domain prompt registry
+│   ├── constitutional/       #   Layer 1: identity, safety, scope
+│   └── domains/              #   Layer 2: anxiety, depression, trauma, etc.
+├── report/                   # Report generation pipeline
+│   ├── generator.py          #   UnifiedReportGenerator orchestrator
+│   ├── config.py             #   v1/v2 config normalization
+│   ├── registry.py           #   Feature registry (available/coming_soon/licensed)
+│   ├── base.py               #   ReportComponent base class
+│   ├── components/           #   Self-contained analysis components
+│   │   ├── ai_summary.py     #     LLM-generated clinical summary
+│   │   ├── descriptive_stats.py
+│   │   ├── nlp_analysis.py   #     Sentiment, voice, keywords
+│   │   ├── cooccurrence_analysis.py
+│   │   └── saved_messages.py
+│   ├── analyzers/            #   Pure-function analyzers (no DB access)
+│   │   ├── sentiment.py
+│   │   ├── voice_analysis.py
+│   │   ├── keyword_extraction.py
+│   │   └── cooccurrence.py
+│   ├── renderers/
+│   │   ├── html_renderer.py
+│   │   └── pdf_renderer.py
+│   └── styles/
+│       ├── base_styles.py    #   Cloze design tokens
+│       ├── academic_styles.py
+│       └── pdf_styles.py
+├── templates/                # Jinja2 (all extend base.html)
+│   ├── base.html             #   Shared layout, sidebar, Tailwind config
+│   ├── login.html
+│   ├── admin_dashboard.html
+│   ├── provider_dashboard.html
+│   ├── provider_chat_windows.html
+│   ├── user_dashboard.html
+│   ├── user_chat_windows.html
+│   ├── patient_reports.html
+│   └── conversation.html
+├── static/
+│   ├── js/shared.js          #   Shared utilities (escapeHtml, formatDate, etc.)
+│   └── images/logo.png
+└── manage.py                 # Entry point + database seeder
+```
+
+## Key Concepts
+
+### Chat Windows
+
+A time-boxed period (e.g., one week) during which a patient can have conversations. Providers create windows with one or more **chat templates** — each template has a title, purpose, assigned LLM model, and system prompt. Windows follow a lifecycle: `scheduled` → `active` → `generating_report` → `report_ready`.
+
+### Prompt System
+
+Four-layer prompt composition:
+1. **Constitutional** — identity, safety boundaries, scope constraints (markdown files)
+2. **Domain** — therapeutic focus area (anxiety, depression, trauma, etc.)
+3. **Custom instructions** — provider-written per-template guidance
+4. **Safety plan** — patient-specific warning signs, coping strategies, anti-patterns
+
+### Safety Plans
+
+Based on the Stanley-Brown Safety Planning Intervention. Provider creates the clinical framework (anti-patterns, care team, emergency plan), patient fills in their sections (warning signs, coping strategies, support network, reasons for living). Versioned with approval workflow: `draft` → `pending_review` → `active` → `superseded`.
+
+### Reports
+
+Generated when a chat window closes. Both **summary** and **detailed** versions are produced. Components run independently and degrade gracefully if dependencies are unavailable:
+
+- **AI Summary** — LLM-generated clinical narrative (requires Ollama)
+- **Descriptive Stats** — message counts, durations, averages
+- **NLP Analysis** — sentiment, active/passive voice, emotional keywords
+- **Co-occurrence Analysis** — word network graph (matplotlib + networkx)
+- **Saved Messages** — patient-flagged quotes from conversations
+
+Download as HTML or PDF in either summary or detailed format.
+
+### Three User Roles
+
+- **Patient** — conversations, safety plan, view own reports
+- **Provider** — manage windows/templates, review safety plans, view patient reports
+- **Admin** — user management, system overview
+
+## Deployment
+
+The application runs as a Docker container on AWS ECS. See `.aws/` for task definitions and `.github/workflows/` for CI/CD templates.
+
+```bash
+docker build -t cloze-app .
+docker run -p 5051:5001 --env-file .env cloze-app
+```
 
 ## License
 
