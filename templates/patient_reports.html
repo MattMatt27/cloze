@@ -1,574 +1,206 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>My Reports</title>
-  <link rel="icon" type="image/png" href="/static/images/logo.png">
+{% extends "base.html" %}
 
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            brand: { 50: '#eef6ff', 600: '#6366f1' }
-          }
-        }
-      }
-    };
-  </script>
-</head>
-<body class="min-h-screen bg-slate-50 text-slate-900">
-  <div class="flex min-h-screen">
+{% block title %}Reports — Cloze{% endblock %}
+{% block page_title %}My Reports{% endblock %}
 
-    <!-- Sidebar -->
-    <aside id="sidebar"
-           class="fixed inset-y-0 left-0 z-40 w-72 -translate-x-full border-r border-slate-200 bg-white px-3 py-4 transition-transform lg:static lg:translate-x-0">
-      <div class="mb-4 flex items-center gap-2 px-3">
-        <span class="text-med text-brand-600 sm:inline">
-          Welcome, {{ current_user.username }}
-        </span>
-      </div>
+{% block content %}
+  <section class="mb-8 max-w-2xl">
+    <h2 class="text-lg font-semibold text-stone-900">Your Conversation Reports</h2>
+    <p class="mt-1 text-sm text-stone-500">
+      These reports are created when conversation windows close. They help you and your provider review key discussion points and patterns.
+    </p>
+    <p class="mt-2 flex items-center gap-1.5 text-xs text-stone-400">
+      <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      Secure — Your reports are shared with your provider and care team.
+    </p>
+  </section>
 
-      <nav class="space-y-6 overflow-y-auto px-1">
-        <div>
-          <p class="mb-2 px-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Pages</p>
-          <ul class="space-y-1">
-            <li>
-              <a href="/dashboard"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-slate-600 hover:bg-slate-100">
-                <svg class="h-5 w-5 text-slate-400 group-hover:text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-                  <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6"/>
-                </svg>
-                <span>Dashboard</span>
-              </a>
-            </li>
-            <li>
-              <a href="/chat-windows"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-slate-600 hover:bg-slate-100"
-                 title="View and manage all your conversation windows">
-                <svg class="h-5 w-5 text-slate-400 group-hover:text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-                  <path d="M8 10h8M8 14h5"/><path d="M21 12a8.5 8.5 0 01-1.6 5l.6 3-3-1a8.5 8.5 0 11-2-14.5"/>
-                </svg>
-                <span>My Conversations</span>
-              </a>
-            </li>
-            <li>
-              <a href="/my-reports"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-slate-600 hover:bg-slate-100"
-                 title="Review reports from completed conversations">
-                <svg class="h-5 w-5 text-slate-400 group-hover:text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-                  <path d="M5 4h14M5 8h14M5 12h7M5 16h7M5 20h14"/>
-                </svg>
-                <span>Reports</span>
-              </a>
-            </li>
-            <li>
-              <button type="button"
-                      onclick="toggleSelections()"
-                      class="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-slate-600 transition hover:bg-slate-100"
-                      title="Quotes and insights you've saved from your conversations">
-                <svg class="h-5 w-5 text-slate-400 group-hover:text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-                  <path d="M6 4h12a1 1 0 011 1v16l-7-3-7 3V5a1 1 0 011-1z"/>
-                </svg>
-                <span>Saved Quotes</span>
-              </button>
-            </li>
-          </ul>
-        </div>
-      </nav>
-    </aside>
-
-    <!-- Overlay for mobile -->
-    <div id="overlay" class="fixed inset-0 z-30 hidden bg-black/30 lg:hidden"></div>
-
-    <!-- Main column -->
-    <div class="flex min-w-0 flex-1 flex-col">
-
-      <!-- Top bar -->
-      <header class="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-slate-200 bg-white/80 px-4 backdrop-blur">
-        <button id="menuBtn"
-                class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 lg:hidden">
-          <svg class="h-5 w-5 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M4 6h16M4 12h16M4 18h16"/>
-          </svg>
-          <span class="text-sm">Menu</span>
-        </button>
-
-        <h1 class="text-lg font-semibold">My Reports</h1>
-
-        <div class="ml-auto flex items-center gap-3">
-          <button onclick="logout()"
-                  class="rounded-md border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100">
-            Logout
-          </button>
-        </div>
-      </header>
-
-      <!-- Content -->
-      <main class="w-full p-6 space-y-6">
-        <section class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
-          <h2 class="text-xl font-semibold text-slate-900 text-center">Your Conversation Reports</h2>
-          <p class="mt-2 text-sm text-slate-600 max-w-3xl mx-auto">
-            These reports are created when conversation windows close. They help you and your provider review key discussion points and patterns. Your provider configures what information is included in each report.
-          </p>
-          <div class="mt-3 pt-3 border-t border-slate-200">
-            <p class="text-xs text-slate-500 text-center">
-              🔒 Secure - Your reports are shared with your provider and care team.
-            </p>
-          </div>
-        </section>
-
-        <section>
-          <div id="reportsGrid"
-               class="grid gap-4 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-2">
-            <!-- Reports injected here -->
-          </div>
-
-          <div id="emptyState"
-               class="mt-4 hidden rounded-xl border border-dashed border-slate-200 bg-white p-12 text-center text-slate-600">
-            <h3 class="text-lg font-semibold text-slate-900">No Reports Yet</h3>
-            <p class="mt-2 text-sm max-w-md mx-auto">
-              Conversation reports are automatically generated when a conversation window closes. Your first report will appear here after you complete your initial conversation window. These reports are shared with your provider as part of your care coordination.
-            </p>
-          </div>
-        </section>
-      </main>
+  <section>
+    <div id="reportsGrid" class="grid gap-4 sm:grid-cols-1 lg:grid-cols-2"></div>
+    <div id="emptyState" class="mt-4 hidden rounded-md border border-dashed border-stone-200 bg-white p-12 text-center">
+      <h3 class="text-base font-semibold text-stone-800">No Reports Yet</h3>
+      <p class="mt-2 max-w-md mx-auto text-sm text-stone-500">
+        Reports are automatically generated when a conversation window closes. Your first report will appear here after you complete your initial conversation window.
+      </p>
     </div>
-  </div>
+  </section>
+{% endblock %}
 
-  <!-- Saved selections drawer -->
+{% block modals %}
+  {# Selections drawer #}
   <div id="selectionsOverlay" class="fixed inset-0 z-30 hidden bg-black/20"></div>
-
   <aside id="selectionsSidebar"
-         class="fixed inset-y-0 right-0 z-40 flex h-full w-full max-w-md translate-x-full transform flex-col border-l border-slate-200 bg-white shadow-xl transition-transform duration-200 ease-out">
-    <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-      <h3 class="text-base font-semibold text-slate-800">Saved Selections</h3>
-      <button type="button"
-              onclick="toggleSelections()"
-              class="rounded-md p-1 text-slate-500 transition hover:text-slate-700">
+         class="fixed inset-y-0 right-0 z-40 flex h-full w-full max-w-md translate-x-full transform flex-col border-l border-stone-200 bg-white shadow-lg transition-transform duration-200 ease-out">
+    <div class="flex items-center justify-between border-b border-stone-200 px-5 py-4">
+      <h3 class="text-sm font-semibold text-stone-900">Saved Quotes</h3>
+      <button type="button" onclick="toggleSelections()" class="rounded-md p-1 text-stone-400 transition hover:text-stone-600">
         <span class="sr-only">Close</span>
-        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-          <path d="M6 6l12 12M6 18L18 6"/>
-        </svg>
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M6 18L18 6"/></svg>
       </button>
     </div>
-    <div id="selectionsContent" class="flex-1 overflow-y-auto divide-y divide-slate-100">
-      <!-- Selections injected -->
-    </div>
+    <div id="selectionsContent" class="flex-1 overflow-y-auto divide-y divide-stone-100"></div>
   </aside>
 
-  <!-- Report details modal -->
-  <div id="reportModal" class="fixed inset-0 z-50 hidden bg-black/40 p-4 backdrop-blur-sm">
+  {# Report details modal #}
+  <div id="reportModal" class="fixed inset-0 z-50 hidden bg-black/40 p-4">
     <div class="mx-auto flex h-full max-w-4xl items-center justify-center">
-      <div class="relative flex max-h-full w-full flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
-        <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-          <h2 class="text-lg font-semibold text-slate-900">Session Report Details</h2>
-          <button type="button"
-                  onclick="closeModal()"
-                  class="rounded-md p-1 text-slate-500 transition hover:text-slate-700">
-            <span class="sr-only">Close modal</span>
-            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-              <path d="M6 6l12 12M6 18L18 6"/>
-            </svg>
+      <div class="relative flex max-h-full w-full flex-col overflow-hidden rounded-lg bg-white shadow-lg">
+        <div class="flex items-center justify-between border-b border-stone-200 px-6 py-4">
+          <h2 class="text-base font-semibold text-stone-900">Session Report</h2>
+          <button type="button" onclick="closeModal()" class="rounded-md p-1 text-stone-400 transition hover:text-stone-600">
+            <span class="sr-only">Close</span>
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M6 18L18 6"/></svg>
           </button>
         </div>
-        <div id="reportContent" class="flex-1 overflow-y-auto px-6 py-5">
-          <!-- Detailed report content -->
-        </div>
+        <div id="reportContent" class="flex-1 overflow-y-auto px-6 py-5"></div>
       </div>
     </div>
   </div>
+{% endblock %}
 
-  <script>
-    // Mobile sidebar toggle
-    const menuBtn  = document.getElementById('menuBtn');
-    const sidebar  = document.getElementById('sidebar');
-    const overlay  = document.getElementById('overlay');
+{% block scripts %}
+<script>
+  var ICON_HTML  = '<svg class="inline-block h-3.5 w-3.5 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>';
+  var ICON_PDF   = '<svg class="inline-block h-3.5 w-3.5 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>';
+  var ICON_JSON  = '<svg class="inline-block h-3.5 w-3.5 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/></svg>';
+  var ICON_DL    = '<svg class="inline-block h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>';
 
-    const openSide  = () => { sidebar.classList.remove('-translate-x-full'); overlay.classList.remove('hidden'); };
-    const closeSide = () => { sidebar.classList.add('-translate-x-full'); overlay.classList.add('hidden'); };
+  function formatDateRange(s, e) { return formatDate(s) + ' \u2013 ' + formatDate(e); }
+  function formatInt(v, f) { return typeof v === 'number' ? v : (f || 0); }
+  function formatAvg(v) { return typeof v === 'number' ? v.toFixed(1) : '0.0'; }
+  function formatMultiline(t) { return escapeHtml(t || '').replace(/\n/g, '<br/>'); }
 
-    if (menuBtn) {
-      menuBtn.addEventListener('click', () => {
-        const closed = sidebar.classList.contains('-translate-x-full');
-        closed ? openSide() : closeSide();
-      });
-      overlay.addEventListener('click', closeSide);
-      if (window.innerWidth >= 1024) sidebar.classList.remove('-translate-x-full');
-    }
+  var SELECTION_PREVIEW_LIMIT = 200;
+  function buildSelectionPreview(t) { var c = t || ''; if (c.length <= SELECTION_PREVIEW_LIMIT) return c; var s = c.slice(0, SELECTION_PREVIEW_LIMIT); var i = s.lastIndexOf(' '); return (i > 40 ? s.slice(0, i) : s).trimEnd() + '\u2026'; }
 
-    // Highlight active nav link
-    (function markActive() {
-      const path = location.pathname.replace(/\/+$/, '');
-      document.querySelectorAll('aside a[href]').forEach(a => {
-        const href = a.getAttribute('href').replace(/\/+$/, '');
-        if (href && (href === path || (href !== '/' && path.startsWith(href)))) {
-          a.classList.add('bg-indigo-50', 'ring-1', 'ring-indigo-100', 'text-slate-800');
-          const icon = a.querySelector('svg'); if (icon) icon.classList.add('text-indigo-600');
-        }
-      });
-    })();
+  function buildSelectionMarkup(sel) {
+    var full = sel.text || '', preview = buildSelectionPreview(full), hasMore = full.length > SELECTION_PREVIEW_LIMIT, note = sel.note || '';
+    var fade = hasMore ? '<div class="selection-fade pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-white to-transparent"></div>' : '';
+    var toggle = hasMore ? '<button type="button" data-action="toggle-full" class="text-xs font-medium text-cloze-indigo hover:text-cloze-hover" onclick="toggleSelection(' + sel.id + ')">Show more</button>' : '';
+    return '<div class="selection-item px-5 py-3 text-sm text-stone-700" data-selection-id="' + sel.id + '"><div class="selection-text-wrapper relative"><div class="whitespace-pre-wrap leading-relaxed">' + (hasMore ? '<span class="selection-preview">' + escapeHtml(preview) + '</span><span class="selection-full hidden">' + escapeHtml(full) + '</span>' : escapeHtml(full)) + '</div>' + fade + '</div>' + (note ? '<div class="mt-1.5 text-xs italic text-stone-400">' + escapeHtml(note) + '</div>' : '') + '<div class="mt-2 flex items-center ' + (toggle ? 'justify-between' : 'justify-start') + '"><button type="button" class="text-xs font-medium text-red-600 hover:text-red-700" onclick="removeSelection(' + sel.id + ')">Delete</button>' + toggle + '</div></div>';
+  }
 
-    function escapeHtml(s = '') {
-      return s.replace(/[&<>"'`=\\/]/g, ch => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;',
-        "'": '&#39;', '`': '&#96;', '=': '&#61;', '/': '&#47;'
-      }[ch] || ch));
-    }
+  function toggleSelection(id) {
+    var item = document.querySelector('[data-selection-id="' + id + '"]'); if (!item) return;
+    var p = item.querySelector('.selection-preview'), f = item.querySelector('.selection-full'), b = item.querySelector('[data-action="toggle-full"]'), fd = item.querySelector('.selection-fade');
+    if (!p || !b) return;
+    var showing = f && !f.classList.contains('hidden');
+    if (showing) { if (f) f.classList.add('hidden'); p.classList.remove('hidden'); b.textContent = 'Show more'; if (fd) fd.classList.remove('hidden'); }
+    else { if (f) f.classList.remove('hidden'); p.classList.add('hidden'); b.textContent = 'Show less'; if (fd) fd.classList.add('hidden'); }
+  }
 
-    function formatDate(timestamp) {
-      if (!timestamp) return '—';
-      const date = new Date(timestamp * 1000);
-      const options = { month: 'short', day: 'numeric', year: 'numeric' };
-      return date.toLocaleDateString('en-US', options);
-    }
+  var reports = [];
+  var reportCapabilities = { pdf_generation: false, html_export: true, json_export: true };
 
-    function formatDateRange(startTs, endTs) {
-      const start = formatDate(startTs);
-      const end = formatDate(endTs);
-      return `${start} – ${end}`;
-    }
+  async function loadCapabilities() {
+    try { var r = await fetch('/api/reports/capabilities'); if (r.ok) reportCapabilities = await r.json(); } catch (e) { console.error(e); }
+  }
 
-    function formatInt(value, fallback = 0) {
-      return typeof value === 'number' ? value : fallback;
-    }
+  async function loadReports() {
+    try {
+      var r = await fetch('/api/reports/');
+      if (!r.ok) { if (r.status === 401) { window.location.href = '/login'; return; } throw new Error('fail'); }
+      reports = await r.json(); displayReports();
+    } catch (e) { console.error('Error loading reports:', e); }
+  }
 
-    function formatAvg(value) {
-      return typeof value === 'number' ? value.toFixed(1) : '0.0';
-    }
+  function displayReports() {
+    var grid = document.getElementById('reportsGrid'), empty = document.getElementById('emptyState');
+    if (!reports.length) { grid.classList.add('hidden'); grid.innerHTML = ''; empty.classList.remove('hidden'); return; }
+    grid.classList.remove('hidden'); empty.classList.add('hidden');
 
-    function formatMultiline(text) {
-      return escapeHtml(text || '').replace(/\n/g, '<br/>');
-    }
+    grid.innerHTML = reports.map(function(report) {
+      var data = report.report_data || {}, summary = data.summary || {};
+      var title = escapeHtml(data.window_title || 'Chat Window');
+      var desc = data.window_description ? '<p class="mt-2 text-xs text-stone-500">' + formatMultiline(data.window_description) + '</p>' : '';
+      var period = formatDateRange(data.start_date, data.end_date);
+      var generated = formatDate(report.generated_at);
 
-    const SELECTION_PREVIEW_LIMIT = 200;
-
-    function buildSelectionPreview(text = '') {
-      const content = text || '';
-      if (content.length <= SELECTION_PREVIEW_LIMIT) return content;
-      const slice = content.slice(0, SELECTION_PREVIEW_LIMIT);
-      const lastSpace = slice.lastIndexOf(' ');
-      const trimmed = lastSpace > 40 ? slice.slice(0, lastSpace) : slice;
-      return `${trimmed.trimEnd()}…`;
-    }
-
-    function buildSelectionMarkup(sel) {
-      const fullText = sel.text || '';
-      const previewText = buildSelectionPreview(fullText);
-      const hasMore = fullText.length > SELECTION_PREVIEW_LIMIT;
-      const noteText = sel.note || '';
-
-      const fade = hasMore ? `<div class="selection-fade pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-white to-transparent"></div>` : '';
-      const textClasses = 'selection-text whitespace-pre-wrap text-slate-800 leading-tight';
-      const toggleBtn = hasMore ? `<button type="button"
-              data-action="toggle-full"
-              class="selection-toggle text-xs font-medium text-indigo-600 transition hover:text-indigo-700"
-              onclick="toggleSelection(${sel.id})">See more</button>` : '';
-
-      return `
-        <div class="selection-item px-5 py-3 text-sm text-slate-700" data-selection-id="${sel.id}">
-          <div class="selection-text-wrapper relative">
-            <div class="${textClasses}">${hasMore ? `<span class="selection-preview">${escapeHtml(previewText)}</span><span class="selection-full hidden">${escapeHtml(fullText)}</span>` : escapeHtml(fullText)}</div>${fade}
-          </div>${noteText ? `<div class="mt-1.5 text-xs italic text-slate-500">${escapeHtml(noteText)}</div>` : ''}
-          <div class="mt-1.5 flex items-center ${toggleBtn ? 'justify-between' : 'justify-start'}">
-            <button type="button"
-                    class="text-xs font-medium text-red-600 transition hover:text-red-700"
-                    onclick="removeSelection(${sel.id})">Delete</button>
-            ${toggleBtn}
-          </div>
-        </div>
-      `;
-    }
-
-    function toggleSelection(id) {
-      const item = document.querySelector(`[data-selection-id="${id}"]`);
-      if (!item) return;
-      const preview = item.querySelector('.selection-preview');
-      const full = item.querySelector('.selection-full');
-      const button = item.querySelector('[data-action="toggle-full"]');
-      const fade = item.querySelector('.selection-fade');
-      if (!preview || !button) return;
-
-      const showingFull = full ? !full.classList.contains('hidden') : false;
-      if (showingFull) {
-        if (full) full.classList.add('hidden');
-        preview.classList.remove('hidden');
-        button.textContent = 'See more';
-        if (fade) fade.classList.remove('hidden');
-      } else {
-        if (full) full.classList.remove('hidden');
-        preview.classList.add('hidden');
-        button.textContent = 'See less';
-        if (fade) fade.classList.add('hidden');
-      }
-    }
-
-    let reports = [];
-    let reportCapabilities = { pdf_generation: false, html_export: true, json_export: true };
-
-    async function loadCapabilities() {
-      try {
-        const response = await fetch('/api/reports/capabilities');
-        if (response.ok) {
-          reportCapabilities = await response.json();
-        }
-      } catch (error) {
-        console.error('Error loading capabilities:', error);
-      }
-    }
-
-    async function loadReports() {
-      try {
-        const response = await fetch('/api/reports/');
-        if (!response.ok) {
-          if (response.status === 401) {
-            window.location.href = '/login';
-            return;
-          }
-          throw new Error('Failed to load reports');
-        }
-        reports = await response.json();
-        displayReports();
-      } catch (error) {
-        console.error('Error loading reports:', error);
-      }
-    }
-
-    function displayReports() {
-      const grid = document.getElementById('reportsGrid');
-      const emptyState = document.getElementById('emptyState');
-
-      if (!reports.length) {
-        grid.classList.add('hidden');
-        grid.innerHTML = '';
-        emptyState.classList.remove('hidden');
-        return;
-      }
-
-      grid.classList.remove('hidden');
-      emptyState.classList.add('hidden');
-
-      grid.innerHTML = reports.map(report => {
-        const data = report.report_data || {};
-        const summary = data.summary || {};
-
-        const windowTitle = escapeHtml(data.window_title || 'Chat Window');
-        const windowDescription = data.window_description
-          ? `<p class="text-sm leading-6 text-slate-600">${formatMultiline(data.window_description)}</p>`
-          : '';
-
-        const sessionPeriod = formatDateRange(data.start_date, data.end_date);
-        const generatedDate = formatDate(report.generated_at);
-
-        const stats = [
-          { label: 'Chats Started', value: formatInt(summary.total_conversations) },
-          { label: 'Your Messages', value: formatInt(summary.total_user_messages) },
-          { label: 'AI Responses', value: formatInt(summary.total_model_messages) },
-          { label: 'Avg per Chat', value: formatAvg(summary.average_messages_per_chat) }
-        ];
-
-        const statsHtml = stats.map(stat => `
-          <div class="rounded-lg bg-slate-50 p-4 text-center">
-            <span class="block text-2xl font-semibold text-indigo-600">${stat.value}</span>
-            <span class="text-xs uppercase tracking-wide text-slate-500">${escapeHtml(stat.label)}</span>
-          </div>
-        `).join('');
-
-        const dropdownItems = [
-          `<button type="button" class="block w-full px-3 py-2 text-left text-sm text-slate-600 hover:bg-slate-100" onclick="downloadReport(${report.id}, 'html')">📄 HTML File</button>`,
-          reportCapabilities.pdf_generation ? `<button type="button" class="block w-full px-3 py-2 text-left text-sm text-slate-600 hover:bg-slate-100" onclick="downloadReport(${report.id}, 'pdf')">📋 PDF File</button>` : '',
-          `<button type="button" class="block w-full px-3 py-2 text-left text-sm text-slate-600 hover:bg-slate-100" onclick="downloadReport(${report.id}, 'json')">🔗 JSON Data</button>`
-        ].join('');
-
-        return `
-          <article class="flex h-full flex-col overflow-visible rounded-2xl bg-white shadow-sm ring-1 ring-slate-100">
-            <header class="bg-gradient-to-br from-blue-50 to-indigo-100 px-6 py-5">
-              <h3 class="text-lg font-semibold text-slate-900">${windowTitle}</h3>
-              <p class="mt-2 text-sm text-slate-600">Session Period: ${sessionPeriod}</p>
-              <p class="text-xs text-slate-500">Report Generated: ${generatedDate}</p>
-            </header>
-            <div class="flex flex-1 flex-col gap-5 px-6 py-5">
-              ${windowDescription}
-              <div class="grid gap-3 sm:grid-cols-2">${statsHtml}</div>
-              <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <button type="button"
-                        onclick="viewReport(${report.id})"
-                        class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 sm:w-auto">
-                  View Detailed Report
-                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                    <path d="M9 5l7 7-7 7"/>
-                  </svg>
-                </button>
-                <div class="relative inline-flex w-full justify-end sm:w-auto" data-dropdown>
-                  <button type="button"
-                          onclick="toggleDropdown(${report.id})"
-                          class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-indigo-300 hover:bg-indigo-50 sm:w-auto">
-                    📥 Download
-                    <svg class="h-4 w-4 transition-transform duration-150" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                      <path d="M6 9l6 6 6-6"/>
-                    </svg>
-                  </button>
-                  <div id="dropdown-${report.id}"
-                       data-dropdown-menu
-                       class="absolute right-0 top-full z-10 mt-2 hidden w-48 overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg">
-                    ${dropdownItems}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </article>
-        `;
+      var stats = [
+        { l: 'Chats', v: formatInt(summary.total_conversations) },
+        { l: 'Your Messages', v: formatInt(summary.total_user_messages) },
+        { l: 'AI Responses', v: formatInt(summary.total_model_messages) },
+        { l: 'Avg/Chat', v: formatAvg(summary.average_messages_per_chat) }
+      ];
+      var statsHtml = stats.map(function(s) {
+        return '<div class="rounded-md bg-muted px-3 py-2.5 text-center"><span class="block text-lg font-semibold text-cloze-indigo">' + s.v + '</span><span class="text-[11px] uppercase tracking-wider text-stone-400">' + escapeHtml(s.l) + '</span></div>';
       }).join('');
-    }
 
-    async function viewReport(reportId) {
-      try {
-        const response = await fetch(`/api/reports/html/${reportId}`);
-        if (!response.ok) throw new Error('Failed to load report');
-        const data = await response.json();
+      var wid = report.window_id;
+      var dlItems = '<div class="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-stone-400">Summary</div>' +
+        '<a href="/api/reports/download/window/' + wid + '/summary/html" download class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-stone-600 hover:bg-stone-50">' + ICON_HTML + ' HTML</a>' +
+        '<a href="/api/reports/download/window/' + wid + '/summary/pdf" download class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-stone-600 hover:bg-stone-50">' + ICON_PDF + ' PDF</a>' +
+        '<div class="border-t border-stone-100 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-stone-400">Detailed</div>' +
+        '<a href="/api/reports/download/window/' + wid + '/detailed/html" download class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-stone-600 hover:bg-stone-50">' + ICON_HTML + ' HTML</a>' +
+        '<a href="/api/reports/download/window/' + wid + '/detailed/pdf" download class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-stone-600 hover:bg-stone-50">' + ICON_PDF + ' PDF</a>' +
+        '<div class="border-t border-stone-100"></div>' +
+        '<button type="button" class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-stone-600 hover:bg-stone-50" onclick="downloadReport(' + report.id + ', \'json\')">' + ICON_JSON + ' JSON</button>';
 
-        document.getElementById('reportContent').innerHTML = data.html || '<p class="text-sm text-slate-500">No content available.</p>';
-        const modal = document.getElementById('reportModal');
-        modal.classList.remove('hidden');
-      } catch (error) {
-        console.error('Error loading report details:', error);
-      }
-    }
+      return '<article class="flex h-full flex-col overflow-visible rounded-lg border border-stone-200 bg-white">' +
+        '<div class="border-b border-stone-100 px-5 py-4">' +
+          '<h3 class="text-sm font-semibold text-stone-900">' + title + '</h3>' +
+          '<p class="mt-1 text-xs text-stone-500">' + period + '</p>' +
+          '<p class="text-[11px] text-stone-400">Generated ' + generated + '</p>' +
+          desc +
+        '</div>' +
+        '<div class="flex flex-1 flex-col gap-4 px-5 py-4">' +
+          '<div class="grid gap-2 grid-cols-2 sm:grid-cols-4">' + statsHtml + '</div>' +
+          '<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">' +
+            '<button type="button" onclick="viewReport(' + report.id + ')" class="inline-flex items-center justify-center gap-1.5 rounded-md bg-cloze-indigo px-3.5 py-2 text-sm font-medium text-white transition hover:bg-cloze-hover">View Report <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg></button>' +
+            '<div class="relative inline-flex justify-end" data-dropdown>' +
+              '<button type="button" onclick="toggleDropdown(' + report.id + ')" class="inline-flex items-center gap-1.5 rounded-md border border-stone-200 px-3.5 py-2 text-sm font-medium text-stone-600 transition hover:bg-stone-50">' + ICON_DL + ' Download <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button>' +
+              '<div id="dropdown-' + report.id + '" data-dropdown-menu class="absolute right-0 top-full z-10 mt-1 hidden w-40 overflow-hidden rounded-md border border-stone-200 bg-white shadow-lg">' + dlItems + '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+      '</article>';
+    }).join('');
+  }
 
-    function closeModal() {
-      const modal = document.getElementById('reportModal');
-      modal.classList.add('hidden');
-    }
+  async function viewReport(id) {
+    try {
+      var r = await fetch('/api/reports/html/' + id); if (!r.ok) throw new Error('fail');
+      var data = await r.json();
+      document.getElementById('reportContent').innerHTML = data.html || '<p class="text-sm text-stone-400">No content available.</p>';
+      document.getElementById('reportModal').classList.remove('hidden');
+    } catch (e) { console.error(e); }
+  }
 
-    function toggleDropdown(reportId) {
-      const targetId = `dropdown-${reportId}`;
-      document.querySelectorAll('[data-dropdown-menu]').forEach(menu => {
-        if (menu.id !== targetId) menu.classList.add('hidden');
-      });
-      const menu = document.getElementById(targetId);
-      if (menu) {
-        menu.classList.toggle('hidden');
-      }
-    }
+  function closeModal() { document.getElementById('reportModal').classList.add('hidden'); }
 
-    async function downloadReport(reportId, format) {
-      const dropdown = document.getElementById(`dropdown-${reportId}`);
-      dropdown?.classList.add('hidden');
+  function toggleDropdown(id) {
+    var target = 'dropdown-' + id;
+    document.querySelectorAll('[data-dropdown-menu]').forEach(function(m) { if (m.id !== target) m.classList.add('hidden'); });
+    var menu = document.getElementById(target); if (menu) menu.classList.toggle('hidden');
+  }
 
-      try {
-        if (format === 'json') {
-          const response = await fetch(`/api/reports/${reportId}`);
-          if (!response.ok) throw new Error('Download failed');
-          const data = await response.json();
-
-          const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `report_${reportId}.json`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          URL.revokeObjectURL(url);
-        } else {
-          const link = document.createElement('a');
-          link.href = `/api/reports/download/${reportId}/${format}`;
-          link.download = `report_${reportId}.${format}`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        }
-      } catch (error) {
-        console.error('Error downloading report:', error);
-        alert('Failed to download report. Please try again.');
-      }
-    }
-
-    document.addEventListener('click', (event) => {
-      if (!event.target.closest('[data-dropdown]')) {
-        document.querySelectorAll('[data-dropdown-menu]').forEach(menu => menu.classList.add('hidden'));
-      }
-    });
-
-    const reportModal = document.getElementById('reportModal');
-    if (reportModal) {
-      reportModal.addEventListener('click', (event) => {
-        if (event.target === reportModal) closeModal();
-      });
-    }
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape') {
-        closeModal();
-        document.querySelectorAll('[data-dropdown-menu]').forEach(menu => menu.classList.add('hidden'));
-      }
-    });
-
-    async function logout() {
-      await fetch('/logout');
-      window.location.href = '/login';
-    }
-
-    async function loadSelections() {
-      try {
-        const response = await fetch('/api/selections');
-        if (!response.ok) return;
-
-        const selections = await response.json();
-        const content = document.getElementById('selectionsContent');
-
-        if (!selections.length) {
-          content.innerHTML = '<div class="px-5 py-6 text-sm text-slate-500">No saved selections yet.</div>';
-          return;
-        }
-
-        content.innerHTML = selections.map(sel => buildSelectionMarkup(sel)).join('');
-      } catch (error) {
-        console.error('Error loading selections:', error);
-      }
-    }
-
-    async function removeSelection(id) {
-      try {
-        const response = await fetch(`/api/selections/${id}`, { method: 'DELETE' });
-        if (!response.ok) return;
-        loadSelections();
-      } catch (error) {
-        console.error('Error deleting selection:', error);
-      }
-    }
-
-    function toggleSelections() {
-      const sidebar = document.getElementById('selectionsSidebar');
-      const overlay = document.getElementById('selectionsOverlay');
-      const hidden = sidebar.classList.contains('translate-x-full');
-
-      if (hidden) {
-        sidebar.classList.remove('translate-x-full');
-        overlay.classList.remove('hidden');
-        loadSelections();
+  async function downloadReport(id, format) {
+    var dd = document.getElementById('dropdown-' + id); if (dd) dd.classList.add('hidden');
+    try {
+      if (format === 'json') {
+        var r = await fetch('/api/reports/' + id); if (!r.ok) throw new Error('fail');
+        var data = await r.json();
+        var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a'); a.href = url; a.download = 'report_' + id + '.json';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
       } else {
-        sidebar.classList.add('translate-x-full');
-        overlay.classList.add('hidden');
+        var a = document.createElement('a'); a.href = '/api/reports/download/' + id + '/' + format; a.download = 'report_' + id + '.' + format;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
       }
-    }
+    } catch (e) { console.error(e); alert('Failed to download report.'); }
+  }
 
-    const selectionsOverlay = document.getElementById('selectionsOverlay');
-    if (selectionsOverlay) {
-      selectionsOverlay.addEventListener('click', () => {
-        const sidebar = document.getElementById('selectionsSidebar');
-        sidebar.classList.add('translate-x-full');
-        selectionsOverlay.classList.add('hidden');
-      });
-    }
+  document.addEventListener('click', function(e) { if (!e.target.closest('[data-dropdown]')) document.querySelectorAll('[data-dropdown-menu]').forEach(function(m) { m.classList.add('hidden'); }); });
+  var rm = document.getElementById('reportModal'); if (rm) rm.addEventListener('click', function(e) { if (e.target === rm) closeModal(); });
+  document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { closeModal(); document.querySelectorAll('[data-dropdown-menu]').forEach(function(m) { m.classList.add('hidden'); }); } });
 
-    async function initPage() {
-      await loadCapabilities();
-      await loadReports();
-    }
+  /* Selections */
+  async function loadSelections() { try { var r = await fetch('/api/selections'); if (!r.ok) return; var s = await r.json(); var c = document.getElementById('selectionsContent'); c.innerHTML = s.length ? s.map(buildSelectionMarkup).join('') : '<div class="px-5 py-6 text-sm text-stone-400">No saved quotes yet.</div>'; } catch (e) { console.error(e); } }
+  async function removeSelection(id) { try { var r = await fetch('/api/selections/' + id, { method: 'DELETE' }); if (r.ok) loadSelections(); } catch (e) { console.error(e); } }
+  function toggleSelections() { var sb = document.getElementById('selectionsSidebar'), ov = document.getElementById('selectionsOverlay'), h = sb.classList.contains('translate-x-full'); if (h) { sb.classList.remove('translate-x-full'); ov.classList.remove('hidden'); loadSelections(); } else { sb.classList.add('translate-x-full'); ov.classList.add('hidden'); } }
+  var selOv = document.getElementById('selectionsOverlay'); if (selOv) selOv.addEventListener('click', function() { document.getElementById('selectionsSidebar').classList.add('translate-x-full'); selOv.classList.add('hidden'); });
 
-    initPage();
-  </script>
-</body>
-</html>
+  (async function() { await loadCapabilities(); await loadReports(); })();
+</script>
+{% endblock %}

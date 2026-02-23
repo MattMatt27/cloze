@@ -180,17 +180,15 @@ class HTMLRenderer(Renderer):
         html = f"""
         <div class="report-component ai-summary">
             <div class="component-header">
-                <span class="component-icon">🤖</span>
-                <h3 class="component-title">AI Summary</h3>
+                <h3 class="component-title">Summary</h3>
             </div>
-            <div class="summary-content">
-                <div class="summary-text">{formatted_summary}</div>
+            <div class="summary-text">{formatted_summary}</div>
         """
 
         if data.get('themes'):
             html += """
                 <div class="themes-section">
-                    <h4>Key Themes Identified:</h4>
+                    <h4>Key Themes</h4>
                     <ul class="themes-list-simple">
             """
             for theme in data['themes']:
@@ -201,14 +199,13 @@ class HTMLRenderer(Renderer):
             formatted_notes = self._format_text_with_breaks(data['progress_notes'])
             html += f"""
                 <div class="progress-notes">
-                    <h4>Progress Notes:</h4>
+                    <h4>Progress Notes</h4>
                     <div class="progress-notes-text">{formatted_notes}</div>
                 </div>
             """
 
         html += f"""
-                <p class="generated-by">Generated with {data.get('generated_with', 'AI')}</p>
-            </div>
+            <p class="generated-by">Generated with {data.get('generated_with', 'AI')}</p>
         </div>
         """
         return html
@@ -218,10 +215,8 @@ class HTMLRenderer(Renderer):
         html = f"""
         <div class="report-component saved-messages">
             <div class="component-header">
-                <span class="component-icon">💾</span>
                 <h3 class="component-title">Saved Messages ({data['total_count']})</h3>
             </div>
-            <div class="messages-content">
         """
 
         if data['selections']:
@@ -236,10 +231,7 @@ class HTMLRenderer(Renderer):
         else:
             html += "<p class='no-data'>No saved messages</p>"
 
-        html += """
-            </div>
-        </div>
-        """
+        html += "</div>"
         return html
 
     def _render_descriptive_stats(self, data: Dict[str, Any]) -> str:
@@ -247,35 +239,24 @@ class HTMLRenderer(Renderer):
         html = f"""
         <div class="report-component descriptive-stats">
             <div class="component-header">
-                <span class="component-icon">📊</span>
                 <h3 class="component-title">Conversation Statistics</h3>
             </div>
-            <div class="stats-content">
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <span class="stat-value">{data['total_messages']}</span>
-                        <span class="stat-label">Total Messages</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-value">{data['user_messages']}</span>
-                        <span class="stat-label">User Messages</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-value">{data['assistant_messages']}</span>
-                        <span class="stat-label">AI Responses</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-value">{data['session_duration_hours']}h</span>
-                        <span class="stat-label">Session Duration</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-value">{round(data['avg_words_per_user_message'])}</span>
-                        <span class="stat-label">Avg Words/User Msg</span>
-                    </div>
-                    <div class="stat-card">
-                        <span class="stat-value">{data['total_words']:,}</span>
-                        <span class="stat-label">Total Words</span>
-                    </div>
+            <div class="stats-row">
+                <div class="stat-item">
+                    <span class="stat-value">{data['total_messages']}</span>
+                    <span class="stat-label">Messages</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">{data['user_messages']}</span>
+                    <span class="stat-label">Patient</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">{data['assistant_messages']}</span>
+                    <span class="stat-label">AI</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">{round(data['avg_words_per_user_message'])}</span>
+                    <span class="stat-label">Avg Words</span>
                 </div>
             </div>
         </div>
@@ -287,96 +268,92 @@ class HTMLRenderer(Renderer):
         html = """
         <div class="report-component nlp-analysis">
             <div class="component-header">
-                <span class="component-icon">🧠</span>
                 <h3 class="component-title">Language Analysis</h3>
             </div>
             <div class="nlp-content">
-                <div class="nlp-grid">
         """
 
-        # Sentiment card (only if sentiment data present)
+        # Sentiment (inline, no card wrapper)
         if 'average_sentiment' in data:
             sentiment_label = self._get_sentiment_label(data['average_sentiment'])
             pct = data.get('sentiment_percentages', {})
             html += f"""
-                    <div class="nlp-card">
-                        <h4 class="nlp-title">Sentiment Analysis</h4>
-                        <div class="sentiment-score">
-                            Overall: {data['average_sentiment']:.2f} ({sentiment_label})
+                <div class="nlp-subsection">
+                    <h4 class="nlp-title">Sentiment</h4>
+                    <div class="sentiment-score">
+                        Overall: {data['average_sentiment']:.2f} ({sentiment_label})
+                    </div>
+                    <div class="progress-bars">
+                        <div class="progress-item">
+                            <span>Positive ({pct.get('positive', 0):.0f}%)</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill progress-positive" style="width: {pct.get('positive', 0):.0f}%"></div>
+                            </div>
                         </div>
-                        <div class="progress-bars">
-                            <div class="progress-item">
-                                <span>Positive ({pct.get('positive', 0):.0f}%)</span>
-                                <div class="progress-bar">
-                                    <div class="progress-fill progress-positive" style="width: {pct.get('positive', 0):.0f}%"></div>
-                                </div>
+                        <div class="progress-item">
+                            <span>Neutral ({pct.get('neutral', 0):.0f}%)</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill progress-neutral" style="width: {pct.get('neutral', 0):.0f}%"></div>
                             </div>
-                            <div class="progress-item">
-                                <span>Neutral ({pct.get('neutral', 0):.0f}%)</span>
-                                <div class="progress-bar">
-                                    <div class="progress-fill progress-neutral" style="width: {pct.get('neutral', 0):.0f}%"></div>
-                                </div>
-                            </div>
-                            <div class="progress-item">
-                                <span>Negative ({pct.get('negative', 0):.0f}%)</span>
-                                <div class="progress-bar">
-                                    <div class="progress-fill progress-negative" style="width: {pct.get('negative', 0):.0f}%"></div>
-                                </div>
+                        </div>
+                        <div class="progress-item">
+                            <span>Negative ({pct.get('negative', 0):.0f}%)</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill progress-negative" style="width: {pct.get('negative', 0):.0f}%"></div>
                             </div>
                         </div>
                     </div>
+                </div>
             """
 
-        # Voice card (only if voice data present)
+        # Voice (inline, no card wrapper)
         if 'voice_analysis' in data:
             va = data['voice_analysis']
             html += f"""
-                    <div class="nlp-card">
-                        <h4 class="nlp-title">Voice Analysis</h4>
-                        <div class="progress-bars">
-                            <div class="progress-item">
-                                <span>Active Voice ({va.get('active_ratio', 0):.0f}%)</span>
-                                <div class="progress-bar">
-                                    <div class="progress-fill progress-active" style="width: {va.get('active_ratio', 0):.0f}%"></div>
-                                </div>
-                            </div>
-                            <div class="progress-item">
-                                <span>Passive Voice ({va.get('passive_ratio', 0):.0f}%)</span>
-                                <div class="progress-bar">
-                                    <div class="progress-fill progress-passive" style="width: {va.get('passive_ratio', 0):.0f}%"></div>
-                                </div>
+                <div class="nlp-subsection">
+                    <h4 class="nlp-title">Voice</h4>
+                    <div class="progress-bars">
+                        <div class="progress-item">
+                            <span>Active ({va.get('active_ratio', 0):.0f}%)</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill progress-active" style="width: {va.get('active_ratio', 0):.0f}%"></div>
                             </div>
                         </div>
-                        <p class="nlp-note">Questions: {data.get('question_frequency', 0):.0f}% of messages</p>
+                        <div class="progress-item">
+                            <span>Passive ({va.get('passive_ratio', 0):.0f}%)</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill progress-passive" style="width: {va.get('passive_ratio', 0):.0f}%"></div>
+                            </div>
+                        </div>
                     </div>
+                    <p class="nlp-note">Questions: {data.get('question_frequency', 0):.0f}% of messages</p>
+                </div>
             """
 
-        # Emotional keywords card (only when it's the only NLP sub-feature in summary mode)
+        # Emotional keywords
         if 'emotional_keywords' in data:
             keywords = data['emotional_keywords']
-            if 'average_sentiment' not in data and 'voice_analysis' not in data:
-                html += f"""
-                    <div class="nlp-card">
-                        <h4 class="nlp-title">Emotional Keywords</h4>
-                        <div class="keyword-counts">
-                            <div class="keyword-row">
-                                <span class="keyword-label">Positive</span>
-                                <span class="keyword-value">{keywords.get('positive', 0)}</span>
-                            </div>
-                            <div class="keyword-row">
-                                <span class="keyword-label">Negative</span>
-                                <span class="keyword-value">{keywords.get('negative', 0)}</span>
-                            </div>
-                            <div class="keyword-row">
-                                <span class="keyword-label">Uncertainty</span>
-                                <span class="keyword-value">{keywords.get('uncertainty', 0)}</span>
-                            </div>
+            html += f"""
+                <div class="nlp-subsection">
+                    <h4 class="nlp-title">Emotional Keywords</h4>
+                    <div class="keyword-counts">
+                        <div class="keyword-row">
+                            <span class="keyword-label">Positive</span>
+                            <span class="keyword-value">{keywords.get('positive', 0)}</span>
+                        </div>
+                        <div class="keyword-row">
+                            <span class="keyword-label">Negative</span>
+                            <span class="keyword-value">{keywords.get('negative', 0)}</span>
+                        </div>
+                        <div class="keyword-row">
+                            <span class="keyword-label">Uncertainty</span>
+                            <span class="keyword-value">{keywords.get('uncertainty', 0)}</span>
                         </div>
                     </div>
-                """
+                </div>
+            """
 
         html += """
-                </div>
             </div>
         </div>
         """
@@ -387,8 +364,7 @@ class HTMLRenderer(Renderer):
         html = f"""
         <div class="report-component cooccurrence-analysis">
             <div class="component-header">
-                <span class="component-icon">🔗</span>
-                <h3 class="component-title">Word Co-occurrence Network</h3>
+                <h3 class="component-title">Word Co-occurrence</h3>
             </div>
             <div class="cooccurrence-content">
         """

@@ -36,7 +36,7 @@ class CooccurrenceAnalysisComponent(ReportComponent):
         message_texts = [msg.content for msg in user_messages]
 
         # Get configuration parameters
-        min_cooccurrence = self.config.get('cooccurrence_min_count', 2)
+        min_cooccurrence = self.config.get('cooccurrence_min_count', 1)
         top_n_words = self.config.get('cooccurrence_top_n', 20)
         graph_style = 'academic' if self.config.get('report_type') == 'detailed' else 'product'
 

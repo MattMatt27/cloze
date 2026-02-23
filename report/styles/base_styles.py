@@ -3,6 +3,22 @@ Base CSS Styles
 
 Core styling for HTML reports. All CSS is scoped within .unified-report
 to prevent conflicts with other page styles.
+
+Design tokens (matching Cloze UI):
+  page:         #FAF9F7
+  surface:      #FFFFFF
+  muted:        #F5F4F0
+  cloze-indigo: #5B5FC7
+  cloze-sky:    #7DBBDA
+  cloze-hover:  #4E51B0
+  stone-100:    #f5f5f4
+  stone-200:    #e7e5e4
+  stone-300:    #d6d3d1
+  stone-400:    #a8a29e
+  stone-500:    #78716c
+  stone-700:    #44403c
+  stone-800:    #292524
+  stone-900:    #1c1917
 """
 
 
@@ -14,42 +30,44 @@ def get_base_css() -> str:
         max-width: 1000px;
         margin: 0 auto;
         background: #ffffff;
-        border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        border-radius: 8px;
+        border: 1px solid #e7e5e4;
         overflow: hidden;
     }
 
     .unified-report .report-header {
-        background: linear-gradient(135deg, #0066cc 0%, #4a90e2 100%);
-        color: #ffffff;
+        background: #FAF9F7;
+        color: #1c1917;
         padding: 2rem;
         text-align: center;
+        border-bottom: 1px solid #e7e5e4;
     }
 
     .unified-report .report-header h2 {
         margin: 0 0 1rem 0;
-        font-size: 2rem;
-        font-weight: 300;
-        color: #ffffff;
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1c1917;
     }
 
     .unified-report .window-description {
-        color: rgba(255,255,255,0.9);
+        color: #78716c;
         margin-bottom: 1.5rem;
     }
 
     .unified-report .report-meta {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 1rem;
+        gap: 0.75rem;
         margin-top: 1.5rem;
     }
 
     .unified-report .meta-item {
-        background: rgba(255,255,255,0.1);
+        background: #ffffff;
         padding: 0.75rem;
         border-radius: 8px;
         text-align: center;
+        border: 1px solid #e7e5e4;
     }
 
     .unified-report .meta-item-full {
@@ -57,15 +75,18 @@ def get_base_css() -> str:
     }
 
     .unified-report .meta-label {
-        font-size: 0.9rem;
-        color: rgba(255,255,255,0.9);
+        font-size: 0.8rem;
+        color: #a8a29e;
         margin-bottom: 0.25rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 500;
     }
 
     .unified-report .meta-value {
         font-size: 1.1rem;
         font-weight: 600;
-        color: #ffffff;
+        color: #5B5FC7;
     }
 
     .unified-report .meta-value-models {
@@ -78,7 +99,7 @@ def get_base_css() -> str:
     }
 
     .unified-report .report-section {
-        border-bottom: 1px solid #f0f0f0;
+        border-bottom: 1px solid #f5f5f4;
         padding: 2rem;
     }
 
@@ -91,32 +112,26 @@ def get_base_css() -> str:
         align-items: center;
         margin-bottom: 1.5rem;
         padding-bottom: 0.75rem;
-        border-bottom: 2px solid #e6f3ff;
+        border-bottom: 2px solid #F5F4F0;
     }
 
     .unified-report .component-icon {
-        font-size: 1.5rem;
-        margin-right: 0.75rem;
+        display: none;
     }
 
     .unified-report .component-title {
-        font-size: 1.3rem;
+        font-size: 0.8rem;
         font-weight: 600;
-        color: #003d7a;
+        color: #a8a29e;
         margin: 0;
-    }
-
-    .unified-report .summary-content {
-        background: #ffffff;
-        border-radius: 8px;
-        padding: 1.5rem;
-        border: 1px solid #e0e0e0;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
 
     .unified-report .summary-text {
         font-size: 1rem;
         line-height: 1.7;
-        color: #333;
+        color: #44403c;
         margin-bottom: 1.5rem;
     }
 
@@ -131,13 +146,13 @@ def get_base_css() -> str:
     .unified-report .themes-section {
         margin: 1.5rem 0;
         padding-top: 1.5rem;
-        border-top: 1px solid #e0e0e0;
+        border-top: 1px solid #e7e5e4;
     }
 
     .unified-report .themes-section h4 {
         font-size: 1.1rem;
         font-weight: 600;
-        color: #1a1a1a;
+        color: #1c1917;
         margin: 0 0 0.75rem 0;
     }
 
@@ -148,7 +163,7 @@ def get_base_css() -> str:
     }
 
     .unified-report .themes-list-simple li {
-        color: #333;
+        color: #44403c;
         margin: 0.5rem 0;
         line-height: 1.6;
     }
@@ -160,31 +175,31 @@ def get_base_css() -> str:
     }
 
     .unified-report .themes-list li {
-        background: #e6f3ff;
+        background: #F5F4F0;
         margin: 0.5rem 0;
         padding: 0.75rem 1rem;
         border-radius: 8px;
-        border-left: 3px solid #0066cc;
-        color: #1a1a1a;
+        border-left: 3px solid #5B5FC7;
+        color: #1c1917;
     }
 
     .unified-report .progress-notes {
         margin: 1.5rem 0 0 0;
         padding-top: 1.5rem;
-        border-top: 1px solid #e0e0e0;
+        border-top: 1px solid #e7e5e4;
     }
 
     .unified-report .progress-notes h4 {
         font-size: 1.1rem;
         font-weight: 600;
-        color: #1a1a1a;
+        color: #1c1917;
         margin: 0 0 0.75rem 0;
     }
 
     .unified-report .progress-notes-text {
         font-size: 1rem;
         line-height: 1.7;
-        color: #333;
+        color: #44403c;
     }
 
     .unified-report .progress-notes-text p {
@@ -207,56 +222,58 @@ def get_base_css() -> str:
     .unified-report .stats-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 1rem;
+        gap: 0.75rem;
         margin: 1.5rem 0;
     }
 
     .unified-report .stat-card {
-        background: linear-gradient(135deg, #0066cc 0%, #4a90e2 100%);
-        color: #ffffff;
-        padding: 1.5rem;
-        border-radius: 12px;
+        background: #F5F4F0;
+        color: #1c1917;
+        padding: 1.25rem;
+        border-radius: 8px;
         text-align: center;
+        border: 1px solid #e7e5e4;
     }
 
     .unified-report .stat-value {
         display: block;
-        font-size: 2rem;
+        font-size: 1.75rem;
         font-weight: 700;
-        margin-bottom: 0.5rem;
-        color: #ffffff;
+        margin-bottom: 0.25rem;
+        color: #5B5FC7;
     }
 
     .unified-report .stat-label {
-        font-size: 0.9rem;
-        color: rgba(255,255,255,0.95);
+        font-size: 0.8rem;
+        color: #a8a29e;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 500;
     }
 
-    .unified-report .nlp-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1.5rem;
-        margin-top: 1rem;
+    .unified-report .nlp-subsection {
+        padding-bottom: 1.25rem;
+        margin-bottom: 1.25rem;
+        border-bottom: 1px solid #f5f5f4;
     }
 
-    .unified-report .nlp-card {
-        background: #ffffff;
-        border: 2px solid #e6f3ff;
-        border-radius: 12px;
-        padding: 1.5rem;
+    .unified-report .nlp-subsection:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
     }
 
     .unified-report .nlp-title {
         font-weight: 600;
-        color: #003d7a;
-        margin-bottom: 1rem;
-        font-size: 1.1rem;
+        color: #292524;
+        margin-bottom: 0.75rem;
+        font-size: 0.95rem;
     }
 
     .unified-report .progress-bar {
-        background: #e6f3ff;
+        background: #F5F4F0;
         border-radius: 10px;
-        height: 12px;
+        height: 10px;
         margin: 0.5rem 0;
         overflow: hidden;
     }
@@ -267,15 +284,15 @@ def get_base_css() -> str:
         transition: width 0.3s ease;
     }
 
-    .unified-report .progress-positive { background: linear-gradient(90deg, #00a86b, #4fd1c7); }
-    .unified-report .progress-neutral { background: linear-gradient(90deg, #808080, #b0b0b0); }
-    .unified-report .progress-negative { background: linear-gradient(90deg, #ff6b6b, #ffa8a8); }
-    .unified-report .progress-active { background: linear-gradient(90deg, #0066cc, #66b3ff); }
-    .unified-report .progress-passive { background: linear-gradient(90deg, #9370db, #b19cd9); }
+    .unified-report .progress-positive { background: #10b981; }
+    .unified-report .progress-neutral { background: #a8a29e; }
+    .unified-report .progress-negative { background: #ef4444; }
+    .unified-report .progress-active { background: #5B5FC7; }
+    .unified-report .progress-passive { background: #7DBBDA; }
 
     .unified-report .saved-message {
-        background: #f0f8ff;
-        border-left: 4px solid #0066cc;
+        background: #FAF9F7;
+        border-left: 3px solid #5B5FC7;
         border-radius: 8px;
         padding: 1rem;
         margin: 1rem 0;
@@ -283,19 +300,19 @@ def get_base_css() -> str:
 
     .unified-report .message-text {
         font-style: italic;
-        color: #003d7a;
+        color: #292524;
         margin-bottom: 0.5rem;
         font-size: 1.05rem;
     }
 
     .unified-report .message-note {
-        color: #0066cc;
+        color: #5B5FC7;
         font-size: 0.9rem;
         margin-bottom: 0.25rem;
     }
 
     .unified-report .message-date {
-        color: #999;
+        color: #a8a29e;
         font-size: 0.85rem;
         margin: 0;
     }
@@ -303,13 +320,13 @@ def get_base_css() -> str:
     .unified-report .generated-by {
         text-align: right;
         font-size: 0.85rem;
-        color: #666;
+        color: #78716c;
         margin-top: 1rem;
         font-style: italic;
     }
 
     .unified-report .no-data {
-        color: #666;
+        color: #78716c;
         font-style: italic;
         text-align: center;
         padding: 2rem;
@@ -323,19 +340,19 @@ def get_base_css() -> str:
         display: block;
         margin-bottom: 0.25rem;
         font-size: 0.9rem;
-        color: #333;
+        color: #44403c;
     }
 
     .unified-report .nlp-note {
         margin-top: 1rem;
         font-size: 0.9rem;
-        color: #666;
+        color: #78716c;
     }
 
     .unified-report .sentiment-score {
         font-size: 1.2rem;
         font-weight: 600;
-        color: #003d7a;
+        color: #5B5FC7;
         margin-bottom: 1rem;
     }
 
@@ -346,8 +363,8 @@ def get_base_css() -> str:
 
     .unified-report .cooccurrence-graph {
         background: #ffffff;
-        border: 2px solid #e6f3ff;
-        border-radius: 12px;
+        border: 1px solid #e7e5e4;
+        border-radius: 8px;
         padding: 1.5rem;
         margin-bottom: 1.5rem;
         text-align: center;
@@ -362,7 +379,7 @@ def get_base_css() -> str:
 
     .unified-report .graph-caption {
         font-size: 0.9rem;
-        color: #666;
+        color: #78716c;
         font-style: italic;
         margin: 0;
         line-height: 1.4;
@@ -375,27 +392,32 @@ def get_base_css() -> str:
     .unified-report .stats-row {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 1rem;
+        gap: 0.75rem;
     }
 
     .unified-report .stat-item {
-        background: linear-gradient(135deg, #0066cc 0%, #4a90e2 100%);
-        color: #ffffff;
+        background: #F5F4F0;
+        color: #1c1917;
         padding: 1.25rem;
-        border-radius: 10px;
+        border-radius: 8px;
         text-align: center;
+        border: 1px solid #e7e5e4;
+    }
+
+    .unified-report .stat-item .stat-value {
+        color: #5B5FC7;
     }
 
     .unified-report .top-words-section {
-        background: #f0f8ff;
-        border-radius: 12px;
+        background: #FAF9F7;
+        border-radius: 8px;
         padding: 1.5rem;
-        border-left: 4px solid #0066cc;
+        border-left: 3px solid #5B5FC7;
     }
 
     .unified-report .top-words-section h4 {
         margin: 0 0 1rem 0;
-        color: #003d7a;
+        color: #292524;
         font-size: 1.1rem;
     }
 
@@ -412,17 +434,17 @@ def get_base_css() -> str:
         background: #ffffff;
         padding: 0.75rem 1rem;
         border-radius: 8px;
-        border: 1px solid #e0e0e0;
+        border: 1px solid #e7e5e4;
     }
 
     .unified-report .word-text {
         font-weight: 600;
-        color: #003d7a;
+        color: #292524;
         font-size: 1rem;
     }
 
     .unified-report .word-count {
-        background: #0066cc;
+        background: #5B5FC7;
         color: #ffffff;
         padding: 0.25rem 0.75rem;
         border-radius: 12px;
@@ -431,46 +453,46 @@ def get_base_css() -> str:
     }
 
     .unified-report .error-message {
-        background: #fff3cd;
-        border-left: 4px solid #ffc107;
+        background: #fffbeb;
+        border-left: 3px solid #f59e0b;
         border-radius: 8px;
         padding: 1rem;
         margin: 1rem 0;
     }
 
     .unified-report .error-message p {
-        color: #856404;
+        color: #92400e;
         margin: 0;
     }
 
     /* Report Type Badge */
     .unified-report .report-type-badge {
         display: inline-block;
-        padding: 0.25rem 1rem;
+        padding: 0.25rem 0.75rem;
         border-radius: 20px;
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         font-weight: 600;
         margin-bottom: 1rem;
     }
     .unified-report .report-type-summary {
-        background: rgba(255,255,255,0.2);
-        color: #ffffff;
+        background: #ede9fe;
+        color: #7c3aed;
     }
     .unified-report .report-type-detailed {
-        background: rgba(255,255,255,0.3);
-        color: #ffffff;
-        border: 1px solid rgba(255,255,255,0.4);
+        background: #ede9fe;
+        color: #7c3aed;
+        border: 1px solid #c4b5fd;
     }
 
     /* Methodology Section (Detailed mode) */
     .unified-report .methodology-section {
-        background: #f8fafc;
+        background: #FAF9F7;
         padding: 2rem;
-        border-bottom: 1px solid #f0f0f0;
+        border-bottom: 1px solid #e7e5e4;
     }
     .unified-report .methodology-intro {
         font-size: 0.95rem;
-        color: #475569;
+        color: #78716c;
         margin-bottom: 1rem;
     }
     .unified-report .methodology-list {
@@ -480,9 +502,9 @@ def get_base_css() -> str:
     }
     .unified-report .methodology-list li {
         padding: 0.6rem 0;
-        border-bottom: 1px solid #e2e8f0;
+        border-bottom: 1px solid #e7e5e4;
         font-size: 0.95rem;
-        color: #334155;
+        color: #44403c;
     }
     .unified-report .methodology-list li:last-child {
         border-bottom: none;
@@ -490,14 +512,14 @@ def get_base_css() -> str:
 
     /* Citations Section (Detailed mode) */
     .unified-report .citations-section {
-        background: #f8fafc;
+        background: #FAF9F7;
         padding: 2rem;
-        border-top: 2px solid #e2e8f0;
+        border-top: 1px solid #e7e5e4;
     }
     .unified-report .citations-list {
         padding-left: 1.5rem;
         font-size: 0.9rem;
-        color: #475569;
+        color: #78716c;
         margin: 0;
     }
     .unified-report .citations-list li {
@@ -508,12 +530,12 @@ def get_base_css() -> str:
     .unified-report .detailed-breakdown {
         margin-top: 1.5rem;
         padding-top: 1.5rem;
-        border-top: 1px solid #e2e8f0;
+        border-top: 1px solid #e7e5e4;
     }
     .unified-report .detailed-breakdown h4 {
         font-size: 1rem;
         font-weight: 600;
-        color: #334155;
+        color: #292524;
         margin: 0 0 1rem 0;
     }
     .unified-report .breakdown-table {
@@ -522,17 +544,17 @@ def get_base_css() -> str:
         font-size: 0.9rem;
     }
     .unified-report .breakdown-table th {
-        background: #f1f5f9;
+        background: #F5F4F0;
         padding: 0.5rem 0.75rem;
         text-align: left;
         font-weight: 600;
-        color: #334155;
-        border-bottom: 2px solid #e2e8f0;
+        color: #292524;
+        border-bottom: 2px solid #e7e5e4;
     }
     .unified-report .breakdown-table td {
         padding: 0.5rem 0.75rem;
-        border-bottom: 1px solid #f1f5f9;
-        color: #475569;
+        border-bottom: 1px solid #f5f5f4;
+        color: #44403c;
     }
 
     /* Emotional Keywords Card */
@@ -544,18 +566,18 @@ def get_base_css() -> str:
         justify-content: space-between;
         align-items: center;
         padding: 0.5rem 0;
-        border-bottom: 1px solid #f0f0f0;
+        border-bottom: 1px solid #f5f5f4;
     }
     .unified-report .keyword-row:last-child {
         border-bottom: none;
     }
     .unified-report .keyword-label {
         font-size: 0.95rem;
-        color: #334155;
+        color: #44403c;
     }
     .unified-report .keyword-value {
         font-weight: 600;
-        color: #003d7a;
+        color: #5B5FC7;
         font-size: 1rem;
     }
     """

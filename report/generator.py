@@ -17,6 +17,14 @@ import logging
 logging.getLogger('absl').setLevel(logging.ERROR)
 
 # PDF generation - optional dependency
+# On macOS with Homebrew, cffi needs help finding GLib/Pango shared libraries
+import platform
+if platform.system() == 'Darwin':
+    _brew_lib = '/opt/homebrew/lib'
+    _existing = os.environ.get('DYLD_FALLBACK_LIBRARY_PATH', '')
+    if _brew_lib not in _existing:
+        os.environ['DYLD_FALLBACK_LIBRARY_PATH'] = f"{_brew_lib}:{_existing}" if _existing else _brew_lib
+
 try:
     import weasyprint
     WEASYPRINT_AVAILABLE = True
@@ -207,9 +215,9 @@ class UnifiedReportGenerator:
                     raise
 
     @classmethod
-    def export_html(cls, window_id: int, filename: str = None) -> str:
+    def export_html(cls, window_id: int, filename: str = None, report_type: str = None) -> str:
         """Export report as standalone HTML file."""
-        generator = cls(window_id)
+        generator = cls(window_id, report_type=report_type)
         report_data = generator.generate()
         html_content = generator.render_html(report_data, standalone=True)
 
@@ -221,12 +229,19 @@ class UnifiedReportGenerator:
         return html_content
 
     @classmethod
-    def export_pdf(cls, window_id: int, filename: str = None) -> bytes:
+    def export_html_from_data(cls, window_id: int, report_data: dict) -> str:
+        """Render stored report data as standalone HTML without regenerating."""
+        rt = report_data.get('report_type', 'summary')
+        generator = cls(window_id, report_type=rt)
+        return generator.render_html(report_data, standalone=True)
+
+    @classmethod
+    def export_pdf(cls, window_id: int, filename: str = None, report_type: str = None) -> bytes:
         """Export report as PDF using weasyprint."""
         if not WEASYPRINT_AVAILABLE:
             raise ImportError("weasyprint is required for PDF generation. Install with: pip install weasyprint")
 
-        generator = cls(window_id)
+        generator = cls(window_id, report_type=report_type)
         report_data = generator.generate()
         html_content = generator.render_pdf(report_data)
 
@@ -241,3 +256,14 @@ class UnifiedReportGenerator:
         else:
             # Return PDF bytes
             return html_doc.write_pdf()
+
+    @classmethod
+    def export_pdf_from_data(cls, window_id: int, report_data: dict) -> bytes:
+        """Render stored report data as PDF without regenerating."""
+        if not WEASYPRINT_AVAILABLE:
+            raise ImportError("weasyprint is required for PDF generation. Install with: pip install weasyprint")
+
+        rt = report_data.get('report_type', 'summary')
+        generator = cls(window_id, report_type=rt)
+        html_content = generator.render_pdf(report_data)
+        return weasyprint.HTML(string=html_content).write_pdf()

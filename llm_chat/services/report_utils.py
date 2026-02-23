@@ -7,19 +7,29 @@ from report.generator import UnifiedReportGenerator
 
 
 def generate_report_for_window(window_id: int, report_type: str = None):
-    """Generate and persist a unified report for a specific window."""
+    """Generate and persist both summary and detailed reports for a window.
+
+    Always generates both report types. Returns the summary report for
+    backward compatibility.
+    """
     window = ChatWindow.query.get(window_id)
     if not window:
         raise ValueError(f"Chat window {window_id} not found")
 
-    report = Report.query.filter_by(window_id=window.id).first()
-    if not report:
-        report = UnifiedReportGenerator.save_report(window_id, report_type=report_type)
+    # Generate summary report if missing
+    summary = Report.query.filter_by(window_id=window.id, report_type='summary').first()
+    if not summary:
+        summary = UnifiedReportGenerator.save_report(window_id, report_type='summary')
+
+    # Generate detailed report if missing
+    detailed = Report.query.filter_by(window_id=window.id, report_type='detailed').first()
+    if not detailed:
+        UnifiedReportGenerator.save_report(window_id, report_type='detailed')
 
     window.status = 'report_ready'
     db.session.commit()
 
-    return report
+    return summary
 
 
 def finalize_expired_windows() -> List[int]:
@@ -42,10 +52,11 @@ def finalize_expired_windows() -> List[int]:
             changed = True
 
         if current_status == 'generating_report':
-            existing_report = Report.query.filter_by(window_id=window.id).first()
             try:
-                if not existing_report:
-                    UnifiedReportGenerator.save_report(window.id)
+                if not Report.query.filter_by(window_id=window.id, report_type='summary').first():
+                    UnifiedReportGenerator.save_report(window.id, report_type='summary')
+                if not Report.query.filter_by(window_id=window.id, report_type='detailed').first():
+                    UnifiedReportGenerator.save_report(window.id, report_type='detailed')
                 window.status = 'report_ready'
                 processed.append(window.id)
                 changed = True

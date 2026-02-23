@@ -13,23 +13,28 @@ reports_bp = Blueprint("reports", __name__, url_prefix="/api/reports")
 @reports_bp.route("/", methods=["GET"])
 @login_required
 def get_reports():
-    """Get reports accessible to current user (only from visible windows)"""
+    """Get reports accessible to current user (only from visible windows).
+    Returns only summary/default reports to avoid duplicates now that
+    both summary and detailed are generated per window.
+    """
+    summary_filter = Report.report_type.in_(['summary', 'default'])
+
     if current_user.is_patient():
-        # Patients see their own reports from visible windows
         reports = Report.query.join(ChatWindow).filter(
             Report.patient_id == current_user.id,
-            ChatWindow.visible == True
+            ChatWindow.visible == True,
+            summary_filter
         ).order_by(Report.generated_at.desc()).all()
     elif current_user.is_provider():
-        # Providers see reports for their patients from visible windows
         reports = Report.query.join(ChatWindow).filter(
             Report.provider_id == current_user.id,
-            ChatWindow.visible == True
+            ChatWindow.visible == True,
+            summary_filter
         ).order_by(Report.generated_at.desc()).all()
     elif current_user.is_admin():
-        # Admins see all reports from visible windows
         reports = Report.query.join(ChatWindow).filter(
-            ChatWindow.visible == True
+            ChatWindow.visible == True,
+            summary_filter
         ).order_by(Report.generated_at.desc()).all()
     else:
         abort(403)
@@ -65,7 +70,8 @@ def get_patient_reports(patient_id):
 
     reports = Report.query.join(ChatWindow).filter(
         Report.patient_id == patient_id,
-        ChatWindow.visible == True
+        ChatWindow.visible == True,
+        Report.report_type.in_(['summary', 'default'])
     ).order_by(Report.generated_at.desc()).all()
     return jsonify([r.to_dict() for r in reports])
 
@@ -82,8 +88,12 @@ def get_window_report(window_id):
     elif current_user.is_provider() and window.provider_id != current_user.id:
         abort(403)
 
-    # Get most recent report for this window (any type)
-    report = Report.query.filter_by(window_id=window_id).order_by(Report.generated_at.desc()).first()
+    # Return summary report by default; use ?type=detailed for detailed
+    requested_type = request.args.get('type', 'summary')
+    report = Report.query.filter_by(window_id=window_id, report_type=requested_type).first()
+    # Fallback to any report (handles legacy 'default' type)
+    if not report:
+        report = Report.query.filter_by(window_id=window_id).order_by(Report.generated_at.desc()).first()
 
     if not report:
         return jsonify({'error': 'Report not found'}), 404
@@ -231,14 +241,45 @@ def download_report(report_id, format):
     elif current_user.is_provider() and report.provider_id != current_user.id:
         abort(403)
 
+    return _send_report_download(report, format)
+
+
+@reports_bp.route("/download/window/<int:window_id>/<report_type>/<format>", methods=["GET"])
+@login_required
+def download_window_report(window_id, report_type, format):
+    """Download report by window ID and report type (summary or detailed)."""
+    window = ChatWindow.query.get_or_404(window_id)
+
+    # Access control
+    if current_user.is_patient() and window.patient_id != current_user.id:
+        abort(403)
+    elif current_user.is_provider() and window.provider_id != current_user.id:
+        abort(403)
+
+    if report_type not in ('summary', 'detailed'):
+        abort(400, "report_type must be 'summary' or 'detailed'")
+
+    report = Report.query.filter_by(window_id=window_id, report_type=report_type).first()
+    if not report:
+        # Fallback: generate on the fly if not stored yet
+        report = Report.query.filter_by(window_id=window_id).first()
+    if not report:
+        abort(404, "No report found for this window")
+
+    return _send_report_download(report, format)
+
+
+def _send_report_download(report, format):
+    """Shared helper to send a report download in the requested format."""
     window = ChatWindow.query.get(report.window_id)
-    filename = f"report_{window.title.replace(' ', '_')}_{report.generated_at}.{format}"
+    report_data = json.loads(report.report_data)
+    rt = report_data.get('report_type', 'summary')
+    slug = window.title.replace(' ', '_')
+    filename = f"report_{slug}_{rt}.{format}"
 
     if format == 'html':
-        # Always use unified generator for export
-        html_content = UnifiedReportGenerator.export_html(report.window_id)
+        html_content = UnifiedReportGenerator.export_html_from_data(report.window_id, report_data)
 
-        # Create temporary file
         with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as f:
             f.write(html_content)
             temp_path = f.name
@@ -251,11 +292,9 @@ def download_report(report_id, format):
         )
 
     elif format == 'pdf':
-        # Generate actual PDF using unified generator
         try:
-            pdf_bytes = UnifiedReportGenerator.export_pdf(report.window_id)
+            pdf_bytes = UnifiedReportGenerator.export_pdf_from_data(report.window_id, report_data)
 
-            # Create temporary PDF file
             with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as f:
                 f.write(pdf_bytes)
                 temp_path = f.name
@@ -266,9 +305,9 @@ def download_report(report_id, format):
                 download_name=filename,
                 mimetype='application/pdf'
             )
-        except ImportError as e:
+        except ImportError:
             # Fallback to HTML if weasyprint not available
-            html_content = UnifiedReportGenerator.export_html(report.window_id)
+            html_content = UnifiedReportGenerator.export_html_from_data(report.window_id, report_data)
             with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as f:
                 f.write(html_content)
                 temp_path = f.name
