@@ -19,7 +19,7 @@
 
 <!-- Windows Management View -->
 <section id="windowsManagement" class="hidden">
-  <button class="mb-4 rounded-md bg-stone-100 px-3 py-2 text-sm font-medium text-stone-700 hover:bg-stone-200"
+  <button class="mb-4 rounded-md bg-violet-50 px-3 py-2 text-sm font-medium text-stone-700 hover:bg-violet-100"
           onclick="showPatientSelection()">
     <svg class="mr-1 inline h-4 w-4 text-stone-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg>
     Back to Patients
@@ -1059,19 +1059,19 @@
           </div>
           <div class="px-5 py-3">
             <div class="mb-3 grid grid-cols-4 gap-2 text-center">
-              <div class="rounded-md bg-muted px-2 py-1.5">
+              <div class="rounded-md bg-violet-50/60 px-2 py-1.5">
                 <span class="block text-base font-semibold text-cloze-indigo">${summary.total_conversations || 0}</span>
                 <span class="text-[10px] uppercase tracking-wider text-stone-400">Chats</span>
               </div>
-              <div class="rounded-md bg-muted px-2 py-1.5">
+              <div class="rounded-md bg-violet-50/60 px-2 py-1.5">
                 <span class="block text-base font-semibold text-cloze-indigo">${summary.total_user_messages || 0}</span>
                 <span class="text-[10px] uppercase tracking-wider text-stone-400">Patient</span>
               </div>
-              <div class="rounded-md bg-muted px-2 py-1.5">
+              <div class="rounded-md bg-violet-50/60 px-2 py-1.5">
                 <span class="block text-base font-semibold text-cloze-indigo">${summary.total_model_messages || 0}</span>
                 <span class="text-[10px] uppercase tracking-wider text-stone-400">AI</span>
               </div>
-              <div class="rounded-md bg-muted px-2 py-1.5">
+              <div class="rounded-md bg-violet-50/60 px-2 py-1.5">
                 <span class="block text-base font-semibold text-cloze-indigo">${typeof summary.average_messages_per_chat === 'number' ? summary.average_messages_per_chat.toFixed(1) : '0'}</span>
                 <span class="text-[10px] uppercase tracking-wider text-stone-400">Avg/Chat</span>
               </div>

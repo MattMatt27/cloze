@@ -120,8 +120,8 @@ async function logout() {
     var href = a.getAttribute('href').replace(/\/+$/, '');
     if (href && (href === path || (href !== '/' && path.startsWith(href)))) {
       // Remove default styles, apply active styles
-      a.classList.remove('text-stone-600', 'hover:bg-stone-50');
-      a.classList.add('bg-stone-100', 'text-stone-900');
+      a.classList.remove('text-stone-600', 'hover:bg-violet-50');
+      a.classList.add('bg-cloze-lavender', 'text-cloze-indigo', 'font-medium');
       var icon = a.querySelector('svg');
       if (icon) {
         icon.classList.remove('text-stone-400');
