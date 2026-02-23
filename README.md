@@ -189,4 +189,4 @@ docker run -p 5051:5001 --env-file .env cloze-app
 
 ## License
 
-[MindLamp](https://www.digitalpsych.org/mindlamp.html)
+This work is licensed under [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). Free for academic and research use. Commercial use is not permitted.
