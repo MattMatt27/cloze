@@ -4,7 +4,7 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request, abort
 from flask_login import login_required, current_user
 from ..extensions import db
-from ..models import ChatWindow, ChatTemplate, User, Conversation, Model, SystemPrompt
+from ..models import ChatWindow, ChatTemplate, User, Conversation, Model, SystemPrompt, SafetyPlan
 
 window_bp = Blueprint("chat_windows", __name__, url_prefix="/api/windows")
 
@@ -270,6 +270,14 @@ def start_conversation_from_template():
     # Check if window is for current patient and is active
     if window.patient_id != current_user.id or not window.is_current():
         abort(403)
+
+    # Safety plan gating: patient must have an active (approved) safety plan
+    active_plan = SafetyPlan.get_active_plan(current_user.id)
+    if not active_plan:
+        return jsonify({
+            'error': 'You must have an approved safety plan before starting conversations. '
+                     'Please complete your safety plan sections first.'
+        }), 403
 
     # Check if conversation already exists for this template
     existing = Conversation.query.filter_by(

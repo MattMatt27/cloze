@@ -3,6 +3,7 @@ from .settings import ProviderSettings, AdminSettings, UserSettings, SystemPromp
 from .chat import Model, Conversation, Message, SavedSelection
 from .chat_window import ChatWindow, ChatTemplate
 from .report import Report
+from .safety_plan import SafetyPlan
 
 __all__ = [
     "User", "ProviderPatient",
@@ -10,4 +11,5 @@ __all__ = [
     "Model", "Conversation", "Message", "SavedSelection",
     "ChatWindow", "ChatTemplate",
     "Report",
+    "SafetyPlan",
 ]

@@ -121,22 +121,41 @@ class ChatTemplate(db.Model):
     system_prompt = db.relationship('SystemPrompt')
 
     def get_system_prompt_content(self):
-        """Get the actual system prompt content to use"""
-        base_content = ""
+        """Get the actual system prompt content to use.
 
-        # Start with the selected system prompt
-        if self.system_prompt:
-            base_content = self.system_prompt.content
+        Composes constitutional + domain + custom instructions via the
+        prompt composer.  Falls back to legacy flat content if the linked
+        SystemPrompt has no domain_prompt_id.
+        """
+        from prompts.composer import compose_system_prompt
 
-        # Add custom instructions if provided
+        domain_id = None
+        if self.system_prompt and self.system_prompt.domain_prompt_id:
+            domain_id = self.system_prompt.domain_prompt_id
+
+        # Load patient's active safety plan
+        safety_plan_data = None
+        if self.window and self.window.patient_id:
+            from .safety_plan import SafetyPlan
+            active_plan = SafetyPlan.query.filter_by(
+                patient_id=self.window.patient_id, status='active'
+            ).first()
+            if active_plan:
+                safety_plan_data = active_plan.to_prompt_dict()
+
+        # If we have a domain_id (new-style) or no system_prompt at all,
+        # use the composer which always injects constitutional prompts.
+        if domain_id or not self.system_prompt:
+            return compose_system_prompt(
+                domain_id=domain_id,
+                custom_instructions=self.custom_system_prompt,
+                safety_plan=safety_plan_data,
+            )
+
+        # Legacy fallback: system_prompt exists but has no domain_prompt_id
+        base_content = self.system_prompt.content
         if self.custom_system_prompt and self.custom_system_prompt.strip():
-            if base_content:
-                # Combine base prompt with custom instructions
-                base_content = f"{base_content}\n\nAdditional Instructions: {self.custom_system_prompt.strip()}"
-            else:
-                # Use only custom instructions if no base prompt selected
-                base_content = self.custom_system_prompt.strip()
-
+            base_content = f"{base_content}\n\nAdditional Instructions: {self.custom_system_prompt.strip()}"
         return base_content if base_content else None
 
     def to_dict(self):

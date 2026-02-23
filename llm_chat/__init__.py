@@ -12,6 +12,7 @@ from .routes.provider import provider_bp
 from .routes.admin import admin_bp
 from .routes.chat_windows import window_bp
 from .routes.reports import reports_bp
+from .routes.safety_plan import safety_bp
 from flask_smorest import Api
 
 # Load variables from .env - use explicit path to ensure it's found
@@ -64,6 +65,7 @@ def create_app():
     app.register_blueprint(admin_bp)
     app.register_blueprint(window_bp)
     app.register_blueprint(reports_bp)
+    app.register_blueprint(safety_bp)
 
     # Start report scheduler (5-minute interval)
     from .services.report_scheduler import report_scheduler

@@ -20,6 +20,7 @@ class User(UserMixin, db.Model):
     saved_selections = db.relationship('SavedSelection', backref='user', foreign_keys='SavedSelection.user_id', lazy='dynamic')
     provider_assignments = db.relationship('ProviderPatient', foreign_keys='ProviderPatient.patient_id', backref='patient', lazy='dynamic')
     patients = db.relationship('ProviderPatient', foreign_keys='ProviderPatient.provider_id', backref='provider', lazy='dynamic')
+    safety_plans = db.relationship('SafetyPlan', foreign_keys='SafetyPlan.patient_id', backref='patient_user', lazy='dynamic')
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -44,6 +45,15 @@ class User(UserMixin, db.Model):
     @is_active.setter
     def is_active(self, value):
         self.visible = value
+
+    @property
+    def active_safety_plan(self):
+        from .safety_plan import SafetyPlan
+        return SafetyPlan.query.filter_by(patient_id=self.id, status='active').first()
+
+    @property
+    def has_safety_plan(self):
+        return self.active_safety_plan is not None
 
     def can_access_patient(self, patient_id):
         """Check if user can access a specific patient's data"""
