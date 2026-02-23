@@ -38,12 +38,14 @@ class CooccurrenceAnalysisComponent(ReportComponent):
         # Get configuration parameters
         min_cooccurrence = self.config.get('cooccurrence_min_count', 2)
         top_n_words = self.config.get('cooccurrence_top_n', 20)
+        graph_style = 'academic' if self.config.get('report_type') == 'detailed' else 'product'
 
         # Run analyzer
         try:
             analyzer = CooccurrenceAnalyzer(
                 min_cooccurrence=min_cooccurrence,
-                top_n_words=top_n_words
+                top_n_words=top_n_words,
+                graph_style=graph_style
             )
             results = analyzer.analyze(message_texts)
 

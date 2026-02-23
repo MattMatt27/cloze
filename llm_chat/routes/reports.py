@@ -105,7 +105,9 @@ def generate_window_report(window_id):
         abort(403)
 
     try:
-        report = generate_report_for_window(window_id)
+        data = request.json or {}
+        report_type = data.get('report_type', None)
+        report = generate_report_for_window(window_id, report_type=report_type)
         return jsonify(report.to_dict())
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -172,12 +174,22 @@ def window_report_config(window_id):
     elif request.method == "PUT":
         try:
             from ..extensions import db
+            from report.registry import get_registry
             data = request.json or {}
             config = data.get('config', {})
 
-            # Validate config keys
-            valid_keys = {'ai_summary', 'saved_messages', 'descriptive_stats', 'nlp_analysis'}
-            config = {k: v for k, v in config.items() if k in valid_keys}
+            # Handle both v1 (flat) and v2 (hierarchical) config formats
+            if config.get('version') == 2:
+                # v2: validate feature keys against registry
+                registry = get_registry()
+                features = config.get('features', {})
+                config['features'] = registry.validate_config(features)
+            else:
+                # v1: validate with registry-based key set plus legacy keys
+                registry = get_registry()
+                valid_keys = set(registry.get_available_feature_keys())
+                valid_keys.add('nlp_analysis')  # legacy v1 key
+                config = {k: v for k, v in config.items() if k in valid_keys}
 
             window.set_report_config(config)
             db.session.commit()
@@ -296,6 +308,21 @@ def get_live_report(window_id):
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@reports_bp.route("/registry", methods=["GET"])
+@login_required
+def get_feature_registry():
+    """Get the feature registry schema for UI rendering."""
+    from report.registry import get_registry
+    registry = get_registry()
+    return jsonify({
+        'groups': registry.to_ui_schema(),
+        'report_types': [
+            {"key": "summary", "name": "Summary", "description": "Concise overview of key findings"},
+            {"key": "detailed", "name": "Detailed", "description": "Comprehensive analysis with methodology and citations"},
+        ]
+    })
 
 
 @reports_bp.route("/capabilities", methods=["GET"])

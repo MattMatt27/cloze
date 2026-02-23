@@ -19,7 +19,7 @@ class ChatWindow(db.Model):
     updated_at = db.Column(db.Float, onupdate=lambda: time.time())
 
     # Report configuration (JSON string storing enabled components)
-    report_config = db.Column(db.Text, default='{"ai_summary": true, "saved_messages": true, "descriptive_stats": true, "nlp_analysis": true}')
+    report_config = db.Column(db.Text, default='{"ai_summary": true, "saved_messages": true, "descriptive_stats": true, "nlp_analysis": true, "cooccurrence_analysis": true}')
 
     # Relationships
     patient = db.relationship('User', foreign_keys=[patient_id], backref='chat_windows')
@@ -63,15 +63,22 @@ class ChatWindow(db.Model):
         return self.compute_status(now) == 'scheduled'
 
     def get_report_config(self):
-        """Get report configuration as dict"""
+        """Get report configuration as normalized v2 dict."""
+        from report.config import normalize_config, get_default_config
         try:
-            return json.loads(self.report_config or '{}')
-        except:
-            return {"ai_summary": True, "saved_messages": True, "descriptive_stats": True, "nlp_analysis": True}
+            raw = json.loads(self.report_config or '{}')
+            return normalize_config(raw)
+        except Exception:
+            return get_default_config()
 
     def set_report_config(self, config):
         """Set report configuration from dict"""
         self.report_config = json.dumps(config)
+
+    def get_report_type(self):
+        """Get the report type from config."""
+        config = self.get_report_config()
+        return config.get('report_type', 'summary')
 
     def to_dict(self):
         status_value = self.compute_status()
@@ -88,7 +95,8 @@ class ChatWindow(db.Model):
             'is_current': self.is_current(),
             'is_upcoming': self.is_upcoming(),
             'created_at': self.created_at,
-            'updated_at': self.updated_at
+            'updated_at': self.updated_at,
+            'report_config': self.get_report_config(),
         }
 
 

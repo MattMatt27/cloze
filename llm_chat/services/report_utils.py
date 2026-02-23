@@ -6,7 +6,7 @@ from ..models import ChatWindow, Report
 from report.generator import UnifiedReportGenerator
 
 
-def generate_report_for_window(window_id: int):
+def generate_report_for_window(window_id: int, report_type: str = None):
     """Generate and persist a unified report for a specific window."""
     window = ChatWindow.query.get(window_id)
     if not window:
@@ -14,7 +14,7 @@ def generate_report_for_window(window_id: int):
 
     report = Report.query.filter_by(window_id=window.id).first()
     if not report:
-        report = UnifiedReportGenerator.save_report(window_id)
+        report = UnifiedReportGenerator.save_report(window_id, report_type=report_type)
 
     window.status = 'report_ready'
     db.session.commit()

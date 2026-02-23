@@ -49,6 +49,7 @@ report*.html
 
 # Docs
 .docs/
+docs/
 
 # AWS deployment files (ignore for now)
 .aws/

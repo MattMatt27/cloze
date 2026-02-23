@@ -442,4 +442,120 @@ def get_base_css() -> str:
         color: #856404;
         margin: 0;
     }
+
+    /* Report Type Badge */
+    .unified-report .report-type-badge {
+        display: inline-block;
+        padding: 0.25rem 1rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+    .unified-report .report-type-summary {
+        background: rgba(255,255,255,0.2);
+        color: #ffffff;
+    }
+    .unified-report .report-type-detailed {
+        background: rgba(255,255,255,0.3);
+        color: #ffffff;
+        border: 1px solid rgba(255,255,255,0.4);
+    }
+
+    /* Methodology Section (Detailed mode) */
+    .unified-report .methodology-section {
+        background: #f8fafc;
+        padding: 2rem;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .unified-report .methodology-intro {
+        font-size: 0.95rem;
+        color: #475569;
+        margin-bottom: 1rem;
+    }
+    .unified-report .methodology-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .unified-report .methodology-list li {
+        padding: 0.6rem 0;
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 0.95rem;
+        color: #334155;
+    }
+    .unified-report .methodology-list li:last-child {
+        border-bottom: none;
+    }
+
+    /* Citations Section (Detailed mode) */
+    .unified-report .citations-section {
+        background: #f8fafc;
+        padding: 2rem;
+        border-top: 2px solid #e2e8f0;
+    }
+    .unified-report .citations-list {
+        padding-left: 1.5rem;
+        font-size: 0.9rem;
+        color: #475569;
+        margin: 0;
+    }
+    .unified-report .citations-list li {
+        margin-bottom: 0.5rem;
+    }
+
+    /* Detailed-mode extras */
+    .unified-report .detailed-breakdown {
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e2e8f0;
+    }
+    .unified-report .detailed-breakdown h4 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #334155;
+        margin: 0 0 1rem 0;
+    }
+    .unified-report .breakdown-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+    }
+    .unified-report .breakdown-table th {
+        background: #f1f5f9;
+        padding: 0.5rem 0.75rem;
+        text-align: left;
+        font-weight: 600;
+        color: #334155;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    .unified-report .breakdown-table td {
+        padding: 0.5rem 0.75rem;
+        border-bottom: 1px solid #f1f5f9;
+        color: #475569;
+    }
+
+    /* Emotional Keywords Card */
+    .unified-report .keyword-counts {
+        margin-top: 0.5rem;
+    }
+    .unified-report .keyword-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .unified-report .keyword-row:last-child {
+        border-bottom: none;
+    }
+    .unified-report .keyword-label {
+        font-size: 0.95rem;
+        color: #334155;
+    }
+    .unified-report .keyword-value {
+        font-weight: 600;
+        color: #003d7a;
+        font-size: 1rem;
+    }
     """

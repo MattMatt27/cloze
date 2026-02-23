@@ -231,31 +231,28 @@
         </div>
 
         <div>
-          <label class="mb-2 block font-semibold">Report Configuration</label>
-          <p class="mb-3 text-sm text-slate-600">Configure which components will be included in the automatic report generated when this window completes.</p>
-
-          <div class="space-y-3">
-            <label class="flex gap-3 rounded-lg border-2 border-transparent bg-slate-50 p-3 hover:border-indigo-300">
-              <input id="window_config_ai_summary" type="checkbox" checked class="mt-1 h-5 w-5">
-              <span><strong>AI Summary</strong> — Intelligent analysis of conversation themes and progress</span>
+          <label class="mb-2 block font-semibold">Report Type</label>
+          <p class="mb-3 text-sm text-slate-600">Choose the level of detail for the generated report.</p>
+          <div class="mb-5 grid grid-cols-2 gap-3" id="windowReportTypeContainer">
+            <label id="window_rt_summary_label" class="flex items-start gap-3 rounded-lg border-2 border-indigo-400 bg-indigo-50 p-3 cursor-pointer transition">
+              <input type="radio" name="window_report_type" value="summary" checked class="mt-1">
+              <div>
+                <strong>Summary</strong>
+                <p class="text-sm text-slate-600 mt-0.5">Concise overview of key findings</p>
+              </div>
             </label>
-            <label class="flex gap-3 rounded-lg border-2 border-transparent bg-slate-50 p-3 hover:border-indigo-300">
-              <input id="window_config_saved_messages" type="checkbox" checked class="mt-1 h-5 w-5">
-              <span><strong>Saved Messages</strong> — Important messages flagged during sessions</span>
-            </label>
-            <label class="flex gap-3 rounded-lg border-2 border-transparent bg-slate-50 p-3 hover:border-indigo-300">
-              <input id="window_config_descriptive_stats" type="checkbox" checked class="mt-1 h-5 w-5">
-              <span><strong>Descriptive Statistics</strong> — Message counts, word counts, session duration</span>
-            </label>
-            <label class="flex gap-3 rounded-lg border-2 border-transparent bg-slate-50 p-3 hover:border-indigo-300">
-              <input id="window_config_nlp_analysis" type="checkbox" checked class="mt-1 h-5 w-5">
-              <span><strong>NLP Analysis</strong> — Sentiment analysis and communication patterns</span>
-            </label>
-            <label class="flex gap-3 rounded-lg border-2 border-transparent bg-slate-50 p-3 hover:border-indigo-300">
-              <input id="window_config_cooccurrence_analysis" type="checkbox" checked class="mt-1 h-5 w-5">
-              <span><strong>Co-occurrence Analysis</strong> — Word relationship network showing conversation themes</span>
+            <label id="window_rt_detailed_label" class="flex items-start gap-3 rounded-lg border-2 border-slate-200 bg-slate-50 p-3 cursor-pointer transition">
+              <input type="radio" name="window_report_type" value="detailed" class="mt-1">
+              <div>
+                <strong>Detailed</strong>
+                <p class="text-sm text-slate-600 mt-0.5">Full analysis with methodology and citations</p>
+              </div>
             </label>
           </div>
+
+          <label class="mb-2 block font-semibold">Report Features</label>
+          <p class="mb-3 text-sm text-slate-600">Configure which analysis features will be included in the report.</p>
+          <div id="windowFeatureConfigContainer" class="space-y-4"></div>
         </div>
 
         <div class="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4">
@@ -280,29 +277,26 @@
 
       <form id="reportConfigForm" class="space-y-5">
         <div>
-          <p class="mb-2 font-semibold">Select Report Components:</p>
-          <div class="space-y-3">
-            <label class="flex gap-3 rounded-lg border-2 border-transparent bg-slate-50 p-3 hover:border-indigo-300">
-              <input id="config_ai_summary" type="checkbox" checked class="mt-1 h-5 w-5">
-              <span><strong>AI Summary</strong> — Intelligent analysis of conversation themes and progress</span>
+          <p class="mb-2 font-semibold">Report Type:</p>
+          <div class="mb-5 grid grid-cols-2 gap-3" id="configReportTypeContainer">
+            <label id="config_rt_summary_label" class="flex items-start gap-3 rounded-lg border-2 border-indigo-400 bg-indigo-50 p-3 cursor-pointer transition">
+              <input type="radio" name="config_report_type" value="summary" checked class="mt-1">
+              <div>
+                <strong>Summary</strong>
+                <p class="text-sm text-slate-600 mt-0.5">Concise overview</p>
+              </div>
             </label>
-            <label class="flex gap-3 rounded-lg border-2 border-transparent bg-slate-50 p-3 hover:border-indigo-300">
-              <input id="config_saved_messages" type="checkbox" checked class="mt-1 h-5 w-5">
-              <span><strong>Saved Messages</strong> — Important messages flagged during sessions</span>
-            </label>
-            <label class="flex gap-3 rounded-lg border-2 border-transparent bg-slate-50 p-3 hover:border-indigo-300">
-              <input id="config_descriptive_stats" type="checkbox" checked class="mt-1 h-5 w-5">
-              <span><strong>Descriptive Statistics</strong> — Message counts, word counts, session duration</span>
-            </label>
-            <label class="flex gap-3 rounded-lg border-2 border-transparent bg-slate-50 p-3 hover:border-indigo-300">
-              <input id="config_nlp_analysis" type="checkbox" checked class="mt-1 h-5 w-5">
-              <span><strong>NLP Analysis</strong> — Sentiment analysis and communication patterns</span>
-            </label>
-            <label class="flex gap-3 rounded-lg border-2 border-transparent bg-slate-50 p-3 hover:border-indigo-300">
-              <input id="config_cooccurrence_analysis" type="checkbox" checked class="mt-1 h-5 w-5">
-              <span><strong>Co-occurrence Analysis</strong> — Word relationship network showing conversation themes</span>
+            <label id="config_rt_detailed_label" class="flex items-start gap-3 rounded-lg border-2 border-slate-200 bg-slate-50 p-3 cursor-pointer transition">
+              <input type="radio" name="config_report_type" value="detailed" class="mt-1">
+              <div>
+                <strong>Detailed</strong>
+                <p class="text-sm text-slate-600 mt-0.5">Full analysis with citations</p>
+              </div>
             </label>
           </div>
+
+          <p class="mb-2 font-semibold">Report Features:</p>
+          <div id="configFeatureContainer" class="space-y-4"></div>
         </div>
 
         <div class="mt-6 flex justify-end gap-3 border-t border-slate-200 pt-4">
@@ -337,6 +331,117 @@
     let currentPatient = null;
     let windows = [];
     let models = [];
+    let featureRegistry = null;
+
+    // -- Feature Registry --
+    async function loadFeatureRegistry() {
+      try {
+        const res = await fetch('/api/reports/registry');
+        if (res.ok) featureRegistry = await res.json();
+      } catch (e) {
+        console.error('Error loading feature registry:', e);
+      }
+    }
+
+    function renderFeatureConfig(containerId, prefix) {
+      if (!featureRegistry) return;
+      const container = document.getElementById(containerId);
+      if (!container) return;
+      container.innerHTML = '';
+
+      for (const group of featureRegistry.groups) {
+        const allComingSoon = group.features.every(f => f.status === 'coming_soon');
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'mb-3';
+
+        let html = `
+          <div class="flex items-center gap-2 mb-2 ${allComingSoon ? 'opacity-50' : ''}">
+            <h4 class="font-semibold text-sm text-slate-800">${group.name}</h4>
+            ${allComingSoon ? '<span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Coming Soon</span>' : ''}
+          </div>
+          <div class="space-y-2">
+        `;
+
+        for (const feature of group.features) {
+          const isComingSoon = feature.status === 'coming_soon';
+          const checkboxId = `${prefix}_${feature.key}`;
+          html += `
+            <label class="flex gap-3 rounded-lg border-2 ${isComingSoon ? 'border-slate-100 bg-slate-50/60 opacity-50' : 'border-transparent bg-slate-50 hover:border-indigo-300'} p-3 ${isComingSoon ? 'cursor-not-allowed' : 'cursor-pointer'}">
+              <input id="${checkboxId}" type="checkbox" ${isComingSoon ? 'disabled' : 'checked'} class="mt-1 h-5 w-5">
+              <div>
+                <strong class="text-sm">${feature.name}</strong>
+                ${isComingSoon ? '<span class="ml-1.5 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">Coming Soon</span>' : ''}
+                <span class="text-sm text-slate-600 block">${feature.description}</span>
+                ${feature.citation ? `<span class="text-xs text-slate-400 block mt-0.5">${feature.citation}</span>` : ''}
+              </div>
+            </label>
+          `;
+        }
+        html += '</div>';
+        groupDiv.innerHTML = html;
+        container.appendChild(groupDiv);
+      }
+    }
+
+    function collectFeatureConfig(prefix) {
+      if (!featureRegistry) return {};
+      const features = {};
+      for (const group of featureRegistry.groups) {
+        for (const feature of group.features) {
+          if (feature.status === 'available') {
+            const cb = document.getElementById(`${prefix}_${feature.key}`);
+            features[feature.key] = cb ? cb.checked : true;
+          }
+        }
+      }
+      return features;
+    }
+
+    function loadFeatureConfigFromData(prefix, config) {
+      if (!featureRegistry) return;
+      const features = config.features || {};
+      for (const group of featureRegistry.groups) {
+        for (const feature of group.features) {
+          if (feature.status === 'available') {
+            const cb = document.getElementById(`${prefix}_${feature.key}`);
+            if (cb) cb.checked = features[feature.key] !== false;
+          }
+        }
+      }
+    }
+
+    function setupReportTypeRadios(containerPrefix, selectedType) {
+      const summaryLabel = document.getElementById(`${containerPrefix}_rt_summary_label`);
+      const detailedLabel = document.getElementById(`${containerPrefix}_rt_detailed_label`);
+      if (!summaryLabel || !detailedLabel) return;
+
+      const radios = [summaryLabel, detailedLabel].map(l => l.querySelector('input[type="radio"]'));
+      radios.forEach(r => {
+        if (r) r.checked = (r.value === selectedType);
+      });
+      updateReportTypeLabels(containerPrefix);
+    }
+
+    function updateReportTypeLabels(containerPrefix) {
+      const summaryLabel = document.getElementById(`${containerPrefix}_rt_summary_label`);
+      const detailedLabel = document.getElementById(`${containerPrefix}_rt_detailed_label`);
+      if (!summaryLabel || !detailedLabel) return;
+
+      const summaryRadio = summaryLabel.querySelector('input[type="radio"]');
+      if (summaryRadio && summaryRadio.checked) {
+        summaryLabel.className = summaryLabel.className.replace('border-slate-200 bg-slate-50', 'border-indigo-400 bg-indigo-50');
+        detailedLabel.className = detailedLabel.className.replace('border-indigo-400 bg-indigo-50', 'border-slate-200 bg-slate-50');
+      } else {
+        detailedLabel.className = detailedLabel.className.replace('border-slate-200 bg-slate-50', 'border-indigo-400 bg-indigo-50');
+        summaryLabel.className = summaryLabel.className.replace('border-indigo-400 bg-indigo-50', 'border-slate-200 bg-slate-50');
+      }
+    }
+
+    // Attach change listeners to report type radios
+    document.addEventListener('change', (e) => {
+      if (e.target.name === 'window_report_type') updateReportTypeLabels('window');
+      if (e.target.name === 'config_report_type') updateReportTypeLabels('config');
+    });
     let systemPrompts = [];
     let currentWindowId = null;
     let currentReportWindowId = null;
@@ -587,11 +692,9 @@
       document.getElementById('windowForm').reset();
       document.getElementById('templatesEditor').innerHTML = '';
 
-      document.getElementById('window_config_ai_summary').checked = true;
-      document.getElementById('window_config_saved_messages').checked = true;
-      document.getElementById('window_config_descriptive_stats').checked = true;
-      document.getElementById('window_config_nlp_analysis').checked = true;
-      document.getElementById('window_config_cooccurrence_analysis').checked = true;
+      // Reset report type and feature checkboxes to defaults
+      setupReportTypeRadios('window', 'summary');
+      renderFeatureConfig('windowFeatureConfigContainer', 'window_config');
 
       addTemplateEditor();
       document.getElementById('windowModal').classList.remove('hidden');
@@ -625,11 +728,8 @@
         }
 
         const cfg = w.report_config || {};
-        document.getElementById('window_config_ai_summary').checked = cfg.ai_summary !== false;
-        document.getElementById('window_config_saved_messages').checked = cfg.saved_messages !== false;
-        document.getElementById('window_config_descriptive_stats').checked = cfg.descriptive_stats !== false;
-        document.getElementById('window_config_nlp_analysis').checked = cfg.nlp_analysis !== false;
-        document.getElementById('window_config_cooccurrence_analysis').checked = cfg.cooccurrence_analysis !== false;
+        setupReportTypeRadios('window', cfg.report_type || 'summary');
+        loadFeatureConfigFromData('window_config', cfg);
 
         const editor = document.getElementById('templatesEditor');
         editor.innerHTML = '';
@@ -711,12 +811,11 @@
         });
       });
 
+      const reportTypeEl = document.querySelector('input[name="window_report_type"]:checked');
       const report_config = {
-        ai_summary: document.getElementById('window_config_ai_summary').checked,
-        saved_messages: document.getElementById('window_config_saved_messages').checked,
-        descriptive_stats: document.getElementById('window_config_descriptive_stats').checked,
-        nlp_analysis: document.getElementById('window_config_nlp_analysis').checked,
-        cooccurrence_analysis: document.getElementById('window_config_cooccurrence_analysis').checked
+        version: 2,
+        report_type: reportTypeEl ? reportTypeEl.value : 'summary',
+        features: collectFeatureConfig('window_config')
       };
 
       const payload = {
@@ -780,15 +879,15 @@
 
     async function openReportConfigModal(windowId) {
       currentReportWindowId = windowId;
+      // Render the dynamic feature config into the modal
+      renderFeatureConfig('configFeatureContainer', 'config');
+
       try {
         const res = await fetch(`/api/reports/window/${windowId}/config`);
         if (res.ok) {
           const cfg = await res.json();
-          document.getElementById('config_ai_summary').checked = cfg.ai_summary !== false;
-          document.getElementById('config_saved_messages').checked = cfg.saved_messages !== false;
-          document.getElementById('config_descriptive_stats').checked = cfg.descriptive_stats !== false;
-          document.getElementById('config_nlp_analysis').checked = cfg.nlp_analysis !== false;
-          document.getElementById('config_cooccurrence_analysis').checked = cfg.cooccurrence_analysis !== false;
+          setupReportTypeRadios('config', cfg.report_type || 'summary');
+          loadFeatureConfigFromData('config', cfg);
         }
       } catch (e) { console.error('Error loading report config:', e); }
 
@@ -806,12 +905,11 @@
       e.preventDefault();
       if (!currentReportWindowId) return alert('No window selected');
 
+      const configReportTypeEl = document.querySelector('input[name="config_report_type"]:checked');
       const config = {
-        ai_summary: document.getElementById('config_ai_summary').checked,
-        saved_messages: document.getElementById('config_saved_messages').checked,
-        descriptive_stats: document.getElementById('config_descriptive_stats').checked,
-        nlp_analysis: document.getElementById('config_nlp_analysis').checked,
-        cooccurrence_analysis: document.getElementById('config_cooccurrence_analysis').checked
+        version: 2,
+        report_type: configReportTypeEl ? configReportTypeEl.value : 'summary',
+        features: collectFeatureConfig('config')
       };
 
       try {
@@ -819,14 +917,15 @@
           method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ config })
         });
 
-        const res = await fetch(`/api/reports/window/${currentReportWindowId}/generate-enhanced`, {
-          method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ config })
+        const res = await fetch(`/api/reports/window/${currentReportWindowId}/generate-unified`, {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ report_type: config.report_type })
         });
         if (!res.ok) {
-          const err = await res.json(); throw new Error(err.error || 'Failed to generate enhanced report');
+          const err = await res.json(); throw new Error(err.error || 'Failed to generate report');
         }
         await res.json();
-        alert('Enhanced report generated successfully!');
+        alert('Report generated successfully!');
         closeReportConfigModal();
         loadWindows(currentPatient.id);
       } catch (e) {
@@ -876,6 +975,8 @@
     (async function initialize(){
       await loadModels();
       await loadSystemPrompts();
+      await loadFeatureRegistry();
+      renderFeatureConfig('windowFeatureConfigContainer', 'window_config');
       await loadPatients();
     })();
   </script>

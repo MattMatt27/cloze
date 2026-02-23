@@ -24,11 +24,30 @@ class PDFRenderer(HTMLRenderer):
         Returns:
             PDF-optimized HTML as string
         """
-        css = get_pdf_styles()
+        # Reset counters for each report
+        self._section_counter = 0
+        self._figure_counter = 0
+        self._table_counter = 0
+
+        report_type = report_data.get('report_type', 'summary')
+        css = get_pdf_styles(report_type=report_type)
         html_parts = []
 
-        html_parts.append('<div class="unified-report print-mode">')
-        html_parts.append(self.render_header(report_data))
+        # Wrapper class: academic for detailed, standard for summary
+        if report_type == 'detailed':
+            html_parts.append('<div class="unified-report print-mode academic-report">')
+        else:
+            html_parts.append('<div class="unified-report print-mode">')
+
+        # Header: academic for detailed, standard for summary
+        if report_type == 'detailed':
+            html_parts.append(self._render_academic_header(report_data))
+        else:
+            html_parts.append(self.render_header(report_data))
+
+        # Detailed mode: methodology section
+        if report_type == 'detailed':
+            html_parts.append(self._render_methodology_section(report_data))
 
         html_parts.append('<div class="report-content">')
         if 'components' in report_data:
@@ -36,10 +55,15 @@ class PDFRenderer(HTMLRenderer):
                 html_parts.append(
                     f'<div class="report-section print-section" data-component="{component_name}">'
                 )
-                html_parts.append(self.render_component(component_name, component_data))
+                html_parts.append(self.render_component(component_name, component_data, report_type))
                 html_parts.append('</div>')
 
         html_parts.append('</div>')
+
+        # Detailed mode: citations section
+        if report_type == 'detailed':
+            html_parts.append(self._render_citations_section(report_data))
+
         html_parts.append('</div>')
 
         return f"""

@@ -35,12 +35,14 @@ from report.renderers.pdf_renderer import PDFRenderer
 class UnifiedReportGenerator:
     """Main unified report generator that orchestrates all components."""
 
-    def __init__(self, window_id: int):
+    def __init__(self, window_id: int, report_type: str = None):
         """
         Initialize generator for a chat window.
 
         Args:
             window_id: ChatWindow ID to generate report for
+            report_type: Override report type ("summary" or "detailed").
+                         If None, uses the value from window config.
         """
         self.window_id = window_id
         self.window = ChatWindow.query.get(window_id)
@@ -48,6 +50,7 @@ class UnifiedReportGenerator:
             raise ValueError(f"ChatWindow with id {window_id} not found")
 
         self.config = self.window.get_report_config()
+        self.report_type = report_type or self.config.get('report_type', 'summary')
         self.html_renderer = HTMLRenderer()
         self.pdf_renderer = PDFRenderer()
         self.components_data = {}
@@ -74,6 +77,8 @@ class UnifiedReportGenerator:
 
     def generate(self) -> Dict[str, Any]:
         """Generate all configured report components."""
+        from report.config import get_enabled_component_keys, is_feature_enabled
+
         # Build metadata
         report_data = {
             'window_id': self.window_id,
@@ -84,18 +89,26 @@ class UnifiedReportGenerator:
             'start_date': self.window.start_date,
             'end_date': self.window.end_date,
             'generated_at': time.time(),
+            'report_type': self.report_type,
+            'config_version': 2,
             'components': {},
             'models_used': self._get_models_used()
         }
 
-        # Execute all registered components
+        # Determine which components to run based on enabled features
+        enabled_component_keys = get_enabled_component_keys(self.config)
+
+        # Instantiate and execute components
         components = get_all_components(self.window)
         for component_name, component in components.items():
-            if self.config.get(component_name, False):
+            if component_name in enabled_component_keys:
                 try:
                     component_data = component.generate()
                     # Skip component if it returns None (e.g., AI summary when no Llama models available)
                     if component_data is not None:
+                        # For NLP analysis, filter sub-features based on config
+                        if component_name == 'nlp_analysis':
+                            component_data = self._filter_nlp_subfeatures(component_data)
                         report_data['components'][component_name] = component_data
                         self.components_data[component_name] = (component, component_data)
                     else:
@@ -123,6 +136,28 @@ class UnifiedReportGenerator:
 
         return report_data
 
+    def _filter_nlp_subfeatures(self, nlp_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Filter NLP analysis data based on which sub-features are enabled."""
+        from report.config import is_feature_enabled
+
+        filtered = {"message_count": nlp_data.get("message_count", 0)}
+
+        if is_feature_enabled(self.config, "sentiment_analysis"):
+            for key in ("average_sentiment", "sentiment_distribution", "sentiment_percentages"):
+                if key in nlp_data:
+                    filtered[key] = nlp_data[key]
+
+        if is_feature_enabled(self.config, "voice_analysis"):
+            for key in ("voice_analysis", "question_frequency"):
+                if key in nlp_data:
+                    filtered[key] = nlp_data[key]
+
+        if is_feature_enabled(self.config, "keyword_analysis"):
+            if "emotional_keywords" in nlp_data:
+                filtered["emotional_keywords"] = nlp_data["emotional_keywords"]
+
+        return filtered
+
     def render_html(self, report_data: Dict[str, Any] = None, standalone: bool = False) -> str:
         """Render report as HTML."""
         if not report_data:
@@ -138,9 +173,9 @@ class UnifiedReportGenerator:
         return self.pdf_renderer.render_full_report(report_data, standalone=True)
 
     @classmethod
-    def save_report(cls, window_id: int) -> Report:
+    def save_report(cls, window_id: int, report_type: str = None) -> Report:
         """Generate and save report to database with retry logic for SQLite locks."""
-        generator = cls(window_id)
+        generator = cls(window_id, report_type=report_type)
         report_data = generator.generate()
 
         # Save to database with retry logic for SQLite
@@ -148,7 +183,7 @@ class UnifiedReportGenerator:
             window_id=window_id,
             patient_id=report_data['patient_id'],
             provider_id=report_data['provider_id'],
-            report_type='unified',
+            report_type=generator.report_type,
             report_data=json.dumps(report_data),
             generated_at=report_data['generated_at']
         )

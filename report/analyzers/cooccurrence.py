@@ -35,16 +35,19 @@ except ImportError:
 class CooccurrenceAnalyzer(Analyzer):
     """Analyzes word co-occurrences in text to identify patterns and relationships."""
 
-    def __init__(self, min_cooccurrence: int = 2, top_n_words: int = 20):
+    def __init__(self, min_cooccurrence: int = 2, top_n_words: int = 20,
+                 graph_style: str = 'product'):
         """
         Initialize the co-occurrence analyzer.
 
         Args:
             min_cooccurrence: Minimum times words must co-occur to be included
             top_n_words: Maximum number of words to include in the graph
+            graph_style: 'product' (colorful, casual) or 'academic' (grayscale, serif, high DPI)
         """
         self.min_cooccurrence = min_cooccurrence
         self.top_n_words = top_n_words
+        self.graph_style = graph_style
 
         # Check dependencies
         if not NLTK_AVAILABLE:
@@ -237,34 +240,74 @@ class CooccurrenceAnalyzer(Analyzer):
         # Create layout
         pos = nx.spring_layout(G, weight="weight", k=0.5, iterations=50)
 
-        # Create figure
-        plt.figure(figsize=(12, 8))
-        plt.clf()
+        if self.graph_style == 'academic':
+            # Academic style: grayscale, serif fonts, high DPI
+            original_params = plt.rcParams.copy()
+            plt.rcParams.update({
+                'font.family': 'serif',
+                'font.serif': ['Times New Roman', 'Georgia', 'DejaVu Serif'],
+            })
 
-        # Draw network
-        nx.draw(
-            G, pos,
-            with_labels=True,
-            node_size=node_sizes,
-            node_color="skyblue",
-            edge_color="gray",
-            font_size=10,
-            font_weight="bold",
-            alpha=0.9
-        )
+            plt.figure(figsize=(10, 7), facecolor='white')
+            plt.clf()
 
-        plt.title("Word Co-occurrence Network", fontsize=14, fontweight='bold')
-        plt.axis('off')
-        plt.tight_layout()
+            nx.draw(
+                G, pos,
+                with_labels=True,
+                node_size=node_sizes,
+                node_color="#cccccc",
+                edge_color="#888888",
+                font_size=9,
+                font_weight="normal",
+                font_family="serif",
+                alpha=0.9,
+                linewidths=1.0,
+                edgecolors="#555555",
+            )
 
-        # Convert to base64-encoded PNG
-        buffer = BytesIO()
-        plt.savefig(buffer, format='png', dpi=100, bbox_inches='tight')
-        buffer.seek(0)
-        image_base64 = base64.b64encode(buffer.read()).decode('utf-8')
-        plt.close()
+            plt.title("Word Co-occurrence Network",
+                      fontsize=12, fontfamily='serif', fontweight='normal')
+            plt.axis('off')
+            plt.tight_layout()
 
-        return image_base64
+            buffer = BytesIO()
+            plt.savefig(buffer, format='png', dpi=200, bbox_inches='tight',
+                        facecolor='white', edgecolor='none')
+            buffer.seek(0)
+            image_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+            plt.close()
+
+            # Restore original params
+            plt.rcParams.update(original_params)
+
+            return image_base64
+        else:
+            # Product style: colorful, casual (default)
+            plt.figure(figsize=(12, 8))
+            plt.clf()
+
+            nx.draw(
+                G, pos,
+                with_labels=True,
+                node_size=node_sizes,
+                node_color="skyblue",
+                edge_color="gray",
+                font_size=10,
+                font_weight="bold",
+                alpha=0.9
+            )
+
+            plt.title("Word Co-occurrence Network", fontsize=14, fontweight='bold')
+            plt.axis('off')
+            plt.tight_layout()
+
+            buffer = BytesIO()
+            plt.savefig(buffer, format='png', dpi=100, bbox_inches='tight')
+            buffer.seek(0)
+            image_base64 = base64.b64encode(buffer.read()).decode('utf-8')
+            plt.close()
+
+            return image_base64
 
     def _empty_result(self) -> Dict[str, Any]:
         """Return empty result structure."""
