@@ -7,6 +7,7 @@ class SystemPrompt(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     content = db.Column(db.Text, nullable=False)
+    domain_prompt_id = db.Column(db.String(50), nullable=True)  # maps to prompts/domains/<id>.md
     visible = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.Float, default=lambda: time.time())
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)

@@ -1,1017 +1,1794 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Dashboard</title>
-  <link rel="icon" type="image/png" href="/static/images/logo.png">
+{% extends "base.html" %}
 
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            brand: { 50: '#eef6ff', 600: '#6366f1' }
-          }
-        }
-      }
-    };
-  </script>
-</head>
-<body class="min-h-screen bg-slate-50 text-slate-900">
-  <div class="flex min-h-screen">
+{% block title %}Cloze{% endblock %}
 
-    <!-- Sidebar -->
-    <aside id="sidebar"
-           class="fixed inset-y-0 left-0 z-40 w-72 -translate-x-full border-r border-slate-200 bg-white px-3 py-4 transition-transform lg:static lg:translate-x-0">
-      <div class="mb-4 flex items-center gap-2 px-3">
-        <span class="text-med text-brand-600 sm:inline">
-          Welcome, {{ current_user.username }}
-        </span>
-      </div>
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+{% endblock %}
 
-      <nav class="space-y-6 overflow-y-auto px-1">
-        <div>
-          <p class="mb-2 px-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Pages</p>
-          <ul class="space-y-1">
-            <li>
-              <a href="/dashboard"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-slate-600 hover:bg-slate-100">
-                <svg class="h-5 w-5 text-slate-400 group-hover:text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-                  <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6"/>
-                </svg>
-                <span>Dashboard</span>
-              </a>
-            </li>
-            <li>
-              <a href="/chat-windows"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-slate-600 hover:bg-slate-100"
-                 title="View and manage all your conversation windows">
-                <svg class="h-5 w-5 text-slate-400 group-hover:text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-                  <path d="M8 10h8M8 14h5"/><path d="M21 12a8.5 8.5 0 01-1.6 5l.6 3-3-1a8.5 8.5 0 11-2-14.5"/>
-                </svg>
-                <span>My Conversations</span>
-              </a>
-            </li>
-            <li>
-              <a href="/my-reports"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-slate-600 hover:bg-slate-100"
-                 title="Review reports from completed conversations">
-                <svg class="h-5 w-5 text-slate-400 group-hover:text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-                  <path d="M5 4h14M5 8h14M5 12h7M5 16h7M5 20h14"/>
-                </svg>
-                <span>Reports</span>
-              </a>
-            </li>
-            <li>
-              <button type="button"
-                      onclick="toggleSelections()"
-                      class="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-slate-600 transition hover:bg-slate-100"
-                      title="Quotes and insights you've saved from your conversations">
-                <svg class="h-5 w-5 text-slate-400 group-hover:text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-                  <path d="M6 4h12a1 1 0 011 1v16l-7-3-7 3V5a1 1 0 011-1z"/>
-                </svg>
-                <span>Saved Quotes</span>
-              </button>
-            </li>
-          </ul>
-        </div>
-      </nav>
-    </aside>
+{% block styles %}
+<style>
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .msg-fade-in { animation: fadeIn 0.3s ease-in; }
 
-    <!-- Overlay for mobile -->
-    <div id="overlay" class="fixed inset-0 z-30 hidden bg-black/30 lg:hidden"></div>
+  @keyframes typing {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-10px); }
+  }
+  .typing-dot { animation: typing 1.4s infinite; }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
 
-    <!-- Main column -->
-    <div class="flex min-w-0 flex-1 flex-col">
+  @keyframes pulse-warning {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.7; }
+  }
+  .time-warning .time-value { color: #DC143C; animation: pulse-warning 2s infinite; }
 
-      <!-- Top bar -->
-      <header class="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-slate-200 bg-white/80 px-4 backdrop-blur">
-        <button id="menuBtn"
-                class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 lg:hidden">
-          <svg class="h-5 w-5 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M4 6h16M4 12h16M4 18h16"/>
-          </svg>
-          <span class="text-sm">Menu</span>
-        </button>
+  .message-text h1, .message-text h2, .message-text h3,
+  .message-text h4, .message-text h5, .message-text h6 { margin: 1em 0 0.5em; font-weight: 600; }
+  .message-text ul, .message-text ol { margin: 0.5em 0; padding-left: 1.5em; }
+  .message-text li { margin: 0.25em 0; }
+  .message-text p  { margin: 0.5em 0; }
+  .message-text code { background: #f4f4f4; padding: 0.2em 0.4em; border-radius: 3px; font-family: 'Monaco','Menlo',monospace; font-size: 0.9em; }
+  .message-text pre  { background: #f4f4f4; padding: 1em; border-radius: 6px; margin: 0.5em 0; overflow-x: auto; }
+  .message-text pre code { background: none; padding: 0; }
+  .message-text blockquote { border-left: 4px solid #d6d3d1; padding-left: 1em; margin: 0.5em 0; color: #78716c; }
+  .message-text strong, .message-text b { font-weight: 600; }
+  .message-text em, .message-text i { font-style: italic; }
+  .message-text::selection { background: #ffd700; color: black; }
+</style>
+{% endblock %}
 
-        <h1 class="text-lg font-semibold">Dashboard</h1>
+{% block body_tag %}
+<body class="h-screen bg-page text-stone-900 antialiased overflow-hidden">
+{% endblock %}
 
-        <div class="ml-auto flex items-center gap-3">
-          <button onclick="logout()"
-                  class="rounded-md border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100">
-            Logout
-          </button>
-        </div>
-      </header>
+{% block layout %}
+<div class="flex h-screen">
 
-      <!-- Content -->
-      <main class="w-full p-6">
-        <section class="mb-6 rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
-          <h2 class="mb-1 text-xl font-semibold">Welcome back, {{ current_user.username }}</h2>
-          <p class="text-slate-600">This is your space for conversations between sessions. Your provider has set up AI conversation partners to support your ongoing discussions. These conversations complement your regular sessions with your care team, but are not a sufficient substitute for your regular appointments.</p>
-        </section>
+  {# ── Left Sidebar ── #}
+  <aside id="sidebar"
+         class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col border-r border-stone-200 bg-white transition-transform lg:static lg:translate-x-0">
 
-        <section class="space-y-6">
-          <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div id="searchContainer" class="relative w-full sm:w-80">
-              <input
-                type="text"
-                id="searchInput"
-                placeholder="Search all conversations..."
-                oninput="searchConversations()"
-                onkeydown="handleSearchKeydown(event)"
-                class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm outline-none transition focus:border-indigo-300 focus:ring-2 focus:ring-indigo-200"
-              />
-              <div id="searchDropdown"
-                   class="absolute left-0 right-0 top-full z-20 mt-2 hidden rounded-lg border border-slate-200 bg-white p-2 shadow-xl"></div>
-            </div>
-          </div>
-
-          <!-- Active Conversations Section -->
-          <div id="activeSection">
-            <div class="mb-3">
-              <h4 class="text-base font-semibold text-slate-700">Available Now</h4>
-              <p class="text-xs text-slate-500 mt-0.5">These conversations are ready for you. Click any card to start or continue a discussion.</p>
-            </div>
-            <div id="activeGrid" class="space-y-6">
-              <!-- Active conversation windows injected here -->
-            </div>
-            <div id="activeEmpty" class="hidden rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center text-slate-600">
-              <p class="text-sm">No conversations are available right now. Your provider will set up new conversation windows as part of your care plan. Check back soon, or explore your past conversations and summaries.</p>
-            </div>
-          </div>
-
-          <!-- Upcoming Conversations Section -->
-          <div id="scheduledSection" class="mt-8">
-            <div class="mb-3">
-              <h4 class="text-base font-semibold text-slate-700">Upcoming Conversations</h4>
-              <p class="text-xs text-slate-500 mt-0.5">These conversation windows will open on their scheduled dates.</p>
-            </div>
-            <div id="scheduledGrid" class="space-y-6">
-              <!-- Upcoming conversation windows injected here -->
-            </div>
-            <div id="scheduledEmpty" class="hidden rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center text-slate-600">
-              <p class="text-sm">No conversations are scheduled yet. Your provider will create new conversation windows as needed for your ongoing support.</p>
-            </div>
-          </div>
-
-          <!-- Reports In Progress Section -->
-          <div id="processingSection" class="mt-8">
-            <div class="mb-3">
-              <h4 class="text-base font-semibold text-slate-700">Reports In Progress</h4>
-              <p class="text-xs text-slate-500 mt-0.5">These conversation windows have closed and a summary is being generated.</p>
-            </div>
-            <div id="processingGrid" class="space-y-6">
-              <!-- Generating report windows injected here -->
-            </div>
-            <div id="processingEmpty" class="hidden rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center text-slate-600">
-              <p class="text-sm">No reports are currently processing.</p>
-            </div>
-          </div>
-
-          <!-- Report Ready Section -->
-          <div id="readySection" class="mt-8">
-            <div class="mb-3">
-              <h4 class="text-base font-semibold text-slate-700">Report Ready Conversations</h4>
-              <p class="text-xs text-slate-500 mt-0.5">These windows are complete and summaries are available to review.</p>
-            </div>
-            <div id="readyGrid" class="space-y-6">
-              <!-- Report ready windows injected here -->
-            </div>
-            <div id="readyEmpty" class="hidden rounded-xl border border-dashed border-slate-200 bg-white p-8 text-center text-slate-600">
-              <p class="text-sm">Once a report is finished it will appear here so you can review your summary.</p>
-            </div>
-          </div>
-
-          <div id="emptyState"
-               class="hidden rounded-xl border border-dashed border-slate-200 bg-white p-12 text-center text-slate-600">
-            <h4 class="mb-2 text-lg font-semibold text-slate-800">Getting Started</h4>
-            <p class="mb-3">Your provider will create conversation windows for you as part of your care plan. These AI partners are here for general discussion and support between your regular sessions.</p>
-            <p class="text-sm">When conversations become available, you'll see them here on your dashboard.</p>
-          </div>
-        </section>
-      </main>
+    {# Logo #}
+    <div class="flex items-center gap-3 px-4 py-4 border-b border-stone-100">
+      <img src="/static/images/logo.png" alt="Cloze" class="h-7 w-7 rounded-md">
+      <span class="text-base font-semibold text-stone-900">Cloze</span>
     </div>
-  </div>
 
-  <!-- Report Modal -->
-  <div id="reportModal" class="fixed inset-0 z-50 hidden">
-    <div class="absolute inset-0 bg-black/50" onclick="closeReportModal()"></div>
-    <div class="absolute inset-4 sm:inset-8 md:inset-12 lg:inset-16 flex flex-col rounded-2xl bg-white shadow-2xl overflow-hidden">
-      <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-        <h3 class="text-lg font-semibold text-slate-900">Session Report</h3>
-        <button onclick="closeReportModal()" class="rounded-md p-1.5 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700">
-          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M6 6l12 12M6 18L18 6"/>
-          </svg>
-        </button>
-      </div>
-      <div id="reportModalContent" class="flex-1 overflow-y-auto p-6">
-        <div class="flex items-center justify-center h-32">
-          <p class="text-slate-500">Loading report...</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Saved selections drawer -->
-  <div id="selectionsOverlay" class="fixed inset-0 z-30 hidden bg-black/20"></div>
-
-  <aside id="selectionsSidebar"
-         class="fixed inset-y-0 right-0 z-40 flex h-full w-full max-w-md translate-x-full transform flex-col border-l border-slate-200 bg-white shadow-xl transition-transform duration-200 ease-out">
-    <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-      <h3 class="text-base font-semibold text-slate-800">Saved Selections</h3>
-      <button type="button"
-              onclick="toggleSelections()"
-              class="rounded-md p-1 text-slate-500 transition hover:text-slate-700">
-        <span class="sr-only">Close</span>
-        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-          <path d="M6 6l12 12M6 18L18 6"/>
+    {# Home button #}
+    <div class="px-3 pt-3 pb-1">
+      <button onclick="showHome()" id="homeBtn"
+              class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-50">
+        <svg class="h-[18px] w-[18px] text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+          <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6"/>
         </svg>
+        Home
       </button>
     </div>
-    <div id="selectionsContent" class="flex-1 overflow-y-auto divide-y divide-slate-100">
-      <!-- Selections injected here -->
+
+    {# Conversation list #}
+    <div class="flex-1 overflow-y-auto px-3 py-2" id="sidebarConversations">
+      <p class="px-2 py-4 text-xs text-stone-400 text-center">Loading...</p>
+    </div>
+
+    {# Footer #}
+    <div class="border-t border-stone-100 px-3 py-3">
+      <button type="button" onclick="toggleSelections()"
+              class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-stone-600 transition hover:bg-stone-50">
+        <svg class="h-[18px] w-[18px] text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+          <path d="M6 4h12a1 1 0 011 1v16l-7-3-7 3V5a1 1 0 011-1z"/>
+        </svg>
+        Saved Quotes
+      </button>
     </div>
   </aside>
 
-  <script>
-    // Mobile sidebar toggle
-    const menuBtn  = document.getElementById('menuBtn');
-    const sidebar  = document.getElementById('sidebar');
-    const overlay  = document.getElementById('overlay');
+  {# ── Mobile overlay ── #}
+  <div id="overlay" class="fixed inset-0 z-30 hidden bg-black/20 lg:hidden"></div>
 
-    const openSide  = () => { sidebar.classList.remove('-translate-x-full'); overlay.classList.remove('hidden'); };
-    const closeSide = () => { sidebar.classList.add('-translate-x-full'); overlay.classList.add('hidden'); };
+  {# ── Main area ── #}
+  <div class="flex min-w-0 flex-1 flex-col">
 
-    if (menuBtn) {
-      menuBtn.addEventListener('click', () => {
-        const closed = sidebar.classList.contains('-translate-x-full');
-        closed ? openSide() : closeSide();
-      });
-      overlay.addEventListener('click', closeSide);
-      if (window.innerWidth >= 1024) sidebar.classList.remove('-translate-x-full');
-    }
+    {# Mobile header (hamburger only, no top bar in home view) #}
+    <div id="mobileMenuBar" class="flex items-center gap-3 border-b border-stone-200 bg-white px-4 py-3 lg:hidden">
+      <button id="menuBtn" class="inline-flex items-center gap-2 rounded-lg border border-stone-200 px-2.5 py-1.5 text-sm">
+        <svg class="h-4 w-4 text-stone-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+        Menu
+      </button>
+      <span id="mobileTitle" class="text-sm font-semibold text-stone-900">Cloze</span>
+    </div>
 
-    // Highlight active nav link
-    (function markActive() {
-      const path = location.pathname.replace(/\/+$/, '');
-      document.querySelectorAll('aside a[href]').forEach(a => {
-        const href = a.getAttribute('href').replace(/\/+$/, '');
-        if (href && (href === path || (href !== '/' && path.startsWith(href)))) {
-          a.classList.add('bg-indigo-50', 'ring-1', 'ring-indigo-100', 'text-slate-800');
-          const icon = a.querySelector('svg'); if (icon) icon.classList.add('text-indigo-600');
-        }
-      });
-    })();
+    {# ══════ HOME VIEW ══════ #}
+    <div id="homeView" class="flex-1 overflow-y-auto">
+      <div class="mx-auto max-w-3xl px-6 py-8">
 
-    function escapeHtml(s = '') {
-      return s.replace(/[&<>"'`=\\/]/g, ch => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;',
-        "'": '&#39;', '`': '&#96;', '=': '&#61;', '/': '&#47;'
-      }[ch] || ch));
-    }
+        {# Welcome #}
+        <div class="mb-8 flex items-start justify-between">
+          <div>
+            <h1 class="text-xl font-semibold text-stone-900">Welcome back, {{ current_user.username }}</h1>
+            <p class="mt-1 text-sm text-stone-500">Your space for conversations between sessions.</p>
+          </div>
+          <button onclick="logout()"
+                  class="shrink-0 rounded-md border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:bg-stone-50">
+            Log out
+          </button>
+        </div>
 
-    function highlight(text, query) {
-      if (!text || !query) return escapeHtml(text || '');
-      const i = text.toLowerCase().indexOf(query.toLowerCase());
-      if (i === -1) return escapeHtml(text);
-      const before = escapeHtml(text.slice(0, i));
-      const match  = escapeHtml(text.slice(i, i + query.length));
-      const after  = escapeHtml(text.slice(i + query.length));
-      return `${before}<mark class="rounded bg-amber-100 px-1">${match}</mark>${after}`;
-    }
+        {# ── Safety Plan Section ── #}
+        <div id="safetyPlanSection" class="mb-8 hidden">
+          <div id="safetyPlanContent"></div>
+        </div>
 
-    function snippet(text, query, radius = 40) {
-      const t = text || '';
-      const q = (query || '').toLowerCase();
-      const i = t.toLowerCase().indexOf(q);
-      if (i === -1) return escapeHtml(t.slice(0, radius * 2));
-      const start = Math.max(0, i - radius);
-      const end   = Math.min(t.length, i + q.length + radius);
-      const pre = start > 0 ? '…' : '';
-      const suf = end < t.length ? '…' : '';
-      return pre + highlight(t.slice(start, end), query) + suf;
-    }
-
-    const SELECTION_PREVIEW_LIMIT = 200;
-
-    function buildSelectionPreview(text = '') {
-      const content = text || '';
-      if (content.length <= SELECTION_PREVIEW_LIMIT) return content;
-      const slice = content.slice(0, SELECTION_PREVIEW_LIMIT);
-      const lastSpace = slice.lastIndexOf(' ');
-      const trimmed = lastSpace > 40 ? slice.slice(0, lastSpace) : slice;
-      return `${trimmed.trimEnd()}…`;
-    }
-
-    function buildSelectionMarkup(sel) {
-      const fullText = sel.text || '';
-      const previewText = buildSelectionPreview(fullText);
-      const hasMore = fullText.length > SELECTION_PREVIEW_LIMIT;
-      const noteText = sel.note || '';
-
-      const fade = hasMore ? `<div class="selection-fade pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-white to-transparent"></div>` : '';
-      const textClasses = 'selection-text whitespace-pre-wrap text-slate-800 leading-tight';
-      const toggleBtn = hasMore ? `<button type="button"
-              data-action="toggle-full"
-              class="selection-toggle text-xs font-medium text-indigo-600 transition hover:text-indigo-700"
-              onclick="toggleSelection(${sel.id})">See more</button>` : '';
-
-      return `
-        <div class="selection-item px-5 py-3 text-sm text-slate-700" data-selection-id="${sel.id}">
-          <div class="selection-text-wrapper relative">
-            <div class="${textClasses}">${hasMore ? `<span class="selection-preview">${escapeHtml(previewText)}</span><span class="selection-full hidden">${escapeHtml(fullText)}</span>` : escapeHtml(fullText)}</div>${fade}
-          </div>${noteText ? `<div class="mt-1.5 text-xs italic text-slate-500">${escapeHtml(noteText)}</div>` : ''}
-          <div class="mt-1.5 flex items-center ${toggleBtn ? 'justify-between' : 'justify-start'}">
-            <button type="button"
-                    class="text-xs font-medium text-red-600 transition hover:text-red-700"
-                    onclick="removeSelection(${sel.id})">Delete</button>
-            ${toggleBtn}
+        {# Conversation gating message — shown when no active safety plan #}
+        <div id="safetyPlanGating" class="hidden mb-8 rounded-lg border border-amber-200 bg-amber-50 p-5">
+          <div class="flex items-start gap-3">
+            <svg class="h-5 w-5 text-amber-600 shrink-0 mt-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            </svg>
+            <div>
+              <p class="text-sm font-semibold text-amber-800">Complete your safety plan to start conversations</p>
+              <p class="mt-1 text-xs text-amber-700">Your provider has started a safety plan for you. Please fill in your sections below so your provider can review and approve it.</p>
+            </div>
           </div>
         </div>
-      `;
-    }
 
-    function toggleSelection(id) {
-      const item = document.querySelector(`[data-selection-id="${id}"]`);
-      if (!item) return;
-      const preview = item.querySelector('.selection-preview');
-      const full = item.querySelector('.selection-full');
-      const button = item.querySelector('[data-action="toggle-full"]');
-      const fade = item.querySelector('.selection-fade');
-      if (!preview || !button) return;
+        {# Action cards #}
+        <div id="actionCards" class="space-y-4 mb-8">
 
-      const showingFull = full ? !full.classList.contains('hidden') : false;
-      if (showingFull) {
-        if (full) full.classList.add('hidden');
-        preview.classList.remove('hidden');
-        button.textContent = 'See more';
-        if (fade) fade.classList.remove('hidden');
-      } else {
-        if (full) full.classList.remove('hidden');
-        preview.classList.add('hidden');
-        button.textContent = 'See less';
-        if (fade) fade.classList.add('hidden');
-      }
-    }
-
-    const STATUS_LABELS = {
-      scheduled: 'Scheduled',
-      active: 'Active',
-      generating_report: 'Generating Report',
-      report_ready: 'Report Ready'
-    };
-    const STATUS_CLASSES = {
-      scheduled: 'bg-amber-100 text-amber-700',
-      active: 'bg-emerald-100 text-emerald-700',
-      generating_report: 'bg-indigo-50 text-indigo-700',
-      report_ready: 'bg-purple-100 text-purple-700'
-    };
-
-    let allConversations = [];
-    let dropdownIndex = -1;
-    let lastMatches = [];
-
-    async function loadConversations() {
-      try {
-        const response = await fetch('/api/conversations');
-        if (!response.ok) {
-          if (response.status === 401) {
-            window.location.href = '/login';
-            return;
-          }
-          throw new Error('Failed to load conversations');
-        }
-        allConversations = await response.json();
-        console.log('Loaded conversations:', allConversations.map(c => ({
-          id: c.id,
-          title: c.title,
-          status: c.window_status,
-          visible: c.visible
-        })));
-        displayConversations(allConversations);
-      } catch (error) {
-        console.error('Error loading conversations:', error);
-      }
-    }
-
-    function getConversationStatus(conv) {
-      if (conv?.is_placeholder) {
-        return conv?.is_upcoming ? 'scheduled' : 'active';
-      }
-      const status = (conv?.window_status || conv?.status || '').toLowerCase();
-      if (STATUS_LABELS[status]) return status;
-      if (!conv?.visible) return 'generating_report';
-      if (conv?.is_upcoming) return 'scheduled';
-      return conv?.is_active ? 'active' : 'report_ready';
-    }
-
-    function displayConversations(conversations) {
-      const activeGrid = document.getElementById('activeGrid');
-      const scheduledGrid = document.getElementById('scheduledGrid');
-      const processingGrid = document.getElementById('processingGrid');
-      const readyGrid = document.getElementById('readyGrid');
-      const activeEmpty = document.getElementById('activeEmpty');
-      const scheduledEmpty = document.getElementById('scheduledEmpty');
-      const processingEmpty = document.getElementById('processingEmpty');
-      const readyEmpty = document.getElementById('readyEmpty');
-      const activeSection = document.getElementById('activeSection');
-      const scheduledSection = document.getElementById('scheduledSection');
-      const processingSection = document.getElementById('processingSection');
-      const readySection = document.getElementById('readySection');
-      const emptyState = document.getElementById('emptyState');
-
-      if (!conversations.length) {
-        activeSection.classList.add('hidden');
-        scheduledSection.classList.add('hidden');
-        if (processingSection) processingSection.classList.add('hidden');
-        if (readySection) readySection.classList.add('hidden');
-        emptyState.classList.remove('hidden');
-        return;
-      }
-
-      emptyState.classList.add('hidden');
-      activeSection.classList.remove('hidden');
-      scheduledSection.classList.remove('hidden');
-      if (processingSection) processingSection.classList.remove('hidden');
-      if (readySection) readySection.classList.remove('hidden');
-
-      const buckets = {
-        active: [],
-        scheduled: [],
-        generating_report: [],
-        report_ready: []
-      };
-
-      for (const conv of conversations) {
-        const status = getConversationStatus(conv);
-        const bucket = buckets[status] ? status : (conv.visible ? 'active' : 'generating_report');
-        buckets[bucket].push({ ...conv, window_status: status });
-      }
-
-      const { active, scheduled, generating_report: processing, report_ready: ready } = buckets;
-
-      const renderSection = (grid, empty, items, statusKey) => {
-        if (!grid || !empty) return;
-        if (!items.length) {
-          grid.classList.add('hidden');
-          empty.classList.remove('hidden');
-          grid.innerHTML = '';
-          return;
-        }
-        grid.classList.remove('hidden');
-        empty.classList.add('hidden');
-
-        // Group by window
-        const windows = groupConversationsByWindow(items, statusKey);
-        grid.innerHTML = windows.map(w => renderWindowCard(w, statusKey)).join('');
-      };
-
-      renderSection(activeGrid, activeEmpty, active, 'active');
-      renderSection(scheduledGrid, scheduledEmpty, scheduled, 'scheduled');
-      renderSection(processingGrid, processingEmpty, processing, 'generating_report');
-      renderSection(readyGrid, readyEmpty, ready, 'report_ready');
-    }
-
-    function groupConversationsByWindow(conversations, statusKey) {
-      const windowMap = new Map();
-
-      for (const conv of conversations) {
-        const windowId = conv.window_id || `no-window-${conv.id}`;
-
-        if (!windowMap.has(windowId)) {
-          windowMap.set(windowId, {
-            window_id: windowId,
-            window_title: conv.window_title,
-            window_description: conv.window_description,
-            window_start_date: conv.window_start_date,
-            window_end_date: conv.window_end_date,
-            status: statusKey,
-            conversations: []
-          });
-        }
-
-        windowMap.get(windowId).conversations.push(conv);
-      }
-
-      return Array.from(windowMap.values());
-    }
-
-    function renderWindowCard(window, statusKey) {
-      const windowTitle = window.window_title ? escapeHtml(window.window_title) : 'Conversations';
-      const windowDescription = window.window_description ? escapeHtml(window.window_description) : null;
-      const dateRange = window.window_start_date && window.window_end_date
-        ? `${formatDate(window.window_start_date)} – ${formatDate(window.window_end_date)}`
-        : null;
-
-      const statusLabel = STATUS_LABELS[statusKey] || '';
-      const statusClass = STATUS_CLASSES[statusKey] || 'bg-slate-100 text-slate-700';
-
-      // Add report button if report is ready
-      const reportButton = statusKey === 'report_ready'
-        ? `<button onclick="event.stopPropagation(); openReportModal(${window.window_id})"
-               class="inline-flex items-center gap-1.5 rounded-lg border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-semibold text-purple-700 transition hover:bg-purple-100"
-               title="View Report">
-              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-              </svg>
-              View Report
-            </button>`
-        : '';
-
-      const conversationsHtml = window.conversations
-        .map(conv => renderConversationCardSimple(conv, statusKey))
-        .join('');
-
-      return `
-        <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-100">
-          <div class="border-b border-slate-200 bg-white p-4">
-            <div class="mb-2 flex items-start justify-between gap-3">
-              <div>
-                <div class="flex flex-wrap items-center gap-2 text-base font-semibold text-slate-900">
-                  <span>${windowTitle}</span>
-                  ${statusLabel ? `
-                    <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-sm font-medium ${statusClass}">
-                      ${statusLabel}
-                    </span>
-                  ` : ''}
-                </div>
-                ${dateRange ? `
-                  <div class="mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-500">
-                    <span>${dateRange}</span>
-                  </div>
-                ` : ''}
-              </div>
-              ${reportButton ? `<div class="flex-shrink-0">${reportButton}</div>` : ''}
-            </div>
-            ${windowDescription ? `<p class="text-sm text-slate-700">${windowDescription}</p>` : ''}
+          {# Available conversations #}
+          <div id="availableSection" class="hidden">
+            <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-stone-400">Available Now</h3>
+            <div id="availableCards" class="space-y-2"></div>
           </div>
 
-          <div class="p-4">
-            <h4 class="mb-3 text-sm font-semibold text-slate-800">Chats (${window.conversations.length})</h4>
-            ${window.conversations.length ? `
-              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                ${conversationsHtml}
-              </div>
-            ` : `<div class="py-6 text-center text-slate-600">No conversations in this window</div>`}
+          {# Continue conversations #}
+          <div id="continueSection" class="hidden">
+            <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-stone-400">Continue</h3>
+            <div id="continueCards" class="space-y-2"></div>
+          </div>
+
+          {# Reports ready #}
+          <div id="reportsSection" class="hidden">
+            <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-stone-400">Reports Ready</h3>
+            <div id="reportsCards" class="space-y-2"></div>
           </div>
         </div>
-      `;
-    }
 
-    function renderConversationCardSimple(conv, statusOverride = null) {
-      const status = statusOverride || getConversationStatus(conv);
-      const title = escapeHtml(conv.title || 'Untitled Conversation');
-      const model = escapeHtml(conv.model || 'Unknown model');
-      const messages = typeof conv.message_count === 'number' ? conv.message_count : 0;
-      const relative = formatRelativeTime(conv.updated_at);
-      const isHistorical = status === 'generating_report' || status === 'report_ready';
+        {# Upcoming #}
+        <div id="upcomingSection" class="hidden mb-8">
+          <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-stone-400">Upcoming</h3>
+          <div id="upcomingList" class="space-y-1.5"></div>
+        </div>
 
-      // Handle unstarted templates (placeholders)
-      if (conv.is_placeholder) {
-        // Check if this is an upcoming (future) window
-        if (conv.is_upcoming) {
-          const startDate = conv.window_start_date ? formatDate(conv.window_start_date) : 'TBD';
-          return `
-            <div class="rounded-lg border border-slate-200 bg-slate-50 p-3 opacity-75">
-              <div class="mb-1 text-sm font-semibold text-slate-700">${title}</div>
-              <div class="flex items-center justify-between text-xs text-slate-600">
-                <span class="rounded-md bg-slate-100 px-2 py-0.5 font-medium text-slate-600">${model}</span>
-                <span>🔒 Available ${startDate}</span>
-              </div>
-            </div>
-          `;
-        }
+        {# All reports link #}
+        <div id="allReportsLink" class="hidden mb-8">
+          <button onclick="showAllReports()" class="text-sm font-medium text-cloze-indigo transition hover:text-cloze-hover">
+            View all reports
+          </button>
+        </div>
 
-        // Current window - clickable to start
-        return `
-          <div class="cursor-pointer rounded-lg border border-indigo-200 bg-gradient-to-br from-indigo-50 to-sky-50 p-3 transition hover:shadow"
-               onclick="startTemplate(${conv.template_id})">
-            <div class="mb-1 text-sm font-semibold text-slate-900">${title}</div>
-            <div class="flex items-center justify-between text-xs text-slate-600">
-              <span class="rounded-md bg-indigo-100 px-2 py-0.5 font-medium text-indigo-700">${model}</span>
-              <span class="font-medium text-indigo-600">▶️ Click to start</span>
-            </div>
+        {# Empty state #}
+        <div id="homeEmpty" class="hidden rounded-lg border border-dashed border-stone-200 bg-white p-10 text-center">
+          <p class="text-sm text-stone-600 mb-1">You're all caught up.</p>
+          <p class="text-xs text-stone-400">Your provider will set up new conversations as part of your care plan.</p>
+        </div>
+      </div>
+    </div>
+
+    {# ══════ CONVERSATION VIEW ══════ #}
+    <div id="conversationView" class="hidden flex-1 flex flex-col min-h-0">
+
+      {# Conv header #}
+      <header class="flex items-center justify-between border-b border-stone-200 bg-white px-4 py-2.5 shrink-0">
+        <div class="flex items-center gap-3 min-w-0">
+          <button onclick="showHome()" class="shrink-0 rounded-md p-1.5 text-stone-400 transition hover:bg-stone-50 hover:text-stone-600 lg:hidden">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <h2 id="convTitle" class="truncate text-[15px] font-semibold text-stone-900">Loading...</h2>
+        </div>
+        <div class="flex items-center gap-3 shrink-0">
+          <div class="hidden sm:flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs">
+            <span class="text-stone-500">Model:</span>
+            <span class="font-semibold text-stone-800" id="convModel">-</span>
           </div>
-        `;
-      }
-
-      // Regular conversation card
-      return `
-        <div class="${isHistorical ? 'rounded-lg border border-slate-200 bg-slate-50 p-3' : 'cursor-pointer rounded-lg border border-slate-200 bg-white p-3 transition hover:border-indigo-300 hover:shadow'}"
-             ${isHistorical ? '' : `onclick="openConversation(${conv.id})"`}>
-          <div class="mb-1 text-sm font-semibold text-slate-900">${title}</div>
-          <div class="mb-2 text-xs text-slate-500">${messages} messages • ${relative}</div>
-          <div class="flex items-center justify-between text-xs text-slate-600">
-            <span class="rounded-md bg-sky-100 px-2 py-0.5 font-medium text-sky-700">${model}</span>
-            ${
-              status === 'generating_report'
-                ? `<span class="text-indigo-600">⏳ Generating...</span>`
-                : status === 'report_ready'
-                  ? `<button onclick="event.stopPropagation(); openConversation(${conv.id})" class="font-medium text-slate-600 hover:text-slate-800 underline">View Transcript</button>`
-                  : `<span class="text-slate-500">→</span>`
-            }
+          <div id="convTimer" class="hidden items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs">
+            <span class="time-label text-stone-500">Time left:</span>
+            <span class="time-value font-semibold text-stone-800" id="convTimeValue"></span>
           </div>
         </div>
-      `;
-    }
+      </header>
 
-    function renderConversationCard(conv, statusOverride = null) {
-      const status = statusOverride || getConversationStatus(conv);
-      const title = escapeHtml(conv.title || 'Untitled Conversation');
-      const model = escapeHtml(conv.model || 'Unknown model');
-      const updated = escapeHtml(formatDate(conv.updated_at));
-      const messages = typeof conv.message_count === 'number' ? conv.message_count : 0;
-      const relative = formatRelativeTime(conv.updated_at);
-      const statusLabel = STATUS_LABELS[status] || '';
-      const statusClass = STATUS_CLASSES[status] || '';
-      const showStatusBadge = Boolean(statusLabel) && status !== 'active';
-      const statusBadge = showStatusBadge
-        ? `<span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold ${statusClass}">${statusLabel}</span>`
-        : '';
-      const isHistorical = status === 'generating_report' || status === 'report_ready';
-
-      // Handle unstarted templates (placeholders)
-      if (conv.is_placeholder) {
-        // Check if this is an upcoming (future) window
-        if (conv.is_upcoming) {
-          const startDate = conv.window_start_date ? formatDate(conv.window_start_date) : 'TBD';
-          return `
-            <article class="flex flex-col rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 p-5 shadow-sm ring-1 ring-slate-200 opacity-75">
-              <div class="mb-3 flex items-start justify-between gap-3">
-                <h4 class="text-base font-semibold text-slate-700">${title}</h4>
-                <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">Upcoming</span>
-              </div>
-              <div class="mb-4 inline-flex items-center gap-2">
-                <span class="inline-flex items-center rounded-full bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-600">${model}</span>
-              </div>
-              <div class="mt-auto flex items-center gap-2 text-sm text-slate-500">
-                <span aria-hidden="true">🔒</span>
-                <span>Available ${startDate}</span>
-              </div>
-            </article>
-          `;
-        }
-
-        // Current window - clickable to start
-        return `
-          <article class="flex cursor-pointer flex-col rounded-xl bg-gradient-to-br from-indigo-50 to-sky-50 p-5 shadow-sm ring-1 ring-indigo-100 transition hover:-translate-y-0.5 hover:shadow-md"
-                   onclick="startTemplate(${conv.template_id})">
-            <div class="mb-3 flex items-start justify-between gap-3">
-              <h4 class="text-base font-semibold text-slate-900">${title}</h4>
-              <span class="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">New</span>
-            </div>
-            <div class="mb-4 inline-flex items-center gap-2">
-              <span class="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-600">${model}</span>
-            </div>
-            <div class="mt-auto flex items-center gap-2 text-sm font-medium text-indigo-600">
-              <span aria-hidden="true">▶️</span>
-              <span>Click to start this chat</span>
-            </div>
-          </article>
-        `;
-      }
-
-      // Regular conversation card
-      const windowTitle = conv.window_title ? escapeHtml(conv.window_title) : null;
-      const windowDateRange = conv.window_start_date && conv.window_end_date
-        ? `${formatDate(conv.window_start_date)} - ${formatDate(conv.window_end_date)}`
-        : null;
-
-      return `
-        <article class="flex flex-col rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-100 transition ${isHistorical ? '' : 'cursor-pointer hover:-translate-y-0.5 hover:shadow-md'}"
-                 ${isHistorical ? '' : `onclick="openConversation(${conv.id})"`}>
-          ${windowTitle ? `
-            <div class="mb-3 pb-3 border-b border-slate-100">
-              <h3 class="text-sm font-semibold text-slate-900">${windowTitle}</h3>
-              ${windowDateRange ? `<p class="mt-1 text-xs text-slate-500">📅 ${windowDateRange}</p>` : ''}
-            </div>
-          ` : ''}
-
-          <div class="mb-3 flex items-start justify-between gap-3">
-            <div class="flex flex-wrap items-center gap-2">
-              <h4 class="text-base font-semibold text-slate-900">${title}</h4>
-              ${statusBadge}
-            </div>
-            <span class="whitespace-nowrap text-xs text-slate-500">${updated}</span>
-          </div>
-
-          <div class="mb-3 inline-flex items-center gap-2">
-            <span class="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-600">${model}</span>
-          </div>
-
-          <div class="flex flex-wrap gap-4 text-sm text-slate-600">
-            <span class="inline-flex items-center gap-1"><span aria-hidden="true">💬</span>${messages} messages</span>
-            <span class="inline-flex items-center gap-1"><span aria-hidden="true">🕐</span>${relative}</span>
-          </div>
-
-          ${
-            status === 'generating_report'
-              ? `<div class="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 text-sm text-slate-600">
-                   <span aria-hidden="true">⏳</span>
-                   <span class="italic">Report generation in progress</span>
-                 </div>`
-              : status === 'report_ready'
-                ? `<div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
-                     <button onclick="event.stopPropagation(); openConversation(${conv.id})" class="text-sm font-medium text-slate-600 hover:text-slate-800 underline">View Transcript</button>
-                   </div>`
-                : ''
-          }
-        </article>
-      `;
-    }
-
-    function buildMatches(query) {
-      const q = (query || '').trim().toLowerCase();
-      if (!q) return [];
-      const res = [];
-      (allConversations || []).forEach(conv => {
-        const title = conv.title || 'Untitled Conversation';
-        const model = (conv.model || '') + '';
-
-        if (title.toLowerCase().includes(q)) {
-          res.push({ convId: conv.id, kind: 'Title', snippet: snippet(title, q), title, updated_at: conv.updated_at || 0 });
-        }
-        if (model.toLowerCase().includes(q)) {
-          res.push({ convId: conv.id, kind: 'Model', snippet: snippet(model, q), title, updated_at: conv.updated_at || 0 });
-        }
-
-        const msgs = Array.isArray(conv.messages) ? conv.messages : [];
-        msgs.forEach(m => {
-          const content = m?.content || '';
-          if (content.toLowerCase().includes(q)) {
-            res.push({
-              convId: conv.id,
-              kind: 'Message',
-              role: m.role || '',
-              snippet: snippet(content, q),
-              title,
-              updated_at: conv.updated_at || 0,
-              messageId: m.id,
-              timestamp: m.timestamp
-            });
-          }
-        });
-      });
-
-      const rank = { Title: 0, Model: 1, Message: 2 };
-      res.sort((a, b) => (b.updated_at - a.updated_at) || (rank[a.kind] - rank[b.kind]));
-      return res.slice(0, 20);
-    }
-
-    function renderDropdown(matches) {
-      const box = document.getElementById('searchDropdown');
-      lastMatches = matches;
-      dropdownIndex = -1;
-
-      if (!matches.length) {
-        box.innerHTML = '';
-        box.classList.add('hidden');
-        return;
-      }
-
-      box.innerHTML = matches.map((m, i) => `
-        <button type="button"
-                data-index="${i}"
-                onclick="onSearchPick(${i})"
-                class="search-item flex w-full flex-col gap-1 rounded-lg px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-50 focus:outline-none">
-          <div class="flex items-center gap-2 font-medium text-slate-800">
-            <span class="truncate">${escapeHtml(m.title)}</span>
-            <span class="inline-flex items-center rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-600">
-              ${m.kind}${m.kind === 'Message' && m.role ? ` • ${escapeHtml(m.role)}` : ''}
-            </span>
-            ${m.timestamp ? `<span class="ml-auto whitespace-nowrap text-xs text-slate-500">${formatDateTime(m.timestamp)}</span>` : ''}
-          </div>
-          <div class="text-xs text-slate-600">${m.snippet}</div>
+      {# Crisis resources (collapsible under title) #}
+      <div id="crisisBar" class="hidden border-b border-amber-200 bg-amber-50 shrink-0">
+        <button onclick="toggleCrisis()" class="flex w-full items-center justify-between px-4 py-2 text-left">
+          <span class="flex items-center gap-1.5 text-xs font-semibold text-amber-700">
+            <svg class="h-3.5 w-3.5 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            </svg>
+            Need Immediate Help?
+          </span>
+          <svg id="crisisChevron" class="h-4 w-4 text-amber-500 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
         </button>
-      `).join('');
+        <div id="crisisContent" class="hidden px-4 pb-3 text-xs text-amber-900 leading-relaxed">
+          <p class="mb-1 font-semibold">US:</p>
+          <ul class="list-disc pl-4 mb-2 space-y-0.5">
+            <li>Call <strong>988</strong> (Suicide &amp; Crisis Lifeline)</li>
+            <li>Call <strong>911</strong> for emergencies</li>
+          </ul>
+          <p class="mb-1 font-semibold">UK:</p>
+          <ul class="list-disc pl-4 mb-1 space-y-0.5">
+            <li>Call <strong>999</strong> for emergencies</li>
+            <li>Call <strong>116 123</strong> (Samaritans)</li>
+          </ul>
+          <p class="italic text-amber-800 mt-1.5">This is for general discussion, not clinical treatment or crisis support.</p>
+        </div>
+      </div>
 
-      box.classList.remove('hidden');
+      {# Error banner #}
+      <div id="errorBanner" class="hidden bg-red-50 text-red-700 px-6 py-2.5 text-center text-sm shrink-0"></div>
+
+      {# Messages + input #}
+      <div class="flex flex-1 min-h-0">
+        <div class="flex flex-1 flex-col min-w-0">
+          {# Messages #}
+          <div id="messagesContainer" class="flex-1 overflow-y-auto px-6 py-6 space-y-5"></div>
+
+          {# Typing indicator #}
+          <div id="typingIndicator" class="hidden items-center gap-2 px-6 py-2.5 bg-muted rounded-lg mx-6 mb-2 text-sm text-stone-600">
+            <span>AI is thinking</span>
+            <div class="typing-dot h-2 w-2 rounded-full bg-stone-500"></div>
+            <div class="typing-dot h-2 w-2 rounded-full bg-stone-500"></div>
+            <div class="typing-dot h-2 w-2 rounded-full bg-stone-500"></div>
+          </div>
+
+          {# Input area (shown/hidden by JS based on conversation state) #}
+          <div id="inputArea" class="hidden border-t border-stone-200 bg-white px-6 py-3 shrink-0">
+            <div class="flex items-end gap-3">
+              <textarea id="messageInput"
+                class="flex-1 resize-y rounded-lg border-2 border-stone-200 px-3 py-2.5 text-sm font-[inherit] placeholder:text-stone-400 focus:border-cloze-indigo focus:outline-none"
+                style="min-height:50px; max-height:200px;"
+                placeholder="Type your message..."
+                onkeydown="handleKeyPress(event)"></textarea>
+              <button id="sendBtn" onclick="sendMessage()"
+                class="rounded-lg bg-cloze-indigo px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-cloze-hover disabled:opacity-50 disabled:cursor-not-allowed">
+                Send
+              </button>
+            </div>
+          </div>
+
+          {# Status area (shown when input is not available) #}
+          <div id="statusArea" class="hidden border-t border-stone-200 bg-muted px-6 py-3 text-center shrink-0">
+            <div id="statusContent" class="text-stone-500"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    {# ══════ ALL REPORTS VIEW ══════ #}
+    <div id="allReportsView" class="hidden flex-1 overflow-y-auto">
+      <div class="mx-auto max-w-3xl px-6 py-8">
+        <div class="flex items-center gap-3 mb-6">
+          <button onclick="showHome()" class="rounded-md p-1.5 text-stone-400 transition hover:bg-stone-50 hover:text-stone-600">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <h2 class="text-lg font-semibold text-stone-900">All Reports</h2>
+        </div>
+        <div id="allReportsContent"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{# ── Selection popup ── #}
+<div id="selectionPopup" class="absolute hidden z-[1000] rounded-lg border border-stone-200 bg-white p-1.5 shadow-md">
+  <button onclick="saveSelection()" class="flex items-center gap-1.5 rounded-md bg-cloze-indigo px-3 py-1.5 text-sm font-medium text-white transition hover:bg-cloze-hover">
+    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M6 4h12a1 1 0 011 1v16l-7-3-7 3V5a1 1 0 011-1z"/>
+    </svg>
+    Save Quote
+  </button>
+</div>
+{% endblock %}
+
+{% block modals %}
+  {# Safety modal #}
+  <div id="safetyModal" class="fixed inset-0 z-[2000] hidden bg-black/50 p-4 backdrop-blur-sm">
+    <div class="mx-auto mt-8 max-w-xl rounded-lg bg-white shadow-xl overflow-hidden">
+      <div class="bg-cloze-indigo px-6 py-5 text-white">
+        <h2 class="text-xl font-semibold">Important Safety Information</h2>
+      </div>
+      <div class="px-6 py-5 max-h-[70vh] overflow-y-auto">
+        <p class="mb-4 text-sm leading-relaxed text-stone-700">
+          This conversation partner is designed for general discussion and support between your regular sessions.
+          It is <strong>NOT</strong> a substitute for emergency services or crisis intervention.
+        </p>
+        <div class="rounded-lg border-l-4 border-amber-400 bg-amber-50 p-4 my-5">
+          <h3 class="flex items-center gap-1.5 text-sm font-semibold text-amber-800 mb-2">
+            <svg class="h-4 w-4 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            </svg>
+            Crisis Support
+          </h3>
+          <p class="text-sm text-amber-900 mb-2">If you are experiencing a mental health crisis, please:</p>
+          <ul class="list-disc pl-5 text-sm text-amber-900 space-y-1">
+            <li>Call <strong>988</strong> (Suicide &amp; Crisis Lifeline)</li>
+            <li>Call <strong>911</strong> for immediate emergency assistance</li>
+            <li>Contact your provider directly</li>
+          </ul>
+        </div>
+        <div class="rounded-lg border-l-4 border-red-500 bg-red-50 p-4 my-5">
+          <h3 class="flex items-center gap-1.5 text-sm font-semibold text-red-900 mb-2">
+            <svg class="h-4 w-4 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            </svg>
+            Required Reporting
+          </h3>
+          <p class="text-sm text-red-900">
+            For your safety, if you express active suicidal or homicidal thoughts with specific means or plans,
+            we are required to notify your provider and may contact local authorities.
+          </p>
+        </div>
+        <p class="text-sm text-stone-500 leading-relaxed mt-5">
+          This conversation partner is here to support you between sessions, but it cannot provide clinical
+          treatment or emergency intervention.
+        </p>
+        <div class="mt-5 pt-5 border-t border-stone-200">
+          <label class="flex items-start gap-2.5 cursor-pointer select-none">
+            <input type="checkbox" id="safetyAcknowledge" class="mt-0.5 h-4 w-4 cursor-pointer rounded border-stone-300 text-cloze-indigo focus:ring-cloze-indigo">
+            <span class="text-sm text-stone-700">I understand this information and agree to use this conversation partner for general discussion only, not for clinical treatment or emergencies.</span>
+          </label>
+        </div>
+      </div>
+      <div class="flex justify-end border-t border-stone-200 bg-muted px-6 py-4">
+        <button id="safetyConfirmBtn" disabled onclick="acknowledgeSafety()"
+                class="rounded-lg bg-cloze-indigo px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-cloze-hover disabled:cursor-not-allowed disabled:opacity-50">
+          Continue to Conversation
+        </button>
+      </div>
+    </div>
+  </div>
+
+  {# Report modal #}
+  <div id="reportModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/40" onclick="closeReportModal()"></div>
+    <div class="absolute inset-4 sm:inset-8 md:inset-12 lg:inset-16 flex flex-col rounded-lg bg-white shadow-lg overflow-hidden">
+      <div class="flex items-center justify-between border-b border-stone-200 px-6 py-4">
+        <h3 class="text-base font-semibold text-stone-900">Session Report</h3>
+        <button onclick="closeReportModal()" class="rounded-md p-1.5 text-stone-400 transition hover:bg-stone-50 hover:text-stone-600">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M6 18L18 6"/></svg>
+        </button>
+      </div>
+      <div id="reportModalContent" class="flex-1 overflow-y-auto p-6">
+        <div class="flex items-center justify-center h-32"><p class="text-sm text-stone-500">Loading report...</p></div>
+      </div>
+    </div>
+  </div>
+
+  {# Saved quotes drawer #}
+  <div id="selectionsOverlay" class="fixed inset-0 z-30 hidden bg-black/20"></div>
+  <aside id="selectionsSidebar"
+         class="fixed inset-y-0 right-0 z-40 flex h-full w-full max-w-md translate-x-full transform flex-col border-l border-stone-200 bg-white shadow-lg transition-transform duration-200 ease-out">
+    <div class="flex items-center justify-between border-b border-stone-200 bg-white px-5 py-3.5">
+      <div class="flex items-center gap-2.5">
+        <svg class="h-[18px] w-[18px] text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+          <path d="M6 4h12a1 1 0 011 1v16l-7-3-7 3V5a1 1 0 011-1z"/>
+        </svg>
+        <h3 class="text-sm font-semibold text-stone-900">Saved Quotes</h3>
+      </div>
+      <button type="button" onclick="toggleSelections()" class="rounded-md p-1.5 text-stone-400 transition hover:bg-stone-50 hover:text-stone-600">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M6 18L18 6"/></svg>
+      </button>
+    </div>
+    <div id="selectionsContent" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+  </aside>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   Cloze Unified Patient Interface
+   ═══════════════════════════════════════════════════════════════ */
+
+var allConversations = [];
+var currentWindows = [];
+var allReports = [];
+var safetyPlanData = null;
+var hasActivePlan = false;
+var activeConversationId = null;
+var conversationData = null;
+var countdownInterval = null;
+var selectedText = '';
+var selectedMessageIds = [];
+
+/* ── View switching ─────────────────────────────────────────── */
+
+function showHome() {
+  document.getElementById('homeView').classList.remove('hidden');
+  document.getElementById('conversationView').classList.add('hidden');
+  document.getElementById('allReportsView').classList.add('hidden');
+  document.getElementById('mobileMenuBar').classList.remove('hidden');
+
+  activeConversationId = null;
+  if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+  history.pushState(null, '', '/dashboard');
+  document.getElementById('mobileTitle').textContent = 'Cloze';
+
+  // Update sidebar highlighting
+  highlightSidebarItem(null);
+  highlightHomeBtn(true);
+
+  // Close mobile sidebar if open
+  closeMobileSidebar();
+}
+
+function showConversation(convId) {
+  document.getElementById('homeView').classList.add('hidden');
+  document.getElementById('conversationView').classList.remove('hidden');
+  document.getElementById('allReportsView').classList.add('hidden');
+  // On mobile, hide the top menu bar since conv header has back button
+  document.getElementById('mobileMenuBar').classList.add('hidden');
+
+  activeConversationId = convId;
+  history.pushState(null, '', '/dashboard?conversation=' + convId);
+
+  highlightSidebarItem(convId);
+  highlightHomeBtn(false);
+  loadConversationView(convId);
+
+  closeMobileSidebar();
+}
+
+function showAllReports() {
+  document.getElementById('homeView').classList.add('hidden');
+  document.getElementById('conversationView').classList.add('hidden');
+  document.getElementById('allReportsView').classList.remove('hidden');
+  document.getElementById('mobileMenuBar').classList.remove('hidden');
+
+  highlightHomeBtn(false);
+  renderAllReportsView();
+}
+
+function highlightHomeBtn(active) {
+  var btn = document.getElementById('homeBtn');
+  if (active) {
+    btn.classList.remove('text-stone-700', 'hover:bg-stone-50');
+    btn.classList.add('bg-stone-100', 'text-stone-900');
+  } else {
+    btn.classList.remove('bg-stone-100', 'text-stone-900');
+    btn.classList.add('text-stone-700', 'hover:bg-stone-50');
+  }
+}
+
+function highlightSidebarItem(convId) {
+  document.querySelectorAll('.sidebar-conv').forEach(function(el) {
+    if (convId && el.dataset.convId == convId) {
+      el.classList.remove('text-stone-700', 'hover:bg-stone-50');
+      el.classList.add('bg-stone-100', 'text-stone-900');
+    } else {
+      el.classList.remove('bg-stone-100', 'text-stone-900');
+      el.classList.add('text-stone-700', 'hover:bg-stone-50');
     }
+  });
+}
 
-    function handleSearchKeydown(e) {
-      const box = document.getElementById('searchDropdown');
-      const items = Array.from(box.querySelectorAll('.search-item'));
-      if (box.classList.contains('hidden') || !items.length) return;
+function closeMobileSidebar() {
+  var sidebar = document.getElementById('sidebar');
+  var overlay = document.getElementById('overlay');
+  if (sidebar) sidebar.classList.add('-translate-x-full');
+  if (overlay) overlay.classList.add('hidden');
+}
 
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        dropdownIndex = (dropdownIndex + 1) % items.length;
-        applyDropdownHighlight(items);
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        dropdownIndex = (dropdownIndex - 1 + items.length) % items.length;
-        applyDropdownHighlight(items);
-      } else if (e.key === 'Enter' && dropdownIndex >= 0) {
-        e.preventDefault();
-        onSearchPick(dropdownIndex);
-      } else if (e.key === 'Escape') {
-        hideDropdown();
-      }
-    }
+/* ── Sidebar: mobile toggle ─────────────────────────────────── */
 
-    function applyDropdownHighlight(items) {
-      items.forEach((el, i) => {
-        const active = i === dropdownIndex;
-        el.classList.toggle('bg-indigo-50', active);
-        el.classList.toggle('ring-1', active);
-        el.classList.toggle('ring-indigo-200', active);
+(function() {
+  var menuBtn = document.getElementById('menuBtn');
+  var sidebar = document.getElementById('sidebar');
+  var overlay = document.getElementById('overlay');
+  if (!menuBtn || !sidebar) return;
+
+  function openSide() { sidebar.classList.remove('-translate-x-full'); if (overlay) overlay.classList.remove('hidden'); }
+  function closeSide() { sidebar.classList.add('-translate-x-full'); if (overlay) overlay.classList.add('hidden'); }
+
+  menuBtn.addEventListener('click', function() {
+    sidebar.classList.contains('-translate-x-full') ? openSide() : closeSide();
+  });
+  if (overlay) overlay.addEventListener('click', closeSide);
+  if (window.innerWidth >= 1024) sidebar.classList.remove('-translate-x-full');
+})();
+
+/* ── Data loading ───────────────────────────────────────────── */
+
+async function loadAllData() {
+  try {
+    var results = await Promise.all([
+      fetch('/api/conversations').then(function(r) { return r.ok ? r.json() : []; }),
+      fetch('/api/windows/current').then(function(r) { return r.ok ? r.json() : []; }),
+      fetch('/api/reports/').then(function(r) { return r.ok ? r.json() : []; }),
+      fetch('/api/safety-plan/').then(function(r) { return r.ok ? r.json() : null; })
+    ]);
+    allConversations = results[0];
+    currentWindows = results[1];
+    allReports = results[2];
+    safetyPlanData = results[3];
+    hasActivePlan = !!(safetyPlanData && safetyPlanData.active);
+
+    renderSidebar();
+    renderSafetyPlan();
+    renderHomeView();
+  } catch (e) {
+    console.error('Error loading data:', e);
+  }
+}
+
+/* ── Safety Plan ───────────────────────────────────────────── */
+
+var SEVERITY_OPTIONS = [
+  { value: 1, label: 'Mild' },
+  { value: 2, label: 'Mild-Moderate' },
+  { value: 3, label: 'Moderate' },
+  { value: 4, label: 'Moderate-Severe' },
+  { value: 5, label: 'Severe' }
+];
+var EFFECTIVENESS_OPTIONS = [
+  { value: 1, label: 'Minimal' },
+  { value: 2, label: 'Low' },
+  { value: 3, label: 'Moderate' },
+  { value: 4, label: 'High' },
+  { value: 5, label: 'Very High' }
+];
+var COMFORT_OPTIONS = [
+  { value: 1, label: 'Very Low' },
+  { value: 2, label: 'Low' },
+  { value: 3, label: 'Moderate' },
+  { value: 4, label: 'High' },
+  { value: 5, label: 'Very High' }
+];
+
+function renderSafetyPlan() {
+  var section = document.getElementById('safetyPlanSection');
+  var content = document.getElementById('safetyPlanContent');
+  var gating = document.getElementById('safetyPlanGating');
+
+  if (!safetyPlanData) {
+    section.classList.add('hidden');
+    gating.classList.add('hidden');
+    return;
+  }
+
+  var active = safetyPlanData.active;
+  var pending = safetyPlanData.pending;
+  var draft = safetyPlanData.draft;
+
+  // State 1: No plan at all (no draft, no active, no pending)
+  if (!active && !pending && !draft) {
+    section.classList.remove('hidden');
+    gating.classList.add('hidden');
+    content.innerHTML =
+      '<div class="rounded-lg border border-stone-200 bg-white p-5">' +
+        '<h3 class="text-sm font-semibold text-stone-900 mb-2">My Safety Plan</h3>' +
+        '<p class="text-sm text-stone-500">Your provider is setting up your safety plan. You\'ll be able to add your input once they\'ve started it.</p>' +
+      '</div>';
+    return;
+  }
+
+  section.classList.remove('hidden');
+
+  // State 2: Draft exists (provider created, patient sections incomplete)
+  if (draft && !active) {
+    gating.classList.remove('hidden');
+    content.innerHTML = renderSafetyPlanForm(draft);
+    return;
+  }
+
+  // State 3: Active plan, no pending edits — read-only
+  if (active && !pending) {
+    gating.classList.add('hidden');
+    content.innerHTML = renderSafetyPlanReadOnly(active, false);
+    return;
+  }
+
+  // State 4: Active + pending edit
+  if (active && pending) {
+    gating.classList.add('hidden');
+    content.innerHTML =
+      '<div class="space-y-4">' +
+        '<div class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">' +
+          '<p class="text-sm text-amber-800">' +
+            '<span class="font-semibold">Pending provider review</span> — your previous plan remains active until your provider reviews these changes.' +
+          '</p>' +
+        '</div>' +
+        renderSafetyPlanReadOnly(active, true) +
+      '</div>';
+    return;
+  }
+
+  // Pending without active (first-time submission awaiting approval)
+  if (pending && !active) {
+    gating.classList.remove('hidden');
+    content.innerHTML =
+      '<div class="rounded-lg border border-stone-200 bg-white p-5">' +
+        '<h3 class="text-sm font-semibold text-stone-900 mb-2">My Safety Plan</h3>' +
+        '<div class="rounded-md bg-cloze-indigo/10 px-3 py-2 text-sm text-cloze-indigo">' +
+          'Your safety plan has been submitted and is waiting for your provider to review it.' +
+        '</div>' +
+      '</div>';
+    return;
+  }
+}
+
+function renderSafetyPlanReadOnly(plan, isCurrentlyActive) {
+  var label = isCurrentlyActive ? '<span class="text-xs font-medium text-emerald-600">Currently active</span>' : '';
+  var editBtn = '<button onclick="event.stopPropagation(); startSafetyPlanEdit()" class="text-xs font-medium text-cloze-indigo hover:text-cloze-hover">Edit</button>';
+
+  var html = '<div class="rounded-lg border border-stone-200 bg-white">';
+  html += '<div class="border-b border-stone-100 px-5 py-3 flex items-center justify-between cursor-pointer hover:bg-stone-50 transition" onclick="toggleSafetyPlanBody()">';
+  html += '<div class="flex items-center gap-2"><h3 class="text-sm font-semibold text-stone-900">My Safety Plan</h3>' + label + '</div>';
+  html += '<div class="flex items-center gap-3">' + editBtn +
+    '<svg id="spChevron" class="h-4 w-4 text-stone-400 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>' +
+    '</div>';
+  html += '</div>';
+  html += '<div id="spBody" class="hidden px-5 py-4 space-y-4">';
+
+  // Warning signs
+  var ws = plan.warning_signs || [];
+  if (ws.length) {
+    html += '<div>';
+    html += '<h4 class="text-xs font-semibold uppercase tracking-wider text-stone-400 mb-2">Warning Signs</h4>';
+    html += '<div class="space-y-1">';
+    ws.forEach(function(w) {
+      html += '<div class="text-sm text-stone-700">&bull; ' + escapeHtml(w.sign || '') +
+        (w.context ? ' <span class="text-stone-400">(' + escapeHtml(w.context) + ')</span>' : '') + '</div>';
+    });
+    html += '</div></div>';
+  }
+
+  // Coping strategies
+  var cs = plan.coping_strategies || [];
+  if (cs.length) {
+    html += '<div>';
+    html += '<h4 class="text-xs font-semibold uppercase tracking-wider text-stone-400 mb-2">Coping Strategies</h4>';
+    html += '<div class="space-y-1">';
+    cs.forEach(function(c) {
+      html += '<div class="text-sm text-stone-700">&bull; ' + escapeHtml(c.strategy || '') +
+        (c.patient_language ? ' <span class="text-stone-400">(&ldquo;' + escapeHtml(c.patient_language) + '&rdquo;)</span>' : '') + '</div>';
+    });
+    html += '</div></div>';
+  }
+
+  // Support network
+  var sn = plan.support_network || [];
+  if (sn.length) {
+    html += '<div>';
+    html += '<h4 class="text-xs font-semibold uppercase tracking-wider text-stone-400 mb-2">Support Network</h4>';
+    html += '<div class="space-y-1">';
+    sn.forEach(function(s) {
+      html += '<div class="text-sm text-stone-700">&bull; ' + escapeHtml(s.person || '') +
+        ' (' + escapeHtml(s.relationship || '') + ')' + '</div>';
+    });
+    html += '</div></div>';
+  }
+
+  // Reasons for living
+  var rfl = plan.reasons_for_living || [];
+  if (rfl.length) {
+    html += '<div>';
+    html += '<h4 class="text-xs font-semibold uppercase tracking-wider text-stone-400 mb-2">Reasons for Living</h4>';
+    html += '<div class="space-y-1">';
+    rfl.forEach(function(r) {
+      html += '<div class="text-sm text-stone-700">&bull; &ldquo;' + escapeHtml(r.reason || '') + '&rdquo;' +
+        (r.context ? ' <span class="text-stone-400">(' + escapeHtml(r.context) + ')</span>' : '') + '</div>';
+    });
+    html += '</div></div>';
+  }
+
+  // Anti-patterns (visible to patient)
+  var ap = plan.anti_patterns || [];
+  if (ap.length) {
+    html += '<div>';
+    html += '<h4 class="text-xs font-semibold uppercase tracking-wider text-stone-400 mb-2">Things to Avoid</h4>';
+    html += '<div class="space-y-1">';
+    ap.forEach(function(a) {
+      html += '<div class="text-sm text-stone-700">&bull; ' + escapeHtml(a.pattern || '') +
+        (a.reason ? ' <span class="text-stone-400">(' + escapeHtml(a.reason) + ')</span>' : '') +
+        (a.source === 'patient' ? ' <span class="text-xs text-stone-400">you added this</span>' : '') + '</div>';
+    });
+    html += '</div></div>';
+  }
+
+  html += '</div></div>';
+  return html;
+}
+
+function toggleSafetyPlanBody() {
+  var body = document.getElementById('spBody');
+  var chevron = document.getElementById('spChevron');
+  if (body) body.classList.toggle('hidden');
+  if (chevron) chevron.classList.toggle('rotate-180');
+}
+
+function selectOptions(options, selectedValue) {
+  return options.map(function(o) {
+    return '<option value="' + o.value + '"' + (o.value == selectedValue ? ' selected' : '') + '>' + o.label + '</option>';
+  }).join('');
+}
+
+function renderSafetyPlanForm(plan) {
+  var ws = plan.warning_signs || [];
+  var cs = plan.coping_strategies || [];
+  var sn = plan.support_network || [];
+  var rfl = plan.reasons_for_living || [];
+  var ap = (plan.anti_patterns || []).filter(function(a) { return a.source === 'patient'; });
+
+  var html = '<div class="rounded-lg border border-stone-200 bg-white">';
+  html += '<div class="border-b border-stone-100 px-5 py-3">';
+  html += '<h3 class="text-sm font-semibold text-stone-900">Complete Your Safety Plan</h3>';
+  html += '<p class="mt-1 text-xs text-stone-500">Your provider has started a plan for you. Please fill in the sections below.</p>';
+  html += '</div>';
+  html += '<div class="px-5 py-4 space-y-6">';
+
+  // Warning signs section
+  html += '<div>';
+  html += '<h4 class="text-sm font-semibold text-stone-800 mb-1">Warning Signs</h4>';
+  html += '<p class="text-xs text-stone-500 mb-3">What are the signs that you\'re starting to struggle?</p>';
+  html += '<div id="spWarningSigns" class="space-y-2">';
+  if (ws.length) {
+    ws.forEach(function(w, i) {
+      html += spWarningSignRow(i, w);
+    });
+  }
+  html += '</div>';
+  html += '<button type="button" onclick="addWarningSign()" class="mt-2 text-xs font-medium text-cloze-indigo hover:text-cloze-hover">+ Add warning sign</button>';
+  html += '</div>';
+
+  // Coping strategies section
+  html += '<div>';
+  html += '<h4 class="text-sm font-semibold text-stone-800 mb-1">Coping Strategies</h4>';
+  html += '<p class="text-xs text-stone-500 mb-3">What helps you feel better when things are hard?</p>';
+  html += '<div id="spCopingStrategies" class="space-y-2">';
+  if (cs.length) {
+    cs.forEach(function(c, i) {
+      html += spCopingRow(i, c);
+    });
+  }
+  html += '</div>';
+  html += '<button type="button" onclick="addCopingStrategy()" class="mt-2 text-xs font-medium text-cloze-indigo hover:text-cloze-hover">+ Add coping strategy</button>';
+  html += '</div>';
+
+  // Support network section
+  html += '<div>';
+  html += '<h4 class="text-sm font-semibold text-stone-800 mb-1">Support Network</h4>';
+  html += '<p class="text-xs text-stone-500 mb-3">Who can you reach out to?</p>';
+  html += '<div id="spSupportNetwork" class="space-y-2">';
+  if (sn.length) {
+    sn.forEach(function(s, i) {
+      html += spSupportRow(i, s);
+    });
+  }
+  html += '</div>';
+  html += '<button type="button" onclick="addSupportContact()" class="mt-2 text-xs font-medium text-cloze-indigo hover:text-cloze-hover">+ Add contact</button>';
+  html += '</div>';
+
+  // Reasons for living section
+  html += '<div>';
+  html += '<h4 class="text-sm font-semibold text-stone-800 mb-1">Reasons for Living</h4>';
+  html += '<p class="text-xs text-stone-500 mb-3">What matters to you? What keeps you going?</p>';
+  html += '<div id="spReasonsForLiving" class="space-y-2">';
+  if (rfl.length) {
+    rfl.forEach(function(r, i) {
+      html += spReasonRow(i, r);
+    });
+  }
+  html += '</div>';
+  html += '<button type="button" onclick="addReason()" class="mt-2 text-xs font-medium text-cloze-indigo hover:text-cloze-hover">+ Add reason</button>';
+  html += '</div>';
+
+  // Patient anti-patterns
+  html += '<div>';
+  html += '<h4 class="text-sm font-semibold text-stone-800 mb-1">Things to Avoid</h4>';
+  html += '<p class="text-xs text-stone-500 mb-3">Is there anything you\'d like the AI to avoid doing or saying?</p>';
+  html += '<div id="spAntiPatterns" class="space-y-2">';
+  if (ap.length) {
+    ap.forEach(function(a, i) {
+      html += spAntiPatternRow(i, a);
+    });
+  }
+  html += '</div>';
+  html += '<button type="button" onclick="addAntiPattern()" class="mt-2 text-xs font-medium text-cloze-indigo hover:text-cloze-hover">+ Add item</button>';
+  html += '</div>';
+
+  // Submit
+  html += '<div class="pt-2 border-t border-stone-200">';
+  html += '<button type="button" onclick="submitSafetyPlan()" class="rounded-lg bg-cloze-indigo px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-cloze-hover">Submit Safety Plan</button>';
+  html += '</div>';
+
+  html += '</div></div>';
+  return html;
+}
+
+// Row builders for repeatable fields
+function spWarningSignRow(i, data) {
+  data = data || {};
+  return '<div class="sp-warning-row rounded-md border border-stone-200 bg-stone-50 p-3 space-y-2">' +
+    '<input type="text" class="sp-ws-sign w-full rounded-md border border-stone-200 px-3 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none" placeholder="What happens?" value="' + escapeHtml(data.sign || '') + '">' +
+    '<div class="grid grid-cols-2 gap-2">' +
+      '<select class="sp-ws-severity rounded-md border border-stone-200 px-2 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none">' + selectOptions(SEVERITY_OPTIONS, data.severity || 3) + '</select>' +
+      '<input type="text" class="sp-ws-context rounded-md border border-stone-200 px-3 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none" placeholder="When does this happen?" value="' + escapeHtml(data.context || '') + '">' +
+    '</div>' +
+    '<button type="button" onclick="this.closest(\'.sp-warning-row\').remove()" class="text-xs text-stone-400 hover:text-red-500">Remove</button>' +
+  '</div>';
+}
+
+function spCopingRow(i, data) {
+  data = data || {};
+  return '<div class="sp-coping-row rounded-md border border-stone-200 bg-stone-50 p-3 space-y-2">' +
+    '<input type="text" class="sp-cs-strategy w-full rounded-md border border-stone-200 px-3 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none" placeholder="What do you do?" value="' + escapeHtml(data.strategy || '') + '">' +
+    '<div class="grid grid-cols-3 gap-2">' +
+      '<select class="sp-cs-effectiveness rounded-md border border-stone-200 px-2 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none">' + selectOptions(EFFECTIVENESS_OPTIONS, data.effectiveness || 3) + '</select>' +
+      '<input type="text" class="sp-cs-context rounded-md border border-stone-200 px-3 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none" placeholder="When does it work?" value="' + escapeHtml(data.context || '') + '">' +
+      '<input type="text" class="sp-cs-language rounded-md border border-stone-200 px-3 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none" placeholder="What do you call this?" value="' + escapeHtml(data.patient_language || '') + '">' +
+    '</div>' +
+    '<button type="button" onclick="this.closest(\'.sp-coping-row\').remove()" class="text-xs text-stone-400 hover:text-red-500">Remove</button>' +
+  '</div>';
+}
+
+function spSupportRow(i, data) {
+  data = data || {};
+  return '<div class="sp-support-row rounded-md border border-stone-200 bg-stone-50 p-3 space-y-2">' +
+    '<div class="grid grid-cols-2 gap-2">' +
+      '<input type="text" class="sp-sn-person rounded-md border border-stone-200 px-3 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none" placeholder="Name" value="' + escapeHtml(data.person || '') + '">' +
+      '<input type="text" class="sp-sn-relationship rounded-md border border-stone-200 px-3 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none" placeholder="Relationship" value="' + escapeHtml(data.relationship || '') + '">' +
+    '</div>' +
+    '<div class="grid grid-cols-2 gap-2">' +
+      '<input type="text" class="sp-sn-contact rounded-md border border-stone-200 px-3 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none" placeholder="How to contact" value="' + escapeHtml(data.contact_preference || '') + '">' +
+      '<select class="sp-sn-comfort rounded-md border border-stone-200 px-2 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none">' + selectOptions(COMFORT_OPTIONS, data.comfort_level || 3) + '</select>' +
+    '</div>' +
+    '<button type="button" onclick="this.closest(\'.sp-support-row\').remove()" class="text-xs text-stone-400 hover:text-red-500">Remove</button>' +
+  '</div>';
+}
+
+function spReasonRow(i, data) {
+  data = data || {};
+  return '<div class="sp-reason-row rounded-md border border-stone-200 bg-stone-50 p-3 space-y-2">' +
+    '<input type="text" class="sp-rfl-reason w-full rounded-md border border-stone-200 px-3 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none" placeholder="What matters to you?" value="' + escapeHtml(data.reason || '') + '">' +
+    '<input type="text" class="sp-rfl-context w-full rounded-md border border-stone-200 px-3 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none" placeholder="Tell us more (optional)" value="' + escapeHtml(data.context || '') + '">' +
+    '<button type="button" onclick="this.closest(\'.sp-reason-row\').remove()" class="text-xs text-stone-400 hover:text-red-500">Remove</button>' +
+  '</div>';
+}
+
+function spAntiPatternRow(i, data) {
+  data = data || {};
+  return '<div class="sp-ap-row rounded-md border border-stone-200 bg-stone-50 p-3 space-y-2">' +
+    '<input type="text" class="sp-ap-pattern w-full rounded-md border border-stone-200 px-3 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none" placeholder="What should the AI avoid?" value="' + escapeHtml(data.pattern || '') + '">' +
+    '<input type="text" class="sp-ap-reason w-full rounded-md border border-stone-200 px-3 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none" placeholder="Why? (optional)" value="' + escapeHtml(data.reason || '') + '">' +
+    '<button type="button" onclick="this.closest(\'.sp-ap-row\').remove()" class="text-xs text-stone-400 hover:text-red-500">Remove</button>' +
+  '</div>';
+}
+
+function addWarningSign() {
+  document.getElementById('spWarningSigns').insertAdjacentHTML('beforeend', spWarningSignRow(0, {}));
+}
+function addCopingStrategy() {
+  document.getElementById('spCopingStrategies').insertAdjacentHTML('beforeend', spCopingRow(0, {}));
+}
+function addSupportContact() {
+  document.getElementById('spSupportNetwork').insertAdjacentHTML('beforeend', spSupportRow(0, {}));
+}
+function addReason() {
+  document.getElementById('spReasonsForLiving').insertAdjacentHTML('beforeend', spReasonRow(0, {}));
+}
+function addAntiPattern() {
+  document.getElementById('spAntiPatterns').insertAdjacentHTML('beforeend', spAntiPatternRow(0, {}));
+}
+
+function collectFormData() {
+  var data = { warning_signs: [], coping_strategies: [], support_network: [], reasons_for_living: [] };
+
+  document.querySelectorAll('.sp-warning-row').forEach(function(row) {
+    var sign = row.querySelector('.sp-ws-sign').value.trim();
+    if (sign) {
+      data.warning_signs.push({
+        sign: sign,
+        severity: parseInt(row.querySelector('.sp-ws-severity').value),
+        context: row.querySelector('.sp-ws-context').value.trim()
       });
-      if (items[dropdownIndex]) {
-        items[dropdownIndex].scrollIntoView({ block: 'nearest' });
+    }
+  });
+
+  document.querySelectorAll('.sp-coping-row').forEach(function(row) {
+    var strategy = row.querySelector('.sp-cs-strategy').value.trim();
+    if (strategy) {
+      data.coping_strategies.push({
+        strategy: strategy,
+        effectiveness: parseInt(row.querySelector('.sp-cs-effectiveness').value),
+        context: row.querySelector('.sp-cs-context').value.trim(),
+        patient_language: row.querySelector('.sp-cs-language').value.trim()
+      });
+    }
+  });
+
+  document.querySelectorAll('.sp-support-row').forEach(function(row) {
+    var person = row.querySelector('.sp-sn-person').value.trim();
+    if (person) {
+      data.support_network.push({
+        person: person,
+        relationship: row.querySelector('.sp-sn-relationship').value.trim(),
+        contact_preference: row.querySelector('.sp-sn-contact').value.trim(),
+        comfort_level: parseInt(row.querySelector('.sp-sn-comfort').value)
+      });
+    }
+  });
+
+  document.querySelectorAll('.sp-reason-row').forEach(function(row) {
+    var reason = row.querySelector('.sp-rfl-reason').value.trim();
+    if (reason) {
+      data.reasons_for_living.push({
+        reason: reason,
+        context: row.querySelector('.sp-rfl-context').value.trim()
+      });
+    }
+  });
+
+  return data;
+}
+
+async function submitSafetyPlan() {
+  var data = collectFormData();
+  if (!data.warning_signs.length || !data.coping_strategies.length ||
+      !data.support_network.length || !data.reasons_for_living.length) {
+    alert('Please fill in at least one entry in each section.');
+    return;
+  }
+
+  // Also collect patient anti-patterns
+  var antiPatterns = [];
+  document.querySelectorAll('.sp-ap-row').forEach(function(row) {
+    var pattern = row.querySelector('.sp-ap-pattern').value.trim();
+    if (pattern) {
+      antiPatterns.push({
+        pattern: pattern,
+        reason: row.querySelector('.sp-ap-reason').value.trim(),
+        severity: 2,
+        source: 'patient',
+        visible_to_patient: true
+      });
+    }
+  });
+
+  try {
+    // Submit patient sections
+    var res = await fetch('/api/safety-plan/patient-sections', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      var err = await res.json();
+      alert(err.error || 'Failed to save safety plan.');
+      return;
+    }
+
+    // Submit each patient anti-pattern
+    for (var ap of antiPatterns) {
+      await fetch('/api/safety-plan/anti-pattern', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ap)
+      });
+    }
+
+    await loadAllData();
+  } catch (e) {
+    console.error('Error submitting safety plan:', e);
+    alert('Failed to submit safety plan. Please try again.');
+  }
+}
+
+function startSafetyPlanEdit() {
+  // Re-render the form using the active plan data
+  var active = safetyPlanData && safetyPlanData.active;
+  if (!active) return;
+  var content = document.getElementById('safetyPlanContent');
+  content.innerHTML = renderSafetyPlanForm(active);
+}
+
+/* ── Sidebar rendering ──────────────────────────────────────── */
+
+function getTimeGroup(timestamp) {
+  if (!timestamp) return 'Older';
+  var now = new Date();
+  var date = new Date(timestamp * 1000);
+  var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  var yesterday = new Date(today.getTime() - 86400000);
+  var weekAgo = new Date(today.getTime() - 7 * 86400000);
+
+  if (date >= today) return 'Today';
+  if (date >= yesterday) return 'Yesterday';
+  if (date >= weekAgo) return 'Previous 7 Days';
+  return 'Older';
+}
+
+function renderSidebar() {
+  var container = document.getElementById('sidebarConversations');
+
+  // Filter to real conversations only (not placeholders)
+  var convs = allConversations.filter(function(c) { return c.id && !c.is_placeholder; });
+
+  if (!convs.length) {
+    container.innerHTML = '<p class="px-2 py-4 text-xs text-stone-400 text-center">No conversations yet</p>';
+    return;
+  }
+
+  // Sort by updated_at descending
+  convs.sort(function(a, b) { return (b.updated_at || 0) - (a.updated_at || 0); });
+
+  // Group chronologically
+  var groups = {};
+  var order = ['Today', 'Yesterday', 'Previous 7 Days', 'Older'];
+  convs.forEach(function(c) {
+    var group = getTimeGroup(c.updated_at);
+    if (!groups[group]) groups[group] = [];
+    groups[group].push(c);
+  });
+
+  var html = '';
+  order.forEach(function(groupName) {
+    var items = groups[groupName];
+    if (!items || !items.length) return;
+
+    html += '<div class="mb-3">';
+    html += '<p class="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-stone-400">' + groupName + '</p>';
+    items.forEach(function(c) {
+      var title = escapeHtml(c.title || 'Untitled Conversation');
+      var isActive = activeConversationId == c.id;
+      var classes = isActive ? 'bg-stone-100 text-stone-900' : 'text-stone-700 hover:bg-stone-50';
+      html += '<button data-conv-id="' + c.id + '" onclick="showConversation(' + c.id + ')" ' +
+        'class="sidebar-conv flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm transition ' + classes + '">' +
+        '<svg class="h-4 w-4 shrink-0 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">' +
+        '<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>' +
+        '<span class="truncate">' + title + '</span></button>';
+    });
+    html += '</div>';
+  });
+
+  container.innerHTML = html;
+}
+
+/* ── Home view rendering ────────────────────────────────────── */
+
+function renderHomeView() {
+  var hasContent = false;
+
+  // If safety plan gating is active, hide conversation action cards
+  var actionCards = document.getElementById('actionCards');
+  if (!hasActivePlan && safetyPlanData && (safetyPlanData.draft || safetyPlanData.pending)) {
+    actionCards.classList.add('hidden');
+    document.getElementById('homeEmpty').classList.add('hidden');
+    return;
+  }
+  actionCards.classList.remove('hidden');
+
+  // 1. Available conversations (unstarted templates from active windows)
+  var availableSection = document.getElementById('availableSection');
+  var availableCards = document.getElementById('availableCards');
+  var availableItems = [];
+
+  currentWindows.forEach(function(w) {
+    if (!w.is_current) return;
+    var templates = w.templates || [];
+    templates.forEach(function(t) {
+      if (!t.has_conversation) {
+        availableItems.push({ template: t, window: w });
+      }
+    });
+  });
+
+  if (availableItems.length) {
+    hasContent = true;
+    availableSection.classList.remove('hidden');
+    availableCards.innerHTML = availableItems.map(function(item) {
+      var t = item.template;
+      var w = item.window;
+      return '<button onclick="startTemplate(' + t.id + ')" ' +
+        'class="flex w-full items-center gap-3 rounded-lg border border-stone-200 bg-white p-3 text-left transition hover:border-cloze-indigo/40 hover:bg-stone-50">' +
+        '<div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cloze-indigo/10 text-cloze-indigo">' +
+        '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>' +
+        '<div class="min-w-0 flex-1">' +
+        '<div class="text-sm font-medium text-stone-900">' + escapeHtml(t.title || 'Untitled') + '</div>' +
+        '<div class="text-xs text-stone-500">' + escapeHtml(w.title || '') + '</div></div>' +
+        '<svg class="h-4 w-4 shrink-0 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>' +
+        '</button>';
+    }).join('');
+  } else {
+    availableSection.classList.add('hidden');
+  }
+
+  // 2. Continue conversations (in-progress with active windows)
+  var continueSection = document.getElementById('continueSection');
+  var continueCards = document.getElementById('continueCards');
+  var inProgress = allConversations.filter(function(c) {
+    return c.id && !c.is_placeholder && c.window_status === 'active' && c.message_count > 0;
+  });
+
+  if (inProgress.length) {
+    hasContent = true;
+    continueSection.classList.remove('hidden');
+    continueCards.innerHTML = inProgress.map(function(c) {
+      return '<button onclick="showConversation(' + c.id + ')" ' +
+        'class="flex w-full items-center gap-3 rounded-lg border border-stone-200 bg-white p-3 text-left transition hover:border-stone-300 hover:bg-stone-50">' +
+        '<div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">' +
+        '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">' +
+        '<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>' +
+        '<div class="min-w-0 flex-1">' +
+        '<div class="text-sm font-medium text-stone-900">' + escapeHtml(c.title || 'Untitled') + '</div>' +
+        '<div class="text-xs text-stone-500">' + c.message_count + ' messages &middot; ' + formatRelativeTime(c.updated_at) + '</div></div>' +
+        '<svg class="h-4 w-4 shrink-0 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>' +
+        '</button>';
+    }).join('');
+  } else {
+    continueSection.classList.add('hidden');
+  }
+
+  // 3. Reports ready
+  var reportsSection = document.getElementById('reportsSection');
+  var reportsCards = document.getElementById('reportsCards');
+  var allReportsLink = document.getElementById('allReportsLink');
+
+  if (allReports.length) {
+    hasContent = true;
+    reportsSection.classList.remove('hidden');
+    allReportsLink.classList.remove('hidden');
+    var recentReports = allReports.slice(0, 3);
+    reportsCards.innerHTML = recentReports.map(function(r) {
+      var data = r.report_data || {};
+      var title = escapeHtml(data.window_title || 'Session Report');
+      var generated = formatDate(r.generated_at);
+      return '<button onclick="openReportModal(' + r.window_id + ')" ' +
+        'class="flex w-full items-center gap-3 rounded-lg border border-stone-200 bg-white p-3 text-left transition hover:border-violet-200 hover:bg-violet-50/30">' +
+        '<div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-600">' +
+        '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">' +
+        '<path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>' +
+        '<div class="min-w-0 flex-1">' +
+        '<div class="text-sm font-medium text-stone-900">' + title + '</div>' +
+        '<div class="text-xs text-stone-500">Generated ' + generated + '</div></div>' +
+        '<span class="shrink-0 text-xs font-medium text-violet-600">View</span>' +
+        '</button>';
+    }).join('');
+  } else {
+    reportsSection.classList.add('hidden');
+    allReportsLink.classList.add('hidden');
+  }
+
+  // 4. Upcoming windows
+  var upcomingSection = document.getElementById('upcomingSection');
+  var upcomingList = document.getElementById('upcomingList');
+  var upcoming = currentWindows.filter(function(w) { return !w.is_current && w.is_upcoming; });
+
+  if (upcoming.length) {
+    hasContent = true;
+    upcomingSection.classList.remove('hidden');
+    upcomingList.innerHTML = upcoming.map(function(w) {
+      return '<div class="flex items-center gap-2 rounded-md bg-white border border-stone-200 px-3 py-2">' +
+        '<svg class="h-3.5 w-3.5 text-stone-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
+        '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>' +
+        '<span class="text-sm text-stone-700">' + escapeHtml(w.title || 'Upcoming') + '</span>' +
+        '<span class="ml-auto text-xs text-stone-400">Opens ' + formatDate(w.start_date) + '</span>' +
+        '</div>';
+    }).join('');
+  } else {
+    upcomingSection.classList.add('hidden');
+  }
+
+  // 5. Empty state
+  var homeEmpty = document.getElementById('homeEmpty');
+  if (hasContent) {
+    homeEmpty.classList.add('hidden');
+  } else {
+    homeEmpty.classList.remove('hidden');
+  }
+}
+
+/* ── Conversation view ──────────────────────────────────────── */
+
+async function loadConversationView(convId) {
+  var container = document.getElementById('messagesContainer');
+  container.innerHTML = '<div class="flex items-center justify-center h-32"><p class="text-sm text-stone-500">Loading...</p></div>';
+
+  document.getElementById('inputArea').classList.add('hidden');
+  document.getElementById('statusArea').classList.add('hidden');
+  document.getElementById('crisisBar').classList.add('hidden');
+
+  if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+
+  try {
+    var response = await fetch('/api/conversation/' + convId);
+    if (!response.ok) throw new Error('Failed to load conversation');
+
+    conversationData = await response.json();
+
+    document.getElementById('convTitle').textContent = conversationData.title;
+    document.getElementById('convModel').textContent = conversationData.model.name;
+    document.getElementById('mobileTitle').textContent = conversationData.title;
+
+    // Determine if user can send messages
+    var canSend = true;
+    var windowStatus = conversationData.window_status;
+    if (windowStatus && windowStatus !== 'active') canSend = false;
+
+    // Timer
+    if (conversationData.window_end_date) {
+      startCountdown(conversationData.window_end_date, windowStatus);
+    } else {
+      document.getElementById('convTimer').classList.add('hidden');
+    }
+
+    // Input vs status
+    if (canSend) {
+      document.getElementById('inputArea').classList.remove('hidden');
+      document.getElementById('statusArea').classList.add('hidden');
+    } else {
+      document.getElementById('inputArea').classList.add('hidden');
+      document.getElementById('statusArea').classList.remove('hidden');
+      var statusContent = document.getElementById('statusContent');
+      if (windowStatus === 'scheduled') {
+        statusContent.innerHTML = '<p class="font-semibold text-sm mb-0.5">This conversation hasn\'t started yet</p><p class="text-xs">This conversation will be available during its scheduled time window.</p>';
+      } else if (windowStatus === 'generating_report') {
+        statusContent.innerHTML = '<div class="flex items-center justify-center gap-2">' +
+          '<svg class="h-4 w-4 animate-spin text-cloze-indigo" fill="none" viewBox="0 0 24 24">' +
+          '<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>' +
+          '<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>' +
+          '<div><p class="font-semibold text-sm">This conversation has closed. A report will be generated shortly.</p>' +
+          '<p class="text-xs mt-0.5">Your report is being prepared...</p></div></div>';
+      } else if (windowStatus === 'report_ready') {
+        statusContent.innerHTML = '<p class="font-semibold text-sm mb-0.5">This conversation has ended</p><p class="text-xs">Your session report is ready. You can view it using the link in the header above.</p>';
+      } else {
+        statusContent.innerHTML = '<p class="font-semibold text-sm mb-0.5">This conversation has ended</p><p class="text-xs">You can review all your messages here anytime.</p>';
       }
     }
 
-    function hideDropdown() {
-      const box = document.getElementById('searchDropdown');
-      box.classList.add('hidden');
-      dropdownIndex = -1;
-    }
+    // Crisis bar (show for active conversations)
+    document.getElementById('crisisBar').classList.remove('hidden');
 
-    function onSearchPick(index) {
-      const picked = lastMatches[index];
-      if (!picked) return;
-      hideDropdown();
-      openConversation(picked.convId);
-    }
+    // Render messages
+    container.innerHTML = conversationData.messages.map(function(msg) {
+      return '<div class="msg-fade-in flex gap-3" data-message-id="' + msg.id + '">' +
+        '<div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white select-none ' + (msg.role === 'user' ? 'bg-cloze-sky' : 'bg-[#312E81]') + '">' +
+        (msg.role === 'user' ? 'U' : 'AI') + '</div>' +
+        '<div class="min-w-0 flex-1">' +
+        '<div class="mb-1 text-sm font-semibold text-stone-800 select-none">' + (msg.role === 'user' ? 'You' : 'Assistant') + '</div>' +
+        '<div class="message-text rounded-lg px-4 py-3 text-sm leading-relaxed text-stone-700 ' + (msg.role === 'user' ? 'bg-cloze-indigo/5' : 'bg-muted') + '">' + formatMessageContent(msg.content, msg.role) + '</div>' +
+        '<div class="mt-1.5 text-xs text-stone-400 select-none">' + formatDateTime(msg.timestamp) + '</div>' +
+        '</div></div>';
+    }).join('');
 
-    const searchContainer = document.getElementById('searchContainer');
-    document.addEventListener('click', (e) => {
-      if (searchContainer && !searchContainer.contains(e.target)) hideDropdown();
+    scrollToBottom();
+    checkSafetyAcknowledgment();
+  } catch (error) {
+    console.error('Error loading conversation:', error);
+    container.innerHTML = '<div class="flex items-center justify-center h-32"><p class="text-sm text-red-600">Failed to load conversation.</p></div>';
+  }
+}
+
+function formatMessageContent(content, role) {
+  if (role === 'assistant') {
+    try { return marked.parse(content); } catch (e) { return escapeHtml(content).replace(/\n/g, '<br>'); }
+  }
+  return escapeHtml(content).replace(/\n/g, '<br>');
+}
+
+function scrollToBottom() {
+  var c = document.getElementById('messagesContainer');
+  c.scrollTop = c.scrollHeight;
+}
+
+/* ── Messaging ──────────────────────────────────────────────── */
+
+async function sendMessage() {
+  var input = document.getElementById('messageInput');
+  var message = input.value.trim();
+  if (!message) return;
+
+  var sendBtn = document.getElementById('sendBtn');
+  sendBtn.disabled = true;
+
+  addMessageToUI('user', message);
+  input.value = '';
+  input.style.height = 'auto';
+
+  document.getElementById('typingIndicator').classList.remove('hidden');
+  document.getElementById('typingIndicator').classList.add('flex');
+
+  try {
+    var response = await fetch('/api/conversation/' + activeConversationId + '/message', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: message })
     });
 
-    function searchConversations() {
-      const q = (document.getElementById('searchInput').value || '').trim().toLowerCase();
-      const filtered = (allConversations || []).filter(conv => {
-        const inTitle = (conv.title || '').toLowerCase().includes(q);
-        const inModel = (conv.model || '').toLowerCase().includes(q);
-        const inMsgs  = Array.isArray(conv.messages) && conv.messages.some(m => (m?.content || '').toLowerCase().includes(q));
-        return q ? (inTitle || inModel || inMsgs) : true;
-      });
-      displayConversations(filtered);
-      renderDropdown(buildMatches(q));
+    if (!response.ok) {
+      var error = await response.json();
+      throw new Error(error.error || 'Failed to send message');
     }
 
-    function formatDate(timestamp) {
-      if (!timestamp) return '—';
-      const date = new Date(timestamp * 1000);
-      const options = { month: 'short', day: 'numeric', year: 'numeric' };
-      return date.toLocaleDateString('en-US', options);
+    var data = await response.json();
+    addMessageToUI('assistant', data.response, data.message_id);
+
+    // Update sidebar (conversation may have moved to "Today")
+    updateSidebarConversation(activeConversationId, message);
+  } catch (error) {
+    showError(error.message);
+  } finally {
+    document.getElementById('typingIndicator').classList.add('hidden');
+    document.getElementById('typingIndicator').classList.remove('flex');
+    sendBtn.disabled = false;
+  }
+}
+
+function addMessageToUI(role, content, messageId) {
+  var container = document.getElementById('messagesContainer');
+  var div = document.createElement('div');
+  div.className = 'msg-fade-in flex gap-3';
+  if (messageId) div.dataset.messageId = messageId;
+
+  div.innerHTML =
+    '<div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white select-none ' + (role === 'user' ? 'bg-cloze-sky' : 'bg-[#312E81]') + '">' +
+    (role === 'user' ? 'U' : 'AI') + '</div>' +
+    '<div class="min-w-0 flex-1">' +
+    '<div class="mb-1 text-sm font-semibold text-stone-800 select-none">' + (role === 'user' ? 'You' : 'Assistant') + '</div>' +
+    '<div class="message-text rounded-lg px-4 py-3 text-sm leading-relaxed text-stone-700 ' + (role === 'user' ? 'bg-cloze-indigo/5' : 'bg-muted') + '">' + formatMessageContent(content, role) + '</div>' +
+    '<div class="mt-1.5 text-xs text-stone-400 select-none">' + formatDateTime(Date.now() / 1000) + '</div>' +
+    '</div>';
+
+  container.appendChild(div);
+  scrollToBottom();
+}
+
+function updateSidebarConversation(convId, lastMessage) {
+  // Move conversation to top of sidebar
+  var existing = allConversations.find(function(c) { return c.id == convId; });
+  if (existing) {
+    existing.updated_at = Date.now() / 1000;
+    existing.message_count = (existing.message_count || 0) + 2;
+  }
+  renderSidebar();
+  highlightSidebarItem(convId);
+}
+
+function handleKeyPress(event) {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    sendMessage();
+  }
+}
+
+/* ── Template start ─────────────────────────────────────────── */
+
+async function startTemplate(templateId) {
+  if (!hasActivePlan) {
+    alert('Please complete your safety plan before starting conversations.');
+    return;
+  }
+  try {
+    var response = await fetch('/api/windows/start_conversation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ template_id: templateId })
+    });
+    if (!response.ok) {
+      var error = await response.json();
+      alert(error.error || 'Failed to start conversation');
+      return;
     }
+    var data = await response.json();
+    var newId = data.conversation_id || data.id;
 
-    function formatDateTime(timestamp) {
-      if (!timestamp) return '—';
-      const date = new Date(timestamp * 1000);
-      const options = { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' };
-      return date.toLocaleString('en-US', options);
-    }
+    // Reload data so sidebar and home view update
+    await loadAllData();
+    showConversation(newId);
+  } catch (error) {
+    console.error('Error starting template:', error);
+    alert('Failed to start conversation. Please try again.');
+  }
+}
 
-    function formatRelativeTime(timestamp) {
-      if (!timestamp) return '—';
-      const now = Date.now() / 1000;
-      const diff = now - timestamp;
+/* ── Safety modal ───────────────────────────────────────────── */
 
-      if (diff < 3600) {
-        const mins = Math.max(1, Math.floor(diff / 60));
-        return `${mins} min${mins !== 1 ? 's' : ''} ago`;
-      } else if (diff < 86400) {
-        const hours = Math.floor(diff / 3600);
-        return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+function checkSafetyAcknowledgment() {
+  if (conversationData && !conversationData.consent_provided) {
+    document.getElementById('safetyModal').classList.remove('hidden');
+  }
+}
+
+document.getElementById('safetyAcknowledge').addEventListener('change', function() {
+  document.getElementById('safetyConfirmBtn').disabled = !this.checked;
+});
+
+async function acknowledgeSafety() {
+  try {
+    var response = await fetch('/api/conversation/' + activeConversationId + '/consent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!response.ok) throw new Error('Failed to save consent');
+    if (conversationData) conversationData.consent_provided = true;
+    document.getElementById('safetyModal').classList.add('hidden');
+  } catch (error) {
+    console.error('Error saving consent:', error);
+    showError('Failed to save consent. Please try again.');
+  }
+}
+
+/* ── Countdown timer ────────────────────────────────────────── */
+
+function startCountdown(endTimestamp, windowStatus) {
+  var timerEl = document.getElementById('convTimer');
+  var timeValueEl = document.getElementById('convTimeValue');
+
+  timerEl.classList.remove('hidden');
+  timerEl.style.display = 'flex';
+
+  function updateTimer() {
+    var now = Date.now() / 1000;
+    var timeLeft = endTimestamp - now;
+
+    if (timeLeft <= 0 || windowStatus === 'generating_report' || windowStatus === 'report_ready') {
+      if (windowStatus === 'generating_report') {
+        timerEl.innerHTML = '<div class="flex items-center gap-2 px-3 py-1 text-xs text-cloze-indigo">' +
+          '<svg class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">' +
+          '<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>' +
+          '<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>' +
+          '</svg> Generating report...</div>';
+      } else if (windowStatus === 'report_ready') {
+        timerEl.className = 'flex items-center gap-2 shrink-0';
+        timerEl.innerHTML = '<button onclick="openReportModalForWindow()" class="inline-flex items-center gap-1.5 text-xs font-semibold text-cloze-indigo transition hover:text-cloze-hover">View Report</button>';
       } else {
-        const days = Math.floor(diff / 86400);
-        return `${days} day${days !== 1 ? 's' : ''} ago`;
+        timerEl.innerHTML = '<div class="flex items-center gap-2 px-3 py-1 text-xs text-stone-500">Window closed</div>';
       }
+      timerEl.classList.remove('time-warning');
+      if (countdownInterval) clearInterval(countdownInterval);
+      return;
     }
 
-    function startNewConversation() {
-      window.location.href = '/conversation/new';
-    }
+    var days = Math.floor(timeLeft / 86400);
+    var hours = Math.floor((timeLeft % 86400) / 3600);
+    var minutes = Math.floor((timeLeft % 3600) / 60);
+    var seconds = Math.floor(timeLeft % 60);
 
-    function openConversation(id) {
-      window.location.href = `/conversation/${id}`;
-    }
+    var text = '';
+    if (days > 0) text = days + 'd ' + hours + 'h';
+    else if (hours > 0) text = hours + 'h ' + minutes + 'm';
+    else if (minutes > 0) text = minutes + 'm ' + seconds + 's';
+    else text = seconds + 's';
 
-    async function startTemplate(templateId) {
-      try {
-        const response = await fetch('/api/windows/start_conversation', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ template_id: templateId })
+    // Show closing-soon warning in status area
+    if (timeLeft < 3600 && timeLeft > 0) {
+      timerEl.classList.add('time-warning');
+      var warnMins = Math.ceil(timeLeft / 60);
+      var label = timerEl.querySelector('.time-label');
+      if (label) label.textContent = 'Closes in:';
+      timeValueEl.textContent = warnMins + ' min' + (warnMins !== 1 ? 's' : '');
+    } else {
+      timerEl.classList.remove('time-warning');
+      timeValueEl.textContent = text;
+    }
+  }
+
+  updateTimer();
+  countdownInterval = setInterval(updateTimer, 1000);
+}
+
+/* ── Crisis resources toggle ────────────────────────────────── */
+
+function toggleCrisis() {
+  var content = document.getElementById('crisisContent');
+  var chevron = document.getElementById('crisisChevron');
+  content.classList.toggle('hidden');
+  chevron.classList.toggle('rotate-180');
+}
+
+/* ── Error banner ───────────────────────────────────────────── */
+
+function showError(message) {
+  var banner = document.getElementById('errorBanner');
+  banner.textContent = message;
+  banner.classList.remove('hidden');
+  setTimeout(function() { banner.classList.add('hidden'); }, 5000);
+}
+
+/* ── Report modal ───────────────────────────────────────────── */
+
+async function openReportModal(windowId) {
+  var modal = document.getElementById('reportModal');
+  var content = document.getElementById('reportModalContent');
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  content.innerHTML = '<div class="flex items-center justify-center h-32"><p class="text-sm text-stone-500">Loading report...</p></div>';
+
+  try {
+    var reportRes = await fetch('/api/reports/window/' + windowId);
+    if (!reportRes.ok) throw new Error('Report not found');
+    var report = await reportRes.json();
+    var htmlRes = await fetch('/api/reports/html/' + report.id);
+    if (!htmlRes.ok) throw new Error('Failed to load report HTML');
+    var data = await htmlRes.json();
+    content.innerHTML = data.html;
+  } catch (error) {
+    console.error('Error loading report:', error);
+    content.innerHTML = '<div class="flex items-center justify-center h-32"><p class="text-sm text-red-600">Failed to load report.</p></div>';
+  }
+}
+
+function openReportModalForWindow() {
+  if (conversationData && conversationData.window_id) {
+    openReportModal(conversationData.window_id);
+  }
+}
+
+function closeReportModal() {
+  document.getElementById('reportModal').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+/* ── All reports view ───────────────────────────────────────── */
+
+function renderAllReportsView() {
+  var container = document.getElementById('allReportsContent');
+  if (!allReports.length) {
+    container.innerHTML = '<p class="text-sm text-stone-500">No reports yet.</p>';
+    return;
+  }
+  container.innerHTML = '<div class="overflow-hidden rounded-lg border border-stone-200 bg-white">' +
+    '<table class="w-full text-sm">' +
+    '<thead><tr class="border-b border-stone-200 bg-muted text-left">' +
+    '<th class="px-4 py-2.5 font-medium text-stone-600">Window</th>' +
+    '<th class="px-4 py-2.5 font-medium text-stone-600 hidden sm:table-cell">Date Range</th>' +
+    '<th class="px-4 py-2.5 font-medium text-stone-600 hidden sm:table-cell">Generated</th>' +
+    '<th class="px-4 py-2.5 font-medium text-stone-600"></th>' +
+    '</tr></thead><tbody>' +
+    allReports.map(function(r) {
+      var d = r.report_data || {};
+      return '<tr class="border-b border-stone-100 last:border-0">' +
+        '<td class="px-4 py-2.5 text-stone-900">' + escapeHtml(d.window_title || 'Session') + '</td>' +
+        '<td class="px-4 py-2.5 text-stone-500 hidden sm:table-cell">' + formatDate(d.start_date) + ' - ' + formatDate(d.end_date) + '</td>' +
+        '<td class="px-4 py-2.5 text-stone-500 hidden sm:table-cell">' + formatDate(r.generated_at) + '</td>' +
+        '<td class="px-4 py-2.5 text-right"><button onclick="openReportModal(' + r.window_id + ')" class="text-xs font-medium text-cloze-indigo hover:text-cloze-hover">View</button></td>' +
+        '</tr>';
+    }).join('') +
+    '</tbody></table></div>';
+}
+
+/* ── Saved quotes drawer ────────────────────────────────────── */
+
+var SELECTION_PREVIEW_LIMIT = 200;
+
+function buildSelectionPreview(text) {
+  var c = text || '';
+  if (c.length <= SELECTION_PREVIEW_LIMIT) return c;
+  var s = c.slice(0, SELECTION_PREVIEW_LIMIT);
+  var i = s.lastIndexOf(' ');
+  return (i > 40 ? s.slice(0, i) : s).trimEnd() + '\u2026';
+}
+
+function buildSelectionMarkup(sel) {
+  var full = sel.text || '', preview = buildSelectionPreview(full), hasMore = full.length > SELECTION_PREVIEW_LIMIT, note = sel.note || '';
+  var fade = hasMore ? '<div class="selection-fade pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-white to-transparent rounded-b-lg"></div>' : '';
+  var toggle = hasMore ? '<button type="button" data-action="toggle-full" class="text-xs font-medium text-cloze-indigo hover:text-cloze-hover" onclick="toggleSelectionItem(' + sel.id + ')">Show more</button>' : '';
+  var trashIcon = '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">' +
+    '<path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14"/>' +
+    '<path d="M10 11v6M14 11v6"/></svg>';
+  var timestamp = sel.created_at ? '<span class="text-[11px] text-stone-400">' + formatRelativeTime(sel.created_at) + '</span>' : '';
+
+  return '<div class="selection-item rounded-lg border border-stone-200 bg-white" data-selection-id="' + sel.id + '">' +
+    '<div class="selection-text-wrapper relative px-4 pt-3 pb-2">' +
+    '<div class="border-l-2 border-stone-300 pl-3"><div class="whitespace-pre-wrap text-stone-700 leading-relaxed text-sm">' +
+    (hasMore ? '<span class="selection-preview">' + escapeHtml(preview) + '</span><span class="selection-full hidden">' + escapeHtml(full) + '</span>' : escapeHtml(full)) +
+    '</div></div>' + fade + '</div>' +
+    (note ? '<div class="px-4 pb-2 text-xs italic text-stone-400">' + escapeHtml(note) + '</div>' : '') +
+    '<div class="flex items-center justify-between border-t border-stone-100 px-4 py-2">' +
+    '<div class="flex items-center gap-2">' + timestamp + toggle + '</div>' +
+    '<button type="button" class="rounded-md p-1.5 text-stone-400 transition hover:bg-red-50 hover:text-red-500" onclick="removeSelection(' + sel.id + ')" title="Delete quote">' + trashIcon + '</button>' +
+    '</div></div>';
+}
+
+function toggleSelectionItem(id) {
+  var item = document.querySelector('[data-selection-id="' + id + '"]');
+  if (!item) return;
+  var p = item.querySelector('.selection-preview'), f = item.querySelector('.selection-full'),
+      b = item.querySelector('[data-action="toggle-full"]'), fd = item.querySelector('.selection-fade');
+  if (!p || !b) return;
+  var showing = f && !f.classList.contains('hidden');
+  if (showing) { if (f) f.classList.add('hidden'); p.classList.remove('hidden'); b.textContent = 'Show more'; if (fd) fd.classList.remove('hidden'); }
+  else { if (f) f.classList.remove('hidden'); p.classList.add('hidden'); b.textContent = 'Show less'; if (fd) fd.classList.add('hidden'); }
+}
+
+async function loadSelections() {
+  try {
+    var r = await fetch('/api/selections');
+    if (!r.ok) return;
+    var selections = await r.json();
+    var content = document.getElementById('selectionsContent');
+    content.innerHTML = selections.length
+      ? selections.map(buildSelectionMarkup).join('')
+      : '<div class="flex flex-col items-center justify-center py-12 text-center">' +
+        '<svg class="h-10 w-10 text-stone-300 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">' +
+        '<path d="M6 4h12a1 1 0 011 1v16l-7-3-7 3V5a1 1 0 011-1z"/></svg>' +
+        '<p class="text-sm font-medium text-stone-500 mb-1">No saved quotes yet</p>' +
+        '<p class="text-xs text-stone-400 max-w-[200px]">Highlight text in a conversation and click Save to keep it here.</p></div>';
+  } catch (e) { console.error('Error loading selections:', e); }
+}
+
+async function removeSelection(id) {
+  try { var r = await fetch('/api/selections/' + id, { method: 'DELETE' }); if (r.ok) loadSelections(); }
+  catch (e) { console.error(e); }
+}
+
+function toggleSelections() {
+  var sb = document.getElementById('selectionsSidebar');
+  var ov = document.getElementById('selectionsOverlay');
+  var hidden = sb.classList.contains('translate-x-full');
+  if (hidden) { sb.classList.remove('translate-x-full'); ov.classList.remove('hidden'); loadSelections(); }
+  else { sb.classList.add('translate-x-full'); ov.classList.add('hidden'); }
+}
+
+var selOv = document.getElementById('selectionsOverlay');
+if (selOv) selOv.addEventListener('click', function() {
+  document.getElementById('selectionsSidebar').classList.add('translate-x-full');
+  selOv.classList.add('hidden');
+});
+
+/* ── Text selection / save ──────────────────────────────────── */
+
+function extractCleanText(node) {
+  var text = '';
+  if (node.nodeType === Node.ELEMENT_NODE && node.classList && node.classList.contains('select-none')) return '';
+  if (node.nodeType === Node.TEXT_NODE) return node.textContent;
+  if (node.childNodes) node.childNodes.forEach(function(c) { text += extractCleanText(c); });
+  return text;
+}
+
+document.addEventListener('mouseup', function(e) {
+  if (e.target.closest('#selectionPopup')) return;
+  setTimeout(function() {
+    var selection = window.getSelection();
+    var popup = document.getElementById('selectionPopup');
+    if (selection.rangeCount === 0) { popup.style.display = 'none'; return; }
+
+    var text = selection.toString().trim();
+    if (text.length > 0) {
+      var range = selection.getRangeAt(0);
+      var messagesContainer = document.getElementById('messagesContainer');
+      var container = range.commonAncestorContainer;
+      if (container.nodeType === Node.TEXT_NODE) container = container.parentElement;
+
+      if (messagesContainer && messagesContainer.contains(container)) {
+        var messages = messagesContainer.querySelectorAll('[data-message-id]');
+        selectedMessageIds = [];
+        var involvedMessages = [];
+
+        messages.forEach(function(msg) {
+          if (selection.containsNode(msg, true)) {
+            var msgId = msg.dataset.messageId;
+            if (msgId) { selectedMessageIds.push(msgId); involvedMessages.push(msg); }
+          }
         });
 
-        if (!response.ok) {
-          const error = await response.json();
-          alert(error.error || 'Failed to start conversation');
-          return;
+        if (involvedMessages.length > 1) {
+          var parts = [];
+          involvedMessages.forEach(function(msg, idx) {
+            var hasSkyBg = msg.querySelector('.bg-cloze-sky');
+            var role = hasSkyBg ? 'You' : 'Assistant';
+            var messageText = msg.querySelector('.message-text');
+            if (!messageText) return;
+            var tc = (idx === 0 || idx === involvedMessages.length - 1) ? messageText.textContent.trim() : messageText.textContent.trim();
+            if (tc) parts.push('[' + role + ']: ' + tc);
+          });
+          selectedText = parts.join('\n\n');
+        } else {
+          var fragment = range.cloneContents();
+          selectedText = extractCleanText(fragment).trim();
         }
 
-        const data = await response.json();
-        window.location.href = `/conversation/${data.conversation_id}`;
-      } catch (error) {
-        console.error('Error starting template:', error);
-        alert('Failed to start conversation. Please try again.');
-      }
-    }
-
-    async function loadSelections() {
-      try {
-        const response = await fetch('/api/selections');
-        if (!response.ok) return;
-
-        const selections = await response.json();
-        const content = document.getElementById('selectionsContent');
-
-        if (!selections.length) {
-          content.innerHTML = '<div class="px-5 py-6 text-sm text-slate-500">No saved selections yet.</div>';
-          return;
-        }
-
-        content.innerHTML = selections.map(sel => buildSelectionMarkup(sel)).join('');
-      } catch (error) {
-        console.error('Error loading selections:', error);
-      }
-    }
-
-    async function removeSelection(id) {
-      try {
-        const response = await fetch(`/api/selections/${id}`, { method: 'DELETE' });
-        if (!response.ok) return;
-        loadSelections();
-      } catch (error) {
-        console.error('Error deleting selection:', error);
-      }
-    }
-
-    function toggleSelections() {
-      const sidebar = document.getElementById('selectionsSidebar');
-      const overlay = document.getElementById('selectionsOverlay');
-      const hidden = sidebar.classList.contains('translate-x-full');
-
-      if (hidden) {
-        sidebar.classList.remove('translate-x-full');
-        overlay.classList.remove('hidden');
-        loadSelections();
+        var rect = range.getBoundingClientRect();
+        popup.style.display = 'block';
+        popup.classList.remove('hidden');
+        popup.style.left = (rect.left + rect.width / 2) + 'px';
+        popup.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+        popup.style.transform = 'translateX(-50%)';
       } else {
-        sidebar.classList.add('translate-x-full');
-        overlay.classList.add('hidden');
+        popup.style.display = 'none';
       }
+    } else {
+      popup.style.display = 'none';
     }
+  }, 10);
+});
 
-    const selectionsOverlay = document.getElementById('selectionsOverlay');
-    if (selectionsOverlay) {
-      selectionsOverlay.addEventListener('click', () => {
-        const sidebar = document.getElementById('selectionsSidebar');
-        sidebar.classList.add('translate-x-full');
-        selectionsOverlay.classList.add('hidden');
-      });
+document.addEventListener('selectionchange', function() {
+  var selection = window.getSelection();
+  var popup = document.getElementById('selectionPopup');
+  if (document.activeElement && document.activeElement.closest('#selectionPopup')) return;
+  if (selection.toString().trim().length === 0) popup.style.display = 'none';
+});
+
+async function saveSelection() {
+  var note = prompt('Add a note for this selection (optional):');
+  try {
+    var response = await fetch('/api/save_selection', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        conversation_id: activeConversationId,
+        text: selectedText,
+        message_ids: selectedMessageIds,
+        note: note
+      })
+    });
+    if (response.ok) {
+      document.getElementById('selectionPopup').style.display = 'none';
+      window.getSelection().removeAllRanges();
     }
+  } catch (error) { console.error('Error saving selection:', error); }
+}
 
-    async function logout() {
-      await fetch('/logout');
-      window.location.href = '/login';
-    }
+/* ── Auto-resize textarea ───────────────────────────────────── */
 
-    async function openReportModal(windowId) {
-      const modal = document.getElementById('reportModal');
-      const content = document.getElementById('reportModalContent');
+var textarea = document.getElementById('messageInput');
+if (textarea) {
+  textarea.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+  });
+}
 
-      modal.classList.remove('hidden');
-      document.body.style.overflow = 'hidden';
+/* ── Browser back/forward ───────────────────────────────────── */
 
-      content.innerHTML = `<div class="flex items-center justify-center h-32">
-        <p class="text-slate-500">Loading report...</p>
-      </div>`;
+window.addEventListener('popstate', function() {
+  var params = new URLSearchParams(window.location.search);
+  var convId = params.get('conversation');
+  if (convId) {
+    showConversation(parseInt(convId));
+  } else {
+    showHome();
+  }
+});
 
-      try {
-        // First get the report for this window
-        const reportRes = await fetch(`/api/reports/window/${windowId}`);
-        if (!reportRes.ok) throw new Error('Report not found');
-        const report = await reportRes.json();
+/* ── Keyboard shortcuts ─────────────────────────────────────── */
 
-        // Then get the HTML
-        const htmlRes = await fetch(`/api/reports/html/${report.id}`);
-        if (!htmlRes.ok) throw new Error('Failed to load report HTML');
-        const data = await htmlRes.json();
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeReportModal();
+    var sm = document.getElementById('safetyModal');
+    // Don't close safety modal on escape
+  }
+});
 
-        content.innerHTML = data.html;
-      } catch (error) {
-        console.error('Error loading report:', error);
-        content.innerHTML = `<div class="flex items-center justify-center h-32">
-          <p class="text-red-600">Failed to load report. Please try again.</p>
-        </div>`;
-      }
-    }
+/* ── Init ───────────────────────────────────────────────────── */
 
-    function closeReportModal() {
-      const modal = document.getElementById('reportModal');
-      modal.classList.add('hidden');
-      document.body.style.overflow = '';
-    }
+(async function() {
+  await loadAllData();
 
-    loadConversations();
-  </script>
-</body>
-</html>
+  // Check URL for conversation param
+  var params = new URLSearchParams(window.location.search);
+  var convId = params.get('conversation');
+  if (convId) {
+    showConversation(parseInt(convId));
+  } else {
+    highlightHomeBtn(true);
+  }
+})();
+
+/* ── Cleanup ────────────────────────────────────────────────── */
+
+window.addEventListener('beforeunload', function() {
+  if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+});
+</script>
+{% endblock %}

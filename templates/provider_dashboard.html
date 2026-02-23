@@ -1,262 +1,209 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Provider Dashboard</title>
-  <link rel="icon" type="image/png" href="/static/images/logo.png">
+{% extends "base.html" %}
 
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            brand: { 50:'#eef6ff', 600:'#6366f1' }
-          }
-        }
-      }
-    }
-  </script>
-</head>
-<body class="min-h-screen bg-slate-50 text-slate-900">
-  <div class="flex min-h-screen">
-    
-    <!-- Sidebar -->
-    <aside id="sidebar"
-           class="fixed inset-y-0 left-0 z-40 w-72 -translate-x-full border-r border-slate-200 bg-white px-3 py-4 transition-transform lg:static lg:translate-x-0">
+{% block title %}Provider Dashboard — Cloze{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
 
-      <!-- Can drop logo here if we ever need one?  -->
-      <div class="mb-4 flex items-center gap-2 px-3">
-        <!-- <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-indigo-400 to-indigo-600"></div> -->
-        <span class="font-semibold">Provider</span>
-      </div>
+{% block content %}
+  {# Welcome #}
+  <section class="mb-6">
+    <h2 class="mb-1 text-lg font-semibold text-stone-900">Provider Dashboard</h2>
+    <p class="text-sm text-stone-500">Manage your patients' chat sessions and therapeutic conversations</p>
+  </section>
 
-      <!-- Nav -->
-      <nav class="space-y-6 overflow-y-auto px-1">
-        <div>
-          <p class="mb-2 px-2 text-xs font-semibold uppercase tracking-wide text-slate-400">Pages</p>
-          <ul class="space-y-1">
-            <li>
-              <a href="/provider/dashboard"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-slate-800 bg-indigo-50 ring-1 ring-inset ring-indigo-100">
-                <svg class="h-5 w-5 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-                  <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6"/>
-                </svg>
-                <span>Dashboard</span>
-              </a>
-            </li>
-            <li>
-              <a href="/provider/chat-windows"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-slate-600 hover:bg-slate-100">
-                <svg class="h-5 w-5 text-slate-400 group-hover:text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-                  <path d="M8 10h8M8 14h5"/><path d="M21 12a8.5 8.5 0 01-1.6 5l.6 3-3-1a8.5 8.5 0 11-2-14.5"/>
-                </svg>
-                <span>Chat Windows</span>
-              </a>
-            </li>
-            <li>
-              <a href="/provider/patient-progress"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-slate-600 hover:bg-slate-100">
-                <svg class="h-5 w-5 text-slate-400 group-hover:text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-                  <path d="M4 19V5m4 14V9m4 10V7m4 12V4"/>
-                </svg>
-                <span>Patient Reports</span>
-              </a>
-            </li>
-          </ul>
-        </div>
-      </nav>
-    </aside>
-
-    <!-- Overlay for mobile -->
-    <div id="overlay" class="fixed inset-0 z-30 hidden bg-black/30 lg:hidden"></div>
-
-    <!-- Main column -->
-    <div class="flex-1 min-w-0 flex flex-col">
-
-      <!-- Top bar -->
-      <header class="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-slate-200 bg-white/80 px-4 backdrop-blur">
-
-        <!-- Mobile menu button -->
-        <button id="menuBtn" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 lg:hidden">
-          <svg class="h-5 w-5 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-            <path d="M4 6h16M4 12h16M4 18h16"/>
-          </svg>
-          <span class="text-sm">Menu</span>
-        </button>
-
-        <!-- Page title -->
-        <h1 class="text-lg font-semibold">Dashboard</h1>
-
-        <!-- Right: text + logout -->
-        <div class="ml-auto flex items-center gap-3">
-          <button onclick="logout()"
-                  class="rounded-md border border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100">
-            Logout
-          </button>
-        </div>
-      </header>
-
-      <!-- Content -->
-      <main class="w-full p-6">
-
-        <!-- Welcome -->
-        <section class="mb-6 rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
-          <h2 class="mb-1 text-xl font-semibold">Welcome to the Provider Dashboard</h2>
-          <p class="text-slate-600">Manage your patients' chat sessions and therapeutic conversations</p>
-        </section>
-
-        <!-- Stats grid (May add more visualization here?) -->
-        <section id="statsGrid" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        </section>
-
-        <!-- Recent Report -->
-        <section class="mt-6 overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-100">
-          <div class="border-b border-slate-100 px-6 py-4">
-            <h3 class="text-lg font-semibold">Recent Report</h3>
-          </div>
-
-          <div class="px-6 py-4">
-            <div class="mb-3 rounded-md bg-slate-50 px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              Past week
-            </div>
-            <ul id="recentList" role="list" class="divide-y divide-slate-100">
-
-            </ul>
-          </div>
-        </section>
-      </main>
+  {# Patient table #}
+  <section class="mb-8 rounded-lg border border-stone-200 bg-white overflow-hidden">
+    <div class="border-b border-stone-100 px-5 py-3 flex items-center justify-between">
+      <h3 class="text-sm font-semibold text-stone-900">Patients</h3>
+      <span id="patientCount" class="text-xs text-stone-400"></span>
     </div>
-  </div>
+    <div id="patientTableContainer" class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-stone-200 bg-muted text-left">
+            <th class="px-5 py-2.5 font-medium text-stone-600">Patient</th>
+            <th class="px-5 py-2.5 font-medium text-stone-600">Active Windows</th>
+            <th class="px-5 py-2.5 font-medium text-stone-600 hidden sm:table-cell">Last Activity</th>
+            <th class="px-5 py-2.5 font-medium text-stone-600">Reports</th>
+            <th class="px-5 py-2.5 font-medium text-stone-600"></th>
+          </tr>
+        </thead>
+        <tbody id="patientTableBody">
+          <tr><td colspan="5" class="px-5 py-8 text-center text-stone-400">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 
-  <script>
-    // Mobile sidebar toggle + overlay
-    const menuBtn  = document.getElementById('menuBtn');
-    const sidebar  = document.getElementById('sidebar');
-    const overlay  = document.getElementById('overlay');
+  {# Action items — pending safety plan reviews #}
+  <section id="actionItemsSection" class="hidden mb-8 rounded-lg border border-stone-200 bg-white">
+    <div class="border-b border-stone-100 px-5 py-3 flex items-center justify-between">
+      <h3 class="text-sm font-semibold text-stone-900">Action Items</h3>
+      <span id="actionItemCount" class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700"></span>
+    </div>
+    <div class="px-5 py-4">
+      <ul id="actionItemsList" role="list" class="divide-y divide-stone-100"></ul>
+    </div>
+  </section>
 
-    const openSide  = () => { sidebar.classList.remove('-translate-x-full'); overlay.classList.remove('hidden'); }
-    const closeSide = () => { sidebar.classList.add('-translate-x-full'); overlay.classList.add('hidden'); }
+  {# Recent reports #}
+  <section class="rounded-lg border border-stone-200 bg-white">
+    <div class="border-b border-stone-100 px-5 py-3">
+      <h3 class="text-sm font-semibold text-stone-900">Recent Reports</h3>
+    </div>
+    <div class="px-5 py-4">
+      <ul id="recentList" role="list" class="divide-y divide-stone-100"></ul>
+    </div>
+  </section>
+{% endblock %}
 
-    if (menuBtn) {
-      menuBtn.addEventListener('click', () => {
-        const open = sidebar.classList.contains('-translate-x-full');
-        open ? openSide() : closeSide();
+{% block scripts %}
+<script>
+  var allPatients = [];
+  var allWindows = [];
+  var allReports = [];
+
+  var pendingReviews = [];
+
+  async function loadDashboard() {
+    try {
+      var results = await Promise.all([
+        fetch('/api/provider/patients').then(function(r) { return r.json(); }),
+        fetch('/api/windows/').then(function(r) { return r.json(); }),
+        fetch('/api/reports/').then(function(r) { return r.json(); }),
+        fetch('/api/safety-plan/pending-reviews').then(function(r) { return r.ok ? r.json() : []; })
+      ]);
+      allPatients = results[0];
+      allWindows = results[1];
+      allReports = results[2];
+      pendingReviews = results[3];
+
+      renderPatientTable();
+      renderRecentReports();
+      renderActionItems();
+    } catch (e) { console.error('Error loading dashboard data:', e); }
+  }
+
+  function renderPatientTable() {
+    var tbody = document.getElementById('patientTableBody');
+    var countEl = document.getElementById('patientCount');
+    countEl.textContent = allPatients.length + ' patient' + (allPatients.length !== 1 ? 's' : '');
+
+    if (!allPatients.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="px-5 py-8 text-center text-stone-400">No patients assigned yet.</td></tr>';
+      return;
+    }
+
+    // Build lookup maps
+    var windowsByPatient = {};
+    allWindows.forEach(function(w) {
+      var pid = w.patient_id;
+      if (!windowsByPatient[pid]) windowsByPatient[pid] = [];
+      windowsByPatient[pid].push(w);
+    });
+
+    var reportsByPatient = {};
+    allReports.forEach(function(r) {
+      var pid = r.patient_id;
+      if (!reportsByPatient[pid]) reportsByPatient[pid] = [];
+      reportsByPatient[pid].push(r);
+    });
+
+    tbody.innerHTML = allPatients.map(function(patient) {
+      var windows = windowsByPatient[patient.id] || [];
+      var activeWindows = windows.filter(function(w) { return w.visible && w.is_current; });
+      var reports = reportsByPatient[patient.id] || [];
+      var newReports = reports.filter(function(r) {
+        // Reports from last 7 days
+        return r.generated_at && (Date.now() / 1000 - r.generated_at) < 604800;
       });
-      overlay.addEventListener('click', closeSide);
 
-      if (window.innerWidth >= 1024) sidebar.classList.remove('-translate-x-full');
+      var lastActivity = patient.last_active || patient.updated_at;
+      var lastActivityText = lastActivity ? formatRelativeTime(lastActivity) : 'No activity';
+
+      var reportsText = reports.length ? reports.length + ' total' : '0';
+      if (newReports.length) reportsText = '<span class="font-medium text-violet-600">' + newReports.length + ' new</span>';
+
+      return '<tr class="border-b border-stone-100 last:border-0 hover:bg-stone-50 transition">' +
+        '<td class="px-5 py-3">' +
+          '<div class="font-medium text-stone-900">' + escapeHtml(patient.username || 'Unknown') + '</div>' +
+          (patient.email ? '<div class="text-xs text-stone-400">' + escapeHtml(patient.email) + '</div>' : '') +
+        '</td>' +
+        '<td class="px-5 py-3 text-stone-700">' + activeWindows.length + '</td>' +
+        '<td class="px-5 py-3 text-stone-500 hidden sm:table-cell">' + lastActivityText + '</td>' +
+        '<td class="px-5 py-3 text-stone-700">' + reportsText + '</td>' +
+        '<td class="px-5 py-3 text-right">' +
+          '<a href="/provider/chat-windows?patient_id=' + patient.id + '" class="inline-flex items-center gap-1 text-xs font-medium text-cloze-indigo transition hover:text-cloze-hover">' +
+            'Manage <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>' +
+          '</a>' +
+        '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function renderRecentReports() {
+    var list = document.getElementById('recentList');
+    var reportIcon = '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 3h6l4 4v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z"/><path d="M13 3v5h5"/></svg>';
+
+    var patientLookup = {};
+    allPatients.forEach(function(p) { patientLookup[p.id] = p; });
+
+    var items = allReports.slice(0, 5).map(function(report) {
+      var patient = patientLookup[report.patient_id];
+      var patientName = (patient && patient.username) || ('Patient #' + report.patient_id);
+      var data = report.report_data || {};
+      var windowTitle = data.window_title || 'Chat Window';
+      var generated = report.generated_at
+        ? new Date(report.generated_at * 1000).toLocaleString()
+        : 'Recently';
+      var href = '/provider/chat-windows?patient_id=' + report.patient_id;
+
+      return '<li class="flex items-center gap-4 py-3">' +
+        '<span class="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-50 text-violet-600">' + reportIcon + '</span>' +
+        '<div class="flex-1">' +
+          '<p class="text-sm text-stone-700"><span class="font-medium">' + escapeHtml(windowTitle) + '</span> for <span class="font-medium">' + escapeHtml(patientName) + '</span></p>' +
+          '<p class="text-xs text-stone-400">' + generated + '</p>' +
+        '</div>' +
+        '<a href="' + href + '" class="inline-flex items-center gap-1 text-xs font-medium text-cloze-indigo hover:text-cloze-hover">' +
+          'View <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>' +
+        '</a>' +
+      '</li>';
+    });
+
+    list.innerHTML = items.length
+      ? items.join('')
+      : '<li class="py-6 text-center text-sm text-stone-400">No reports ready yet. Generated reports will appear here.</li>';
+  }
+
+  function renderActionItems() {
+    var section = document.getElementById('actionItemsSection');
+    var list = document.getElementById('actionItemsList');
+    var countEl = document.getElementById('actionItemCount');
+
+    if (!pendingReviews || !pendingReviews.length) {
+      section.classList.add('hidden');
+      return;
     }
 
-    (function markActive() {
-      const path = location.pathname.replace(/\/+$/, '');
-      document.querySelectorAll('aside a[href]').forEach(a => {
-        const href = a.getAttribute('href').replace(/\/+$/, '');
-        if (href === path || (href !== '/' && path.startsWith(href))) {
-          a.classList.add('bg-indigo-50','ring-1','ring-indigo-100','text-slate-800');
-          const icon = a.querySelector('svg'); if (icon) icon.classList.add('text-indigo-600');
-        }
-      });
-    })();
+    section.classList.remove('hidden');
+    countEl.textContent = pendingReviews.length + ' pending';
 
-    // Dashboard data load (stats + recent reports)
-    async function loadDashboard() {
-      try {
-        const [patientsRes, windowsRes, reportsRes] = await Promise.all([
-          fetch('/api/provider/patients'),
-          fetch('/api/windows/'),
-          fetch('/api/reports/')
-        ]);
+    var shieldIcon = '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
 
-        const [patients, windows, reports] = await Promise.all([
-          patientsRes.json(),
-          windowsRes.json(),
-          reportsRes.json()
-        ]);
+    list.innerHTML = pendingReviews.map(function(item) {
+      var updatedText = item.updated_at ? formatRelativeTime(item.updated_at) : 'Recently';
+      return '<li class="flex items-center gap-4 py-3">' +
+        '<span class="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-600">' + shieldIcon + '</span>' +
+        '<div class="flex-1">' +
+          '<p class="text-sm text-stone-700"><span class="font-medium">' + escapeHtml(item.patient_name) + '</span> submitted safety plan changes</p>' +
+          '<p class="text-xs text-stone-400">Version ' + item.version + ' &middot; ' + updatedText + '</p>' +
+        '</div>' +
+        '<a href="/provider/chat-windows?patient_id=' + item.patient_id + '&tab=safety" class="inline-flex items-center gap-1 text-xs font-medium text-cloze-indigo hover:text-cloze-hover">' +
+          'Review <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>' +
+        '</a>' +
+      '</li>';
+    }).join('');
+  }
 
-        renderStats(patients, windows);
-        renderRecentReports(reports, patients);
-      } catch (e) { console.error('Error loading dashboard data:', e); }
-    }
-
-    function renderStats(patients, windows) {
-      // Only count visible windows
-      const visibleWindows = windows.filter(w => w.visible);
-      const active   = visibleWindows.filter(w => w.is_current);
-      const templates= visibleWindows.reduce((s,w)=> s + (w.templates?.length || 0), 0);
-
-      const card = (label, value) => `
-        <div class="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
-          <div class="text-2xl font-bold text-indigo-600">${value}</div>
-          <div class="text-sm text-slate-600">${label}</div>
-        </div>`;
-
-      document.getElementById('statsGrid').innerHTML =
-        card('Total Patients', patients.length) +
-        card('Chat Windows', visibleWindows.length) +
-        card('Active Windows', active.length) +
-        card('Chat Templates', templates);
-    }
-
-    // Recent report 
-    function renderRecentReports(reports = [], patients = []) {
-      const list = document.getElementById('recentList');
-      if (!list) return;
-
-      const icon = `
-        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-          <path d="M7 3h6l4 4v14a2 2 0 01-2 2H7a2 2 0 01-2-2V5a2 2 0 012-2z"/>
-          <path d="M13 3v5h5"/>
-        </svg>`;
-
-      const patientLookup = patients.reduce((acc, p) => {
-        acc[p.id] = p;
-        return acc;
-      }, {});
-
-      const items = reports
-        .slice(0, 5)
-        .map(report => {
-          const patient = patientLookup[report.patient_id];
-          const patientName = patient?.username || `Patient #${report.patient_id}`;
-          const data = report.report_data || {};
-          const windowTitle = data.window_title || 'Chat Window';
-          const generated = report.generated_at
-            ? new Date(report.generated_at * 1000).toLocaleString()
-            : 'Recently';
-          const href = `/provider/patient-progress?patient_id=${report.patient_id}`;
-
-          return `
-            <li class="flex items-center gap-4 py-4">
-              <span class="flex h-11 w-11 items-center justify-center rounded-full bg-violet-500 text-white">
-                ${icon}
-              </span>
-              <div class="flex-1 text-slate-700">
-                <p class="text-sm">
-                  <span class="font-semibold">${windowTitle}</span> for <span class="font-semibold">${patientName}</span>
-                  is ready.
-                </p>
-                <p class="text-xs text-slate-500">Generated ${generated}</p>
-              </div>
-              <a href="${href}" class="inline-flex items-center gap-1 font-medium text-violet-600 hover:text-violet-700">
-                View
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M9 5l7 7-7 7"/>
-                </svg>
-              </a>
-            </li>
-          `;
-        });
-
-      list.innerHTML = items.length
-        ? items.join('')
-        : `<li class="py-6 text-center text-sm text-slate-500">No reports ready yet. Generated reports will appear here once available.</li>`;
-    }
-
-    async function logout(){ await fetch('/logout'); window.location.href='/login'; }
-
-    loadDashboard();
-  </script>
-</body>
-</html>
+  loadDashboard();
+</script>
+{% endblock %}

@@ -1,1218 +1,769 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conversation</title>
-  <link rel="icon" type="image/png" href="/static/images/logo.png">
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f7fa;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .header {
-            background: white;
-            padding: 1rem 2rem;
-            border-bottom: 1px solid #e0e0e0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
+{% extends "base.html" %}
 
-        .conversation-info {
-            display: flex;
-            align-items: center;
-            gap: 2rem;
-        }
-        
-        .info-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            background: #f5f7fa;
-            border-radius: 20px;
-            font-size: 0.9rem;
-        }
-        
-        .info-label {
-            color: #666;
-        }
-        
-        .info-value {
-            font-weight: 600;
-            color: #333;
-        }
-        
-        .chat-container {
-            flex: 1;
-            display: flex;
-            max-width: 1200px;
-            width: 100%;
-            margin: 0 auto;
-            overflow: hidden;
-        }
-        
-        .chat-main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: white;
-        }
-        
-        .messages-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 2rem;
-        }
-        
-        .message {
-            margin-bottom: 1.5rem;
-            display: flex;
-            gap: 1rem;
-            animation: fadeIn 0.3s ease-in;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .message-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            color: white;
-            flex-shrink: 0;
-            user-select: none;
-        }
-        
-        .message.user .message-avatar {
-            background: linear-gradient(135deg, #87CEEB 0%, #4682B4 100%);
-        }
-        
-        .message.assistant .message-avatar {
-            background: linear-gradient(135deg, #5F9EA0 0%, #2F4F4F 100%);
-        }
-        
-        .message-content {
-            flex: 1;
-        }
-        
-        .message-role {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: #333;
-            user-select: none;
-        }
-        
-        .message-text {
-            line-height: 1.6;
-            color: #444;
-            word-wrap: break-word;
-        }
-        
-        .message-text h1, .message-text h2, .message-text h3, 
-        .message-text h4, .message-text h5, .message-text h6 {
-            margin: 1em 0 0.5em 0;
-            font-weight: 600;
-        }
-        
-        .message-text ul, .message-text ol {
-            margin: 0.5em 0;
-            padding-left: 1.5em;
-        }
-        
-        .message-text li {
-            margin: 0.25em 0;
-        }
-        
-        .message-text p {
-            margin: 0.5em 0;
-        }
-        
-        .message-text code {
-            background: #f4f4f4;
-            padding: 0.2em 0.4em;
-            border-radius: 3px;
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 0.9em;
-        }
-        
-        .message-text pre {
-            background: #f4f4f4;
-            padding: 1em;
-            border-radius: 6px;
-            margin: 0.5em 0;
-            overflow-x: auto;
-        }
-        
-        .message-text pre code {
-            background: none;
-            padding: 0;
-        }
-        
-        .message-text blockquote {
-            border-left: 4px solid #ddd;
-            padding-left: 1em;
-            margin: 0.5em 0;
-            color: #666;
-        }
-        
-        .message-text strong, .message-text b {
-            font-weight: 600;
-        }
-        
-        .message-text em, .message-text i {
-            font-style: italic;
-        }
-        
-        .message-text::selection {
-            background: #ffd700;
-            color: black;
-        }
-        
-        .message-time {
-            font-size: 0.75rem;
-            color: #999;
-            margin-top: 0.5rem;
-            user-select: none;
-        }
-        
-        .typing-indicator {
-            display: none;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 1rem 2rem;
-            background: #f5f7fa;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-        }
-        
-        .typing-indicator.show {
-            display: flex;
-        }
-        
-        .typing-dot {
-            width: 8px;
-            height: 8px;
-            background: #666;
-            border-radius: 50%;
-            animation: typing 1.4s infinite;
-        }
-        
-        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
-        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
-        
-        @keyframes typing {
-            0%, 60%, 100% { transform: translateY(0); }
-            30% { transform: translateY(-10px); }
-        }
-        
-        .input-container {
-            padding: 1.5rem 2rem;
-            background: white;
-            border-top: 1px solid #e0e0e0;
-        }
-        
-        .input-wrapper {
-            display: flex;
-            gap: 1rem;
-            align-items: flex-end;
-        }
-        
-        .message-input {
-            flex: 1;
-            padding: 0.75rem;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            resize: vertical;
-            min-height: 50px;
-            max-height: 200px;
-            font-family: inherit;
-            font-size: 1rem;
-        }
-        
-        .message-input:focus {
-            outline: none;
-            border-color: #4682B4;
-        }
-        
-        .send-btn {
-            padding: 0.75rem 1.5rem;
-            background: linear-gradient(135deg, #87CEEB 0%, #4682B4 100%);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-        
-        .send-btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(70, 130, 180, 0.4);
-        }
-        
-        .send-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
-        .selection-popup {
-            position: absolute;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 0.5rem;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            display: none;
-            z-index: 1000;
-        }
-        
-        .selection-popup button {
-            padding: 0.5rem 1rem;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            font-weight: 500;
-        }
-        
-        .selection-popup button:hover {
-            background: #45a049;
-        }
-        
-        .sidebar {
-            width: 300px;
-            background: white;
-            border-left: 1px solid #e0e0e0;
-            display: flex;
-            flex-direction: column;
-        }
+{% block title %}Conversation{% endblock %}
 
-        .sidebar-content {
-            flex: 1;
-            padding: 1.5rem;
-            overflow-y: auto;
-        }
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+{% endblock %}
 
-        .sidebar-content h3 {
-            margin-bottom: 1rem;
-            color: #333;
-        }
+{% block styles %}
+<style>
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .msg-fade-in { animation: fadeIn 0.3s ease-in; }
 
-        .crisis-section {
-            padding: 1rem 1.5rem;
-            border-top: 2px solid #f59e0b;
-            background: #fef9e7;
-        }
-        
-        .saved-item {
-            padding: 0.75rem;
-            margin-bottom: 0.75rem;
-            background: #f8f9fa;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: background 0.2s;
-            position: relative;
-        }
+  @keyframes typing {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-10px); }
+  }
+  .typing-dot { animation: typing 1.4s infinite; }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
 
-        .saved-item:hover {
-            background: #e9ecef;
-        }
+  @keyframes pulse-warning {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.7; }
+  }
+  .time-warning .time-value { color: #DC143C; animation: pulse-warning 2s infinite; }
 
-        .saved-item-text {
-            color: #333;
-            margin-bottom: 0.25rem;
-            line-height: 1.5;
-            white-space: pre-wrap;
-        }
+  /* Markdown prose inside messages */
+  .message-text h1, .message-text h2, .message-text h3,
+  .message-text h4, .message-text h5, .message-text h6 { margin: 1em 0 0.5em; font-weight: 600; }
+  .message-text ul, .message-text ol { margin: 0.5em 0; padding-left: 1.5em; }
+  .message-text li { margin: 0.25em 0; }
+  .message-text p  { margin: 0.5em 0; }
+  .message-text code { background: #f4f4f4; padding: 0.2em 0.4em; border-radius: 3px; font-family: 'Monaco','Menlo',monospace; font-size: 0.9em; }
+  .message-text pre  { background: #f4f4f4; padding: 1em; border-radius: 6px; margin: 0.5em 0; overflow-x: auto; }
+  .message-text pre code { background: none; padding: 0; }
+  .message-text blockquote { border-left: 4px solid #d6d3d1; padding-left: 1em; margin: 0.5em 0; color: #78716c; }
+  .message-text strong, .message-text b { font-weight: 600; }
+  .message-text em, .message-text i { font-style: italic; }
+  .message-text::selection { background: #ffd700; color: black; }
 
-        .saved-item-text.truncated {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            white-space: normal;
-        }
+  /* Saved-item truncation */
+  .saved-item-text.truncated {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    white-space: normal;
+  }
+  .saved-item-text.expanded { display: block; }
+</style>
+{% endblock %}
 
-        .saved-item-text.expanded {
-            display: block;
-        }
+{# ── Override body tag: full-height flex column ── #}
+{% block body_tag %}
+<body class="h-screen bg-page text-stone-900 antialiased flex flex-col overflow-hidden">
+{% endblock %}
 
-        .saved-item-note {
-            color: #666;
-            font-style: italic;
-        }
+{# ── Override layout: NO sidebar, full-screen chat ── #}
+{% block layout %}
+  {# ── Header bar ── #}
+  <header class="flex items-center justify-between border-b border-stone-200 bg-white px-6 py-3 shrink-0">
+    <div class="flex items-center gap-3">
+      <h2 id="conversationTitle" class="text-[15px] font-semibold text-stone-900">Loading...</h2>
+    </div>
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2 rounded-full bg-muted px-3 py-1.5 text-sm">
+        <span class="text-stone-500">Model:</span>
+        <span class="font-semibold text-stone-800" id="modelName">Loading...</span>
+      </div>
+      <div class="flex items-center gap-2 rounded-full bg-muted px-3 py-1.5 text-sm" id="promptInfo">
+        <span class="text-stone-500">Prompt:</span>
+        <span class="font-semibold text-stone-800" id="promptName">Loading...</span>
+      </div>
+      <div id="timeRemaining" class="hidden flex items-center gap-2 rounded-full bg-muted px-3 py-1.5 text-sm">
+        <span class="time-label text-stone-500">Time left:</span>
+        <span class="time-value font-semibold text-stone-800" id="timeValue"></span>
+      </div>
+    </div>
+  </header>
 
-        
-        .error-banner {
-            background: #fee;
-            color: #c33;
-            padding: 1rem 2rem;
-            text-align: center;
-            display: none;
-        }
-        
-        .error-banner.show {
-            display: block;
-        }
+  {# ── Error banner ── #}
+  <div id="errorBanner" class="hidden bg-red-50 text-red-700 px-6 py-3 text-center text-sm shrink-0"></div>
 
-        .time-remaining {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            background: #f5f7fa;
-            border-radius: 20px;
-            font-size: 0.9rem;
-        }
+  {# ── Main chat area ── #}
+  <div class="flex flex-1 min-h-0 w-full max-w-6xl mx-auto">
+    {# Chat column #}
+    <div class="flex flex-1 flex-col bg-white min-w-0">
+      {# Messages #}
+      <div id="messagesContainer" class="flex-1 overflow-y-auto px-6 py-6 space-y-5">
+        <!-- Messages will be loaded here -->
+      </div>
 
-        .time-remaining .time-label {
-            color: #666;
-        }
+      {# Typing indicator #}
+      <div id="typingIndicator" class="hidden items-center gap-2 px-6 py-3 bg-muted rounded-lg mx-6 mb-3 text-sm text-stone-600">
+        <span>AI is thinking</span>
+        <div class="typing-dot h-2 w-2 rounded-full bg-stone-500"></div>
+        <div class="typing-dot h-2 w-2 rounded-full bg-stone-500"></div>
+        <div class="typing-dot h-2 w-2 rounded-full bg-stone-500"></div>
+      </div>
 
-        .time-remaining .time-value {
-            font-weight: 600;
-            color: #333;
-        }
-
-        .time-remaining.warning .time-value {
-            color: #DC143C;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <div class="header-left">
-            <h2 id="conversationTitle">Loading...</h2>
+      {# Input area #}
+      {% if can_send_messages %}
+      <div class="border-t border-stone-200 bg-white px-6 py-4 shrink-0">
+        <div class="flex items-end gap-3">
+          <textarea
+            id="messageInput"
+            class="flex-1 resize-y rounded-lg border-2 border-stone-200 px-3 py-2.5 text-sm font-[inherit] placeholder:text-stone-400 focus:border-cloze-indigo focus:outline-none"
+            style="min-height:50px; max-height:200px;"
+            placeholder="Type your message..."
+            onkeydown="handleKeyPress(event)"
+          ></textarea>
+          <button id="sendBtn" onclick="sendMessage()"
+                  class="rounded-lg bg-cloze-indigo px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-cloze-hover disabled:opacity-50 disabled:cursor-not-allowed">
+            Send
+          </button>
         </div>
-        <div class="conversation-info">
-            <div class="info-item">
-                <span class="info-label">Model:</span>
-                <span class="info-value" id="modelName">Loading...</span>
-            </div>
-            <div class="info-item" id="promptInfo">
-                <span class="info-label">Prompt:</span>
-                <span class="info-value" id="promptName">Loading...</span>
-            </div>
-            <div class="time-remaining" id="timeRemaining" style="display: none;">
-                <span class="time-label">Time left:</span>
-                <span class="time-value" id="timeValue"></span>
-            </div>
+      </div>
+      {% else %}
+      <div class="border-t border-stone-200 bg-muted px-6 py-4 text-center shrink-0">
+        {% if is_provider %}
+        <div class="flex items-center justify-center gap-2 text-stone-500 text-sm">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+          </svg>
+          <span>Read-only view &mdash; Only the patient can send messages</span>
         </div>
+        {% else %}
+        <div class="text-stone-500">
+          {% if window_status == 'scheduled' %}
+          <p class="font-semibold text-sm mb-0.5">This conversation hasn't started yet</p>
+          <p class="text-xs">This conversation will be available during its scheduled time window.</p>
+          {% elif window_status == 'generating_report' %}
+          <p class="font-semibold text-sm mb-0.5">This conversation window has closed</p>
+          <p class="text-xs">Your report is being generated. You can review your messages here anytime.</p>
+          {% elif window_status == 'report_ready' %}
+          <p class="font-semibold text-sm mb-0.5">This conversation window has closed</p>
+          <p class="text-xs">You can review your messages here anytime. Your report is available under <a href="/my-reports" class="text-cloze-indigo underline">My Reports</a>.</p>
+          {% else %}
+          <p class="font-semibold text-sm mb-0.5">This conversation has ended</p>
+          <p class="text-xs">You can review all your messages here anytime.</p>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
     </div>
 
-    <div class="error-banner" id="errorBanner"></div>
-
-    <div class="chat-container">
-        <div class="chat-main">
-            <div class="messages-container" id="messagesContainer">
-                <!-- Messages will be loaded here -->
-            </div>
-            
-            <div class="typing-indicator" id="typingIndicator">
-                <span>AI is thinking</span>
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
-                <div class="typing-dot"></div>
-            </div>
-            
-            {% if can_send_messages %}
-            <div class="input-container">
-                <div class="input-wrapper">
-                    <textarea 
-                        class="message-input" 
-                        id="messageInput" 
-                        placeholder="Type your message..."
-                        onkeydown="handleKeyPress(event)"
-                    ></textarea>
-                    <button class="send-btn" id="sendBtn" onclick="sendMessage()">Send</button>
-                </div>
-            </div>
-            {% else %}
-            <div class="input-container" style="text-align: center; padding: 1rem; background: #f5f7fa; border-top: 1px solid #e0e0e0;">
-                {% if is_provider %}
-                <p style="color: #666; margin: 0;">🔒 Read-only view - Only the patient can send messages</p>
-                {% else %}
-                <div style="color: #666; margin: 0;">
-                    {% if window_status == 'scheduled' %}
-                    <p style="font-weight: 600; margin-bottom: 0.25rem;">This conversation hasn't started yet</p>
-                    <p style="font-size: 0.875rem; margin: 0;">This conversation will be available during its scheduled time window.</p>
-                    {% elif window_status == 'generating_report' %}
-                    <p style="font-weight: 600; margin-bottom: 0.25rem;">This conversation window has closed</p>
-                    <p style="font-size: 0.875rem; margin: 0;">Your report is being generated. You can review your messages here anytime.</p>
-                    {% elif window_status == 'report_ready' %}
-                    <p style="font-weight: 600; margin-bottom: 0.25rem;">This conversation window has closed</p>
-                    <p style="font-size: 0.875rem; margin: 0;">You can review your messages here anytime. Your report is available under <a href="/my-reports" style="color: #6366f1; text-decoration: underline;">My Reports</a>.</p>
-                    {% else %}
-                    <p style="font-weight: 600; margin-bottom: 0.25rem;">This conversation has ended</p>
-                    <p style="font-size: 0.875rem; margin: 0;">You can review all your messages here anytime.</p>
-                    {% endif %}
-                </div>
-                {% endif %}
-            </div>
-            {% endif %}
+    {# ── Sidebar: saved quotes + crisis resources ── #}
+    <div class="w-72 shrink-0 border-l border-stone-200 bg-white flex flex-col">
+      <div class="flex-1 overflow-y-auto p-5">
+        <h3 class="text-sm font-semibold text-stone-900 mb-1">Your Saved Quotes</h3>
+        <p class="text-[11px] text-stone-500 leading-relaxed mb-3">Highlight meaningful text to save it for later reflection. Your saved selections are shared with your provider.</p>
+        <div id="savedSelections">
+          <!-- Saved quotes will be loaded here -->
         </div>
-        
-        <div class="sidebar">
-            <div class="sidebar-content">
-                <h3>Your Saved Quotes</h3>
-                <p style="font-size: 0.75rem; color: #666; margin-top: 0.25rem; margin-bottom: 0.75rem;">Highlight meaningful text to save it for later reflection. Your saved selections are shared with your provider.</p>
-                <div id="savedSelections">
-                    <!-- Saved quotes will be loaded here -->
-                </div>
-            </div>
+      </div>
 
-            <!-- Crisis Resources - Always at bottom -->
-            <div class="crisis-section">
-                <h4 style="font-size: 0.875rem; font-weight: 600; color: #92400e; margin: 0 0 0.5rem 0;">⚠️ Need Immediate Help?</h4>
-                <div style="font-size: 0.75rem; color: #78350f; line-height: 1.5;">
-                    <p style="margin: 0 0 0.5rem 0;"><strong>US:</strong></p>
-                    <ul style="margin: 0 0 0.75rem 0; padding-left: 1.25rem;">
-                        <li>Call <strong>988</strong> (Suicide & Crisis Lifeline)</li>
-                        <li>Call <strong>911</strong> for emergencies</li>
-                    </ul>
-                    <p style="margin: 0 0 0.5rem 0;"><strong>UK:</strong></p>
-                    <ul style="margin: 0; padding-left: 1.25rem;">
-                        <li>Call <strong>999</strong> for emergencies</li>
-                        <li>Call <strong>116 123</strong> (Samaritans)</li>
-                    </ul>
-                    <p style="margin: 0.75rem 0 0 0; font-style: italic;">This is for general discussion, not clinical treatment or crisis support.</p>
-                </div>
-            </div>
+      {# Crisis resources #}
+      <div class="border-t-2 border-amber-300 bg-amber-50 px-5 py-4 shrink-0">
+        <h4 class="flex items-center gap-1.5 text-[13px] font-semibold text-amber-800 mb-2">
+          <svg class="h-4 w-4 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+          </svg>
+          Need Immediate Help?
+        </h4>
+        <div class="text-xs text-amber-900 leading-relaxed">
+          <p class="mb-1.5 font-semibold">US:</p>
+          <ul class="list-disc pl-4 mb-2 space-y-0.5">
+            <li>Call <strong>988</strong> (Suicide &amp; Crisis Lifeline)</li>
+            <li>Call <strong>911</strong> for emergencies</li>
+          </ul>
+          <p class="mb-1.5 font-semibold">UK:</p>
+          <ul class="list-disc pl-4 mb-2 space-y-0.5">
+            <li>Call <strong>999</strong> for emergencies</li>
+            <li>Call <strong>116 123</strong> (Samaritans)</li>
+          </ul>
+          <p class="italic text-amber-800 mt-2">This is for general discussion, not clinical treatment or crisis support.</p>
         </div>
+      </div>
     </div>
-    
-    <div class="selection-popup" id="selectionPopup">
-        <button onclick="saveSelection()">💾 Save Selection</button>
-    </div>
+  </div>
 
-    <!-- Safety Disclaimer Modal -->
-    <div id="safetyModal" style="display: none; position: fixed; inset: 0; z-index: 2000; background: rgba(0,0,0,0.5); padding: 1rem; backdrop-filter: blur(4px);">
-        <div style="margin: 2rem auto; max-width: 40rem; background: white; border-radius: 1rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); overflow: hidden;">
-            <div style="background: #4f46e5; color: white; padding: 1.5rem;">
-                <h2 style="font-size: 1.5rem; font-weight: 600; margin: 0;">Important Safety Information</h2>
-            </div>
-            <div style="padding: 1.5rem; max-height: 70vh; overflow-y: auto;">
-                <p style="margin-bottom: 1rem; line-height: 1.6;">
-                    This conversation partner is designed for general discussion and support between your regular sessions.
-                    It is <strong>NOT</strong> a substitute for emergency services or crisis intervention.
-                </p>
+  {# ── Selection popup ── #}
+  <div id="selectionPopup" class="absolute hidden z-[1000] rounded-lg border border-stone-200 bg-white p-1.5 shadow-md">
+    <button onclick="saveSelection()" class="flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-emerald-700">
+      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+      </svg>
+      Save Selection
+    </button>
+  </div>
+{% endblock %}
 
-                <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 1rem; margin: 1.5rem 0; border-radius: 0.5rem;">
-                    <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 0.5rem 0; color: #92400e;">⚠️ Crisis Support</h3>
-                    <p style="margin: 0 0 0.5rem 0; color: #78350f;">If you are experiencing a mental health crisis, please:</p>
-                    <ul style="margin: 0; padding-left: 1.5rem; color: #78350f;">
-                        <li>Call <strong>988</strong> (Suicide & Crisis Lifeline)</li>
-                        <li>Call <strong>911</strong> for immediate emergency assistance</li>
-                        <li>Contact your provider directly</li>
-                    </ul>
-                </div>
+{# ── Modals ── #}
+{% block modals %}
+  {# Safety Disclaimer Modal #}
+  <div id="safetyModal" class="fixed inset-0 z-[2000] hidden bg-black/50 p-4 backdrop-blur-sm">
+    <div class="mx-auto mt-8 max-w-xl rounded-lg bg-white shadow-xl overflow-hidden">
+      <div class="bg-cloze-indigo px-6 py-5 text-white">
+        <h2 class="text-xl font-semibold">Important Safety Information</h2>
+      </div>
+      <div class="px-6 py-5 max-h-[70vh] overflow-y-auto">
+        <p class="mb-4 text-sm leading-relaxed text-stone-700">
+          This conversation partner is designed for general discussion and support between your regular sessions.
+          It is <strong>NOT</strong> a substitute for emergency services or crisis intervention.
+        </p>
 
-                <div style="background: #fee2e2; border-left: 4px solid #dc2626; padding: 1rem; margin: 1.5rem 0; border-radius: 0.5rem;">
-                    <h3 style="font-size: 1rem; font-weight: 600; margin: 0 0 0.5rem 0; color: #7f1d1d;">⚠️ Required Reporting</h3>
-                    <p style="margin: 0; color: #7f1d1d;">
-                        For your safety, if you express active suicidal or homicidal thoughts with specific means or plans,
-                        we are required to notify your provider and may contact local authorities.
-                    </p>
-                </div>
-
-                <p style="margin: 1.5rem 0 0 0; color: #666; line-height: 1.6;">
-                    This conversation partner is here to support you between sessions, but it cannot provide clinical
-                    treatment or emergency intervention.
-                </p>
-
-                <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e5e7eb;">
-                    <label style="display: flex; align-items: start; cursor: pointer; user-select: none;">
-                        <input type="checkbox" id="safetyAcknowledge" style="margin-top: 0.25rem; margin-right: 0.5rem; width: 1rem; height: 1rem; cursor: pointer;">
-                        <span style="color: #374151; font-size: 0.875rem;">I understand this information and agree to use this conversation partner for general discussion only, not for clinical treatment or emergencies.</span>
-                    </label>
-                </div>
-            </div>
-            <div style="padding: 1rem 1.5rem; background: #f9fafb; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end;">
-                <button id="safetyConfirmBtn" disabled onclick="acknowledgeSafety()" style="padding: 0.75rem 1.5rem; background: #4f46e5; color: white; border: none; border-radius: 0.5rem; font-weight: 600; cursor: not-allowed; opacity: 0.5;">
-                    Continue to Conversation
-                </button>
-            </div>
+        <div class="rounded-lg border-l-4 border-amber-400 bg-amber-50 p-4 my-5">
+          <h3 class="flex items-center gap-1.5 text-sm font-semibold text-amber-800 mb-2">
+            <svg class="h-4 w-4 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            </svg>
+            Crisis Support
+          </h3>
+          <p class="text-sm text-amber-900 mb-2">If you are experiencing a mental health crisis, please:</p>
+          <ul class="list-disc pl-5 text-sm text-amber-900 space-y-1">
+            <li>Call <strong>988</strong> (Suicide &amp; Crisis Lifeline)</li>
+            <li>Call <strong>911</strong> for immediate emergency assistance</li>
+            <li>Contact your provider directly</li>
+          </ul>
         </div>
-    </div>
 
-    <!-- Report modal -->
-    <div id="reportModal" style="display: none; position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.4); padding: 1rem; backdrop-filter: blur(4px);">
-        <div style="margin: 0 auto; height: 100%; max-width: 64rem; display: flex; align-items: center; justify-content: center;">
-            <div style="position: relative; display: flex; flex-direction: column; max-height: 100%; width: 100%; overflow: hidden; border-radius: 1rem; background: white; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);">
-                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e0e0e0; padding: 1rem 1.5rem;">
-                    <h2 style="font-size: 1.125rem; font-weight: 600; color: #333;">Session Report</h2>
-                    <button type="button" onclick="closeReportModal()" style="padding: 0.25rem; color: #999; border: none; background: transparent; cursor: pointer; border-radius: 0.375rem; transition: color 0.2s;">
-                        <span style="position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;">Close modal</span>
-                        <svg style="width: 1.25rem; height: 1.25rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                            <path d="M6 6l12 12M6 18L18 6"/>
-                        </svg>
-                    </button>
-                </div>
-                <div id="reportContent" style="flex: 1; overflow-y: auto; padding: 1.5rem;">
-                    <!-- Report content will be loaded here -->
-                </div>
-            </div>
+        <div class="rounded-lg border-l-4 border-red-500 bg-red-50 p-4 my-5">
+          <h3 class="flex items-center gap-1.5 text-sm font-semibold text-red-900 mb-2">
+            <svg class="h-4 w-4 text-red-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            </svg>
+            Required Reporting
+          </h3>
+          <p class="text-sm text-red-900">
+            For your safety, if you express active suicidal or homicidal thoughts with specific means or plans,
+            we are required to notify your provider and may contact local authorities.
+          </p>
         </div>
+
+        <p class="text-sm text-stone-500 leading-relaxed mt-5">
+          This conversation partner is here to support you between sessions, but it cannot provide clinical
+          treatment or emergency intervention.
+        </p>
+
+        <div class="mt-5 pt-5 border-t border-stone-200">
+          <label class="flex items-start gap-2.5 cursor-pointer select-none">
+            <input type="checkbox" id="safetyAcknowledge" class="mt-0.5 h-4 w-4 cursor-pointer rounded border-stone-300 text-cloze-indigo focus:ring-cloze-indigo">
+            <span class="text-sm text-stone-700">I understand this information and agree to use this conversation partner for general discussion only, not for clinical treatment or emergencies.</span>
+          </label>
+        </div>
+      </div>
+      <div class="flex justify-end border-t border-stone-200 bg-muted px-6 py-4">
+        <button id="safetyConfirmBtn" disabled onclick="acknowledgeSafety()"
+                class="rounded-lg bg-cloze-indigo px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-cloze-hover disabled:cursor-not-allowed disabled:opacity-50">
+          Continue to Conversation
+        </button>
+      </div>
     </div>
+  </div>
 
-    <script>
-        const conversationId = {{ conversation_id }};
-        const canSendMessages = {{ 'true' if can_send_messages else 'false' }};
-        let selectedText = '';
-        let selectedMessageIds = [];
-        let conversationData = null;
-        let countdownInterval = null;
-        let windowId = null;
+  {# Report modal #}
+  <div id="reportModal" class="fixed inset-0 z-[1000] hidden bg-black/40 p-4 backdrop-blur-sm">
+    <div class="mx-auto flex h-full max-w-4xl items-center justify-center">
+      <div class="relative flex max-h-full w-full flex-col overflow-hidden rounded-lg bg-white shadow-xl">
+        <div class="flex items-center justify-between border-b border-stone-200 px-5 py-3.5">
+          <h2 class="text-[15px] font-semibold text-stone-900">Session Report</h2>
+          <button type="button" onclick="closeReportModal()" class="rounded-md p-1 text-stone-400 transition hover:text-stone-700">
+            <span class="sr-only">Close modal</span>
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M6 6l12 12M6 18L18 6"/>
+            </svg>
+          </button>
+        </div>
+        <div id="reportContent" class="flex-1 overflow-y-auto p-5">
+          <!-- Report content will be loaded here -->
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
 
-        // Safety modal management
-        function checkSafetyAcknowledgment() {
-            // Check if consent has been provided for this specific conversation
-            if (conversationData && !conversationData.consent_provided) {
-                document.getElementById('safetyModal').style.display = 'block';
+{% block scripts %}
+<script>
+  const conversationId = {{ conversation_id }};
+  const canSendMessages = {{ 'true' if can_send_messages else 'false' }};
+  let selectedText = '';
+  let selectedMessageIds = [];
+  let conversationData = null;
+  let countdownInterval = null;
+  let windowId = null;
+
+  // ── Safety modal ──────────────────────────────────────────────
+
+  function checkSafetyAcknowledgment() {
+    if (conversationData && !conversationData.consent_provided) {
+      document.getElementById('safetyModal').classList.remove('hidden');
+      document.getElementById('safetyModal').style.display = 'block';
+    }
+  }
+
+  document.getElementById('safetyAcknowledge').addEventListener('change', function() {
+    const btn = document.getElementById('safetyConfirmBtn');
+    btn.disabled = !this.checked;
+  });
+
+  async function acknowledgeSafety() {
+    try {
+      const response = await fetch(`/api/conversation/${conversationId}/consent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!response.ok) throw new Error('Failed to save consent');
+      if (conversationData) conversationData.consent_provided = true;
+      document.getElementById('safetyModal').style.display = 'none';
+    } catch (error) {
+      console.error('Error saving consent:', error);
+      showError('Failed to save consent. Please try again.');
+    }
+  }
+
+  // ── Conversation loading ──────────────────────────────────────
+
+  async function loadConversationData() {
+    try {
+      const response = await fetch(`/api/conversation/${conversationId}`);
+      if (!response.ok) throw new Error('Failed to load conversation');
+
+      conversationData = await response.json();
+
+      document.getElementById('conversationTitle').textContent = conversationData.title;
+      document.getElementById('modelName').textContent = conversationData.model.name;
+      document.getElementById('promptName').textContent = conversationData.system_prompt ? conversationData.system_prompt.name : 'Default';
+
+      if (conversationData.window_id) windowId = conversationData.window_id;
+
+      if (conversationData.window_end_date) {
+        startCountdown(conversationData.window_end_date, conversationData.window_status);
+      }
+
+      const container = document.getElementById('messagesContainer');
+      container.innerHTML = conversationData.messages.map(msg => `
+        <div class="msg-fade-in flex gap-3 ${msg.role === 'user' ? '' : ''}" data-message-id="${msg.id}">
+          <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white select-none ${msg.role === 'user' ? 'bg-cloze-sky' : 'bg-stone-600'}">
+            ${msg.role === 'user' ? 'U' : 'AI'}
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="mb-1 text-sm font-semibold text-stone-800 select-none">${msg.role === 'user' ? 'You' : 'Assistant'}</div>
+            <div class="message-text rounded-lg px-4 py-3 text-sm leading-relaxed text-stone-700 ${msg.role === 'user' ? 'bg-cloze-indigo/5' : 'bg-muted'}">${formatMessageContent(msg.content, msg.role)}</div>
+            <div class="mt-1.5 text-xs text-stone-400 select-none">${formatDateTime(msg.timestamp)}</div>
+          </div>
+        </div>
+      `).join('');
+
+      scrollToBottom();
+      checkSafetyAcknowledgment();
+    } catch (error) {
+      console.error('Error loading conversation:', error);
+      showError('Failed to load conversation data');
+    }
+  }
+
+  // ── Messaging ─────────────────────────────────────────────────
+
+  async function sendMessage() {
+    if (!canSendMessages) {
+      showError('You do not have permission to send messages');
+      return;
+    }
+
+    const input = document.getElementById('messageInput');
+    const message = input.value.trim();
+    if (!message) return;
+
+    const sendBtn = document.getElementById('sendBtn');
+    sendBtn.disabled = true;
+
+    addMessageToUI('user', message);
+    input.value = '';
+    input.style.height = 'auto';
+
+    document.getElementById('typingIndicator').classList.remove('hidden');
+    document.getElementById('typingIndicator').classList.add('flex');
+
+    try {
+      const response = await fetch(`/api/conversation/${conversationId}/message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to send message');
+      }
+
+      const data = await response.json();
+      addMessageToUI('assistant', data.response, data.message_id);
+    } catch (error) {
+      showError(error.message);
+    } finally {
+      document.getElementById('typingIndicator').classList.add('hidden');
+      document.getElementById('typingIndicator').classList.remove('flex');
+      sendBtn.disabled = false;
+    }
+  }
+
+  function addMessageToUI(role, content, messageId) {
+    const container = document.getElementById('messagesContainer');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `msg-fade-in flex gap-3`;
+    if (messageId) messageDiv.dataset.messageId = messageId;
+
+    messageDiv.innerHTML = `
+      <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white select-none ${role === 'user' ? 'bg-cloze-sky' : 'bg-stone-600'}">
+        ${role === 'user' ? 'U' : 'AI'}
+      </div>
+      <div class="min-w-0 flex-1">
+        <div class="mb-1 text-sm font-semibold text-stone-800 select-none">${role === 'user' ? 'You' : 'Assistant'}</div>
+        <div class="message-text rounded-lg px-4 py-3 text-sm leading-relaxed text-stone-700 ${role === 'user' ? 'bg-cloze-indigo/5' : 'bg-muted'}">${formatMessageContent(content, role)}</div>
+        <div class="mt-1.5 text-xs text-stone-400 select-none">${formatDateTime(Date.now() / 1000)}</div>
+      </div>
+    `;
+
+    container.appendChild(messageDiv);
+    scrollToBottom();
+  }
+
+  function formatMessageContent(content, role) {
+    if (role === 'assistant') {
+      try {
+        return marked.parse(content);
+      } catch (error) {
+        console.error('Markdown parsing error:', error);
+        return escapeHtml(content).replace(/\n/g, '<br>');
+      }
+    } else {
+      return escapeHtml(content).replace(/\n/g, '<br>');
+    }
+  }
+
+  function handleKeyPress(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      sendMessage();
+    }
+  }
+
+  function scrollToBottom() {
+    const container = document.getElementById('messagesContainer');
+    container.scrollTop = container.scrollHeight;
+  }
+
+  // ── Text selection / save ─────────────────────────────────────
+
+  function extractCleanText(node) {
+    let text = '';
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      // Skip avatar, role label, and timestamp (all marked select-none)
+      if (node.classList && node.classList.contains('select-none')) return '';
+    }
+    if (node.nodeType === Node.TEXT_NODE) return node.textContent;
+    if (node.childNodes) {
+      node.childNodes.forEach(child => { text += extractCleanText(child); });
+    }
+    return text;
+  }
+
+  document.addEventListener('mouseup', function(e) {
+    if (e.target.closest('#selectionPopup')) return;
+
+    setTimeout(function() {
+      const selection = window.getSelection();
+      const popup = document.getElementById('selectionPopup');
+
+      if (selection.rangeCount === 0) { popup.style.display = 'none'; return; }
+
+      const text = selection.toString();
+      const trimmedText = text.trim();
+
+      if (trimmedText.length > 0) {
+        const range = selection.getRangeAt(0);
+        const messagesContainer = document.getElementById('messagesContainer');
+        let container = range.commonAncestorContainer;
+        if (container.nodeType === Node.TEXT_NODE) container = container.parentElement;
+
+        if (messagesContainer.contains(container)) {
+          const messages = messagesContainer.querySelectorAll('[data-message-id]');
+          selectedMessageIds = [];
+          let involvedMessages = [];
+
+          messages.forEach(msg => {
+            if (selection.containsNode(msg, true)) {
+              const msgId = msg.dataset.messageId;
+              if (msgId) {
+                selectedMessageIds.push(msgId);
+                involvedMessages.push(msg);
+              }
             }
-        }
+          });
 
-        // Enable/disable continue button based on checkbox
-        document.getElementById('safetyAcknowledge').addEventListener('change', function() {
-            const btn = document.getElementById('safetyConfirmBtn');
-            if (this.checked) {
-                btn.disabled = false;
-                btn.style.cursor = 'pointer';
-                btn.style.opacity = '1';
-            } else {
-                btn.disabled = true;
-                btn.style.cursor = 'not-allowed';
-                btn.style.opacity = '0.5';
-            }
-        });
+          if (involvedMessages.length > 1) {
+            let parts = [];
+            const rangeStart = range.startContainer;
+            const rangeEnd = range.endContainer;
 
-        async function acknowledgeSafety() {
-            try {
-                // Mark consent as provided for this conversation
-                const response = await fetch(`/api/conversation/${conversationId}/consent`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
+            involvedMessages.forEach((msg, idx) => {
+              const hasSkyBg = msg.querySelector('.bg-cloze-sky');
+              const role = hasSkyBg ? 'You' : 'Assistant';
+              const messageText = msg.querySelector('.message-text');
+              if (!messageText) return;
 
-                if (!response.ok) {
-                    throw new Error('Failed to save consent');
-                }
+              const isFirst = idx === 0;
+              const isLast = idx === involvedMessages.length - 1;
+              let textContent = '';
 
-                // Update local conversation data
-                if (conversationData) {
-                    conversationData.consent_provided = true;
-                }
+              if (isFirst && isLast) {
+                textContent = selection.toString().trim();
+              } else if (isFirst) {
+                const tempRange = document.createRange();
+                tempRange.setStart(rangeStart, range.startOffset);
+                tempRange.setEndAfter(messageText.lastChild || messageText);
+                textContent = tempRange.toString().trim();
+              } else if (isLast) {
+                const tempRange = document.createRange();
+                tempRange.setStartBefore(messageText.firstChild || messageText);
+                tempRange.setEnd(rangeEnd, range.endOffset);
+                textContent = tempRange.toString().trim();
+              } else {
+                textContent = messageText.textContent.trim();
+              }
 
-                document.getElementById('safetyModal').style.display = 'none';
-            } catch (error) {
-                console.error('Error saving consent:', error);
-                showError('Failed to save consent. Please try again.');
-            }
-        }
-
-        async function loadConversationData() {
-            try {
-                const response = await fetch(`/api/conversation/${conversationId}`);
-                if (!response.ok) {
-                    throw new Error('Failed to load conversation');
-                }
-                
-                conversationData = await response.json();
-
-                // Update header
-                document.getElementById('conversationTitle').textContent = conversationData.title;
-                document.getElementById('modelName').textContent = conversationData.model.name;
-                document.getElementById('promptName').textContent = conversationData.system_prompt ? conversationData.system_prompt.name : 'Default';
-
-                // Store window_id for report access
-                if (conversationData.window_id) {
-                    windowId = conversationData.window_id;
-                }
-
-                // Start countdown timer if window has end date
-                if (conversationData.window_end_date) {
-                    startCountdown(conversationData.window_end_date, conversationData.window_status);
-                }
-
-                // Load messages
-                const container = document.getElementById('messagesContainer');
-                container.innerHTML = conversationData.messages.map(msg => `
-                    <div class="message ${msg.role}" data-message-id="${msg.id}">
-                        <div class="message-avatar">
-                            ${msg.role === 'user' ? 'U' : 'AI'}
-                        </div>
-                        <div class="message-content">
-                            <div class="message-role">${msg.role === 'user' ? 'You' : 'Assistant'}</div>
-                            <div class="message-text">${formatMessageContent(msg.content, msg.role)}</div>
-                            <div class="message-time">${formatTime(msg.timestamp)}</div>
-                        </div>
-                    </div>
-                `).join('');
-
-                scrollToBottom();
-
-                // Check if safety acknowledgment is needed for this conversation
-                checkSafetyAcknowledgment();
-            } catch (error) {
-                console.error('Error loading conversation:', error);
-                showError('Failed to load conversation data');
-            }
-        }
-        
-        async function sendMessage() {
-            if (!canSendMessages) {
-                showError('You do not have permission to send messages');
-                return;
-            }
-            
-            const input = document.getElementById('messageInput');
-            const message = input.value.trim();
-            
-            if (!message) return;
-            
-            const sendBtn = document.getElementById('sendBtn');
-            sendBtn.disabled = true;
-            
-            // Add user message to UI
-            addMessageToUI('user', message);
-            input.value = '';
-            
-            // Show typing indicator
-            document.getElementById('typingIndicator').classList.add('show');
-            
-            try {
-                const response = await fetch(`/api/conversation/${conversationId}/message`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ message })
-                });
-                
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Failed to send message');
-                }
-                
-                const data = await response.json();
-                addMessageToUI('assistant', data.response, data.message_id);
-                
-            } catch (error) {
-                showError(error.message);
-            } finally {
-                document.getElementById('typingIndicator').classList.remove('show');
-                sendBtn.disabled = false;
-            }
-        }
-        
-        function addMessageToUI(role, content, messageId) {
-            const container = document.getElementById('messagesContainer');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${role}`;
-            if (messageId) messageDiv.dataset.messageId = messageId;
-            
-            messageDiv.innerHTML = `
-                <div class="message-avatar">
-                    ${role === 'user' ? 'U' : 'AI'}
-                </div>
-                <div class="message-content">
-                    <div class="message-role">${role === 'user' ? 'You' : 'Assistant'}</div>
-                    <div class="message-text">${formatMessageContent(content, role)}</div>
-                    <div class="message-time">${formatTime(Date.now() / 1000)}</div>
-                </div>
-            `;
-            
-            container.appendChild(messageDiv);
-            scrollToBottom();
-        }
-        
-        function formatMessageContent(content, role) {
-            if (role === 'assistant') {
-                // Use marked to render markdown for assistant messages
-                try {
-                    return marked.parse(content);
-                } catch (error) {
-                    console.error('Markdown parsing error:', error);
-                    return escapeHtml(content).replace(/\n/g, '<br>');
-                }
-            } else {
-                // For user messages, just escape HTML and preserve line breaks
-                return escapeHtml(content).replace(/\n/g, '<br>');
-            }
-        }
-        
-        function handleKeyPress(event) {
-            if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                sendMessage();
-            }
-        }
-        
-        function scrollToBottom() {
-            const container = document.getElementById('messagesContainer');
-            container.scrollTop = container.scrollHeight;
-        }
-        
-        function escapeHtml(text) {
-            const map = {
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#039;'
-            };
-            return text.replace(/[&<>"']/g, m => map[m]);
-        }
-        
-        function formatTime(timestamp) {
-            const date = new Date(timestamp * 1000);
-            const options = { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' };
-            return date.toLocaleString('en-US', options);
-        }
-
-        // Helper function to extract clean text from selection, excluding metadata
-        function extractCleanText(node) {
-            let text = '';
-
-            // Skip metadata elements
-            if (node.nodeType === Node.ELEMENT_NODE) {
-                if (node.classList && (
-                    node.classList.contains('message-avatar') ||
-                    node.classList.contains('message-role') ||
-                    node.classList.contains('message-time')
-                )) {
-                    return '';
-                }
-            }
-
-            // Process text nodes
-            if (node.nodeType === Node.TEXT_NODE) {
-                return node.textContent;
-            }
-
-            // Recursively process child nodes
-            if (node.childNodes) {
-                node.childNodes.forEach(child => {
-                    text += extractCleanText(child);
-                });
-            }
-
-            return text;
-        }
-
-        // Handle text selection
-        document.addEventListener('mouseup', function(e) {
-            // Don't process if clicking the save button
-            if (e.target.closest('#selectionPopup')) return;
-
-            // Small delay to ensure selection is finalized
-            setTimeout(function() {
-                const selection = window.getSelection();
-                const popup = document.getElementById('selectionPopup');
-
-                if (selection.rangeCount === 0) {
-                    popup.style.display = 'none';
-                    return;
-                }
-
-                const text = selection.toString();
-                const trimmedText = text.trim();
-
-                // Only show popup if we have text and selection is within messages area
-                if (trimmedText.length > 0) {
-                    // Check if selection is within the messages container
-                    const range = selection.getRangeAt(0);
-                    const messagesContainer = document.getElementById('messagesContainer');
-
-                    let container = range.commonAncestorContainer;
-                    if (container.nodeType === Node.TEXT_NODE) {
-                        container = container.parentElement;
-                    }
-
-                    // Check if we're inside the messages area
-                    if (messagesContainer.contains(container)) {
-                        // Find which messages are involved
-                        const messages = document.querySelectorAll('.message');
-                        selectedMessageIds = [];
-                        let involvedMessages = [];
-
-                        messages.forEach(msg => {
-                            if (selection.containsNode(msg, true)) {
-                                const msgId = msg.dataset.messageId;
-                                if (msgId) {
-                                    selectedMessageIds.push(msgId);
-                                    involvedMessages.push(msg);
-                                }
-                            }
-                        });
-
-                        // Extract text preserving selection boundaries
-                        if (involvedMessages.length > 1) {
-                            // Multi-message selection - need to handle partial selections at start/end
-                            let parts = [];
-                            const rangeStart = range.startContainer;
-                            const rangeEnd = range.endContainer;
-
-                            involvedMessages.forEach((msg, idx) => {
-                                const role = msg.classList.contains('user') ? 'You' : 'Assistant';
-                                const messageText = msg.querySelector('.message-text');
-                                if (!messageText) return;
-
-                                // Check if this is first, middle, or last message in selection
-                                const isFirst = idx === 0;
-                                const isLast = idx === involvedMessages.length - 1;
-
-                                let textContent = '';
-
-                                if (isFirst && isLast) {
-                                    // Selection within single message (shouldn't happen in multi-message)
-                                    textContent = selection.toString().trim();
-                                } else if (isFirst) {
-                                    // First message - get from selection start to end of message
-                                    const tempRange = document.createRange();
-                                    tempRange.setStart(rangeStart, range.startOffset);
-                                    tempRange.setEndAfter(messageText.lastChild || messageText);
-                                    textContent = tempRange.toString().trim();
-                                } else if (isLast) {
-                                    // Last message - get from start of message to selection end
-                                    const tempRange = document.createRange();
-                                    tempRange.setStartBefore(messageText.firstChild || messageText);
-                                    tempRange.setEnd(rangeEnd, range.endOffset);
-                                    textContent = tempRange.toString().trim();
-                                } else {
-                                    // Middle message - get entire message text
-                                    textContent = messageText.textContent.trim();
-                                }
-
-                                if (textContent) {
-                                    parts.push(`[${role}]: ${textContent}`);
-                                }
-                            });
-                            selectedText = parts.join('\n\n');
-                        } else {
-                            // Single message - just extract clean text
-                            const fragment = range.cloneContents();
-                            let cleanText = extractCleanText(fragment);
-                            selectedText = cleanText.trim();
-                        }
-
-                        // Position popup below the selection
-                        const rect = range.getBoundingClientRect();
-                        const popupX = rect.left + (rect.width / 2);
-                        const popupY = rect.bottom + window.scrollY + 5; // 5px below selection
-
-                        popup.style.display = 'block';
-                        popup.style.left = popupX + 'px';
-                        popup.style.top = popupY + 'px';
-                        popup.style.transform = 'translateX(-50%)'; // Center horizontally
-                    } else {
-                        popup.style.display = 'none';
-                    }
-                } else {
-                    popup.style.display = 'none';
-                }
-            }, 10);
-        });
-
-        // Hide popup when selection is cleared
-        document.addEventListener('selectionchange', function() {
-            const selection = window.getSelection();
-            const popup = document.getElementById('selectionPopup');
-
-            // Don't hide if we're interacting with the popup
-            if (document.activeElement && document.activeElement.closest('#selectionPopup')) {
-                return;
-            }
-
-            // Hide popup if selection is empty
-            if (selection.toString().trim().length === 0) {
-                popup.style.display = 'none';
-            }
-        });
-        
-        async function saveSelection() {
-            const note = prompt('Add a note for this selection (optional):');
-            
-            try {
-                const response = await fetch('/api/save_selection', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        conversation_id: conversationId,
-                        text: selectedText,
-                        message_ids: selectedMessageIds,
-                        note: note
-                    })
-                });
-                
-                if (response.ok) {
-                    loadSavedSelections();
-                    document.getElementById('selectionPopup').style.display = 'none';
-                    window.getSelection().removeAllRanges();
-                }
-            } catch (error) {
-                console.error('Error saving selection:', error);
-            }
-        }
-        
-        async function loadSavedSelections() {
-            try {
-                const response = await fetch('/api/selections');
-                const selections = await response.json();
-
-                const container = document.getElementById('savedSelections');
-                const conversationSelections = selections.filter(s => s.conversation_id === conversationId);
-
-                if (conversationSelections.length === 0) {
-                    container.innerHTML = '<p style="color: #666; font-size: 0.9rem;">No saved selections yet</p>';
-                } else {
-                    container.innerHTML = conversationSelections.map((sel, index) => {
-                        const isLong = sel.text.length > 100;
-                        return `<div class="saved-item" onclick="toggleSelection(${index})"><div class="saved-item-text ${isLong ? 'truncated' : ''}" id="selection-${index}" data-full-text="${escapeHtml(sel.text)}">"${escapeHtml(isLong ? sel.text.substring(0, 100) + '...' : sel.text)}"</div>${sel.note ? `<div class="saved-item-note">${escapeHtml(sel.note)}</div>` : ''}</div>`;
-                    }).join('');
-                }
-            } catch (error) {
-                console.error('Error loading selections:', error);
-            }
-        }
-
-        function toggleSelection(index) {
-            const textEl = document.getElementById(`selection-${index}`);
-
-            if (!textEl) return;
-
-            const isExpanded = textEl.classList.contains('expanded');
-            const fullText = textEl.dataset.fullText;
-
-            if (isExpanded) {
-                // Collapse
-                textEl.classList.remove('expanded');
-                textEl.classList.add('truncated');
-                textEl.textContent = `"${fullText.substring(0, 100)}..."`;
-            } else {
-                // Expand
-                textEl.classList.remove('truncated');
-                textEl.classList.add('expanded');
-                textEl.textContent = `"${fullText}"`;
-            }
-        }
-        
-        function showError(message) {
-            const banner = document.getElementById('errorBanner');
-            banner.textContent = message;
-            banner.classList.add('show');
-            setTimeout(() => {
-                banner.classList.remove('show');
-            }, 5000);
-        }
-        
-        function startCountdown(endTimestamp, windowStatus) {
-            const timerEl = document.getElementById('timeRemaining');
-            const timeValueEl = document.getElementById('timeValue');
-            const promptInfoEl = document.getElementById('promptInfo');
-
-            // Hide prompt info and show timer
-            if (promptInfoEl) {
-                promptInfoEl.style.display = 'none';
-            }
-            timerEl.style.display = 'flex';
-
-            function updateTimer() {
-                const now = Date.now() / 1000; // Current time in seconds
-                const timeLeft = endTimestamp - now;
-
-                if (timeLeft <= 0 || windowStatus === 'generating_report' || windowStatus === 'report_ready') {
-                    // Replace the time remaining display based on status
-                    if (windowStatus === 'generating_report') {
-                        timerEl.innerHTML = `<div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; font-size: 0.875rem; color: #4f46e5;">
-                            <svg style="width: 1rem; height: 1rem; animate: spin 1s linear infinite;" fill="none" viewBox="0 0 24 24">
-                                <circle style="opacity: 0.25;" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path style="opacity: 0.75;" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Report being generated...
-                        </div>`;
-                    } else if (windowStatus === 'report_ready') {
-                        timerEl.innerHTML = `<button onclick="viewWindowReport()" style="display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; border-radius: 0.5rem; background: #4f46e5; padding: 0.5rem 1rem; font-size: 0.875rem; font-weight: 600; color: white; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); transition: background 0.2s; border: none; cursor: pointer;" onmouseover="this.style.background='#4338ca'" onmouseout="this.style.background='#4f46e5'">
-                            View Report
-                            <svg style="width: 1rem; height: 1rem;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                                <path d="M9 5l7 7-7 7"/>
-                            </svg>
-                        </button>`;
-                    } else {
-                        // Default: time expired
-                        timerEl.innerHTML = `<div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; font-size: 0.875rem; color: #666;">
-                            Window has closed
-                        </div>`;
-                    }
-                    timerEl.classList.remove('warning');
-                    timerEl.style.background = 'transparent';
-                    if (countdownInterval) {
-                        clearInterval(countdownInterval);
-                    }
-                    return;
-                }
-
-                // Calculate time remaining
-                const days = Math.floor(timeLeft / 86400);
-                const hours = Math.floor((timeLeft % 86400) / 3600);
-                const minutes = Math.floor((timeLeft % 3600) / 60);
-                const seconds = Math.floor(timeLeft % 60);
-
-                // Format display
-                let displayText = '';
-                if (days > 0) {
-                    displayText = `${days}d ${hours}h`;
-                } else if (hours > 0) {
-                    displayText = `${hours}h ${minutes}m`;
-                } else if (minutes > 0) {
-                    displayText = `${minutes}m ${seconds}s`;
-                } else {
-                    displayText = `${seconds}s`;
-                }
-
-                timeValueEl.textContent = displayText;
-
-                // Add warning class if less than 1 hour remaining
-                if (timeLeft < 3600) {
-                    timerEl.classList.add('warning');
-                } else {
-                    timerEl.classList.remove('warning');
-                }
-            }
-
-            // Update immediately and then every second
-            updateTimer();
-            countdownInterval = setInterval(updateTimer, 1000);
-        }
-
-        async function viewWindowReport() {
-            if (!windowId) {
-                showError('No report available for this conversation');
-                return;
-            }
-
-            try {
-                // First get the report ID for this window
-                const reportsResponse = await fetch('/api/reports/');
-                if (!reportsResponse.ok) throw new Error('Failed to load reports');
-                const reports = await reportsResponse.json();
-
-                // Find the report for this window
-                const report = reports.find(r => r.window_id === windowId);
-                if (!report) {
-                    showError('No report found for this session');
-                    return;
-                }
-
-                // Load the report HTML
-                const response = await fetch(`/api/reports/html/${report.id}`);
-                if (!response.ok) throw new Error('Failed to load report');
-                const data = await response.json();
-
-                document.getElementById('reportContent').innerHTML = data.html || '<p style="color: #666;">No content available.</p>';
-                document.getElementById('reportModal').style.display = 'block';
-            } catch (error) {
-                console.error('Error loading report:', error);
-                showError('Failed to load report. Please try again.');
-            }
-        }
-
-        function closeReportModal() {
-            document.getElementById('reportModal').style.display = 'none';
-        }
-
-        async function editTitle() {
-            const newTitle = prompt('Enter new conversation title:', conversationData?.title || '');
-            if (newTitle && newTitle.trim()) {
-                try {
-                    const response = await fetch(`/api/conversation/${conversationId}/title`, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ title: newTitle.trim() })
-                    });
-                    
-                    if (response.ok) {
-                        const data = await response.json();
-                        document.getElementById('conversationTitle').textContent = data.title;
-                        conversationData.title = data.title;
-                        document.title = `${data.title} - LLM Chat`;
-                    }
-                } catch (error) {
-                    console.error('Error updating title:', error);
-                    showError('Failed to update title');
-                }
-            }
-        }
-
-        // Initialize
-        loadConversationData();
-        loadSavedSelections();
-
-        // Auto-resize textarea
-        const textarea = document.getElementById('messageInput');
-        if (textarea) {
-            textarea.addEventListener('input', function() {
-                this.style.height = 'auto';
-                this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+              if (textContent) parts.push(`[${role}]: ${textContent}`);
             });
+            selectedText = parts.join('\n\n');
+          } else {
+            const fragment = range.cloneContents();
+            selectedText = extractCleanText(fragment).trim();
+          }
+
+          const rect = range.getBoundingClientRect();
+          popup.style.display = 'block';
+          popup.classList.remove('hidden');
+          popup.style.left = (rect.left + rect.width / 2) + 'px';
+          popup.style.top = (rect.bottom + window.scrollY + 5) + 'px';
+          popup.style.transform = 'translateX(-50%)';
+        } else {
+          popup.style.display = 'none';
         }
+      } else {
+        popup.style.display = 'none';
+      }
+    }, 10);
+  });
 
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', function() {
-            if (countdownInterval) {
-                clearInterval(countdownInterval);
-                countdownInterval = null;
-            }
-        });
+  document.addEventListener('selectionchange', function() {
+    const selection = window.getSelection();
+    const popup = document.getElementById('selectionPopup');
+    if (document.activeElement && document.activeElement.closest('#selectionPopup')) return;
+    if (selection.toString().trim().length === 0) popup.style.display = 'none';
+  });
 
-        // Cleanup when navigating away (single-page app behavior)
-        window.addEventListener('pagehide', function() {
-            if (countdownInterval) {
-                clearInterval(countdownInterval);
-                countdownInterval = null;
-            }
+  async function saveSelection() {
+    const note = prompt('Add a note for this selection (optional):');
+    try {
+      const response = await fetch('/api/save_selection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          conversation_id: conversationId,
+          text: selectedText,
+          message_ids: selectedMessageIds,
+          note: note
+        })
+      });
+
+      if (response.ok) {
+        loadSavedSelections();
+        document.getElementById('selectionPopup').style.display = 'none';
+        window.getSelection().removeAllRanges();
+      }
+    } catch (error) {
+      console.error('Error saving selection:', error);
+    }
+  }
+
+  async function loadSavedSelections() {
+    try {
+      const response = await fetch('/api/selections');
+      const selections = await response.json();
+
+      const container = document.getElementById('savedSelections');
+      const conversationSelections = selections.filter(s => s.conversation_id === conversationId);
+
+      if (conversationSelections.length === 0) {
+        container.innerHTML = '<p class="text-sm text-stone-400">No saved selections yet</p>';
+      } else {
+        container.innerHTML = conversationSelections.map((sel, index) => {
+          const isLong = sel.text.length > 100;
+          return `<div class="cursor-pointer rounded-lg bg-muted p-3 mb-2 text-xs transition hover:bg-stone-200/60" onclick="toggleSelection(${index})"><div class="saved-item-text leading-relaxed text-stone-700 ${isLong ? 'truncated' : ''}" id="selection-${index}" data-full-text="${escapeHtml(sel.text)}">"${escapeHtml(isLong ? sel.text.substring(0, 100) + '...' : sel.text)}"</div>${sel.note ? `<div class="mt-1 italic text-stone-500">${escapeHtml(sel.note)}</div>` : ''}</div>`;
+        }).join('');
+      }
+    } catch (error) {
+      console.error('Error loading selections:', error);
+    }
+  }
+
+  function toggleSelection(index) {
+    const textEl = document.getElementById(`selection-${index}`);
+    if (!textEl) return;
+    const isExpanded = textEl.classList.contains('expanded');
+    const fullText = textEl.dataset.fullText;
+
+    if (isExpanded) {
+      textEl.classList.remove('expanded');
+      textEl.classList.add('truncated');
+      textEl.textContent = `"${fullText.substring(0, 100)}..."`;
+    } else {
+      textEl.classList.remove('truncated');
+      textEl.classList.add('expanded');
+      textEl.textContent = `"${fullText}"`;
+    }
+  }
+
+  // ── Error banner ──────────────────────────────────────────────
+
+  function showError(message) {
+    const banner = document.getElementById('errorBanner');
+    banner.textContent = message;
+    banner.classList.remove('hidden');
+    setTimeout(() => { banner.classList.add('hidden'); }, 5000);
+  }
+
+  // ── Countdown timer ───────────────────────────────────────────
+
+  function startCountdown(endTimestamp, windowStatus) {
+    const timerEl = document.getElementById('timeRemaining');
+    const timeValueEl = document.getElementById('timeValue');
+    const promptInfoEl = document.getElementById('promptInfo');
+
+    if (promptInfoEl) promptInfoEl.classList.add('hidden');
+    timerEl.classList.remove('hidden');
+    timerEl.style.display = 'flex';
+
+    function updateTimer() {
+      const now = Date.now() / 1000;
+      const timeLeft = endTimestamp - now;
+
+      if (timeLeft <= 0 || windowStatus === 'generating_report' || windowStatus === 'report_ready') {
+        if (windowStatus === 'generating_report') {
+          timerEl.innerHTML = `<div class="flex items-center gap-2 px-3 py-1.5 text-sm text-cloze-indigo">
+            <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Report being generated...
+          </div>`;
+        } else if (windowStatus === 'report_ready') {
+          timerEl.innerHTML = `<button onclick="viewWindowReport()" class="inline-flex items-center gap-2 rounded-lg bg-cloze-indigo px-4 py-2 text-sm font-semibold text-white transition hover:bg-cloze-hover">
+            View Report
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 5l7 7-7 7"/></svg>
+          </button>`;
+        } else {
+          timerEl.innerHTML = `<div class="flex items-center gap-2 px-3 py-1.5 text-sm text-stone-500">Window has closed</div>`;
+        }
+        timerEl.classList.remove('time-warning');
+        timerEl.style.background = 'transparent';
+        if (countdownInterval) clearInterval(countdownInterval);
+        return;
+      }
+
+      const days = Math.floor(timeLeft / 86400);
+      const hours = Math.floor((timeLeft % 86400) / 3600);
+      const minutes = Math.floor((timeLeft % 3600) / 60);
+      const seconds = Math.floor(timeLeft % 60);
+
+      let displayText = '';
+      if (days > 0)        displayText = `${days}d ${hours}h`;
+      else if (hours > 0)  displayText = `${hours}h ${minutes}m`;
+      else if (minutes > 0) displayText = `${minutes}m ${seconds}s`;
+      else                  displayText = `${seconds}s`;
+
+      timeValueEl.textContent = displayText;
+
+      if (timeLeft < 3600) timerEl.classList.add('time-warning');
+      else                 timerEl.classList.remove('time-warning');
+    }
+
+    updateTimer();
+    countdownInterval = setInterval(updateTimer, 1000);
+  }
+
+  // ── Report viewing ────────────────────────────────────────────
+
+  async function viewWindowReport() {
+    if (!windowId) { showError('No report available for this conversation'); return; }
+
+    try {
+      const reportsResponse = await fetch('/api/reports/');
+      if (!reportsResponse.ok) throw new Error('Failed to load reports');
+      const reports = await reportsResponse.json();
+
+      const report = reports.find(r => r.window_id === windowId);
+      if (!report) { showError('No report found for this session'); return; }
+
+      const response = await fetch(`/api/reports/html/${report.id}`);
+      if (!response.ok) throw new Error('Failed to load report');
+      const data = await response.json();
+
+      document.getElementById('reportContent').innerHTML = data.html || '<p class="text-stone-500">No content available.</p>';
+      document.getElementById('reportModal').classList.remove('hidden');
+      document.getElementById('reportModal').style.display = 'block';
+    } catch (error) {
+      console.error('Error loading report:', error);
+      showError('Failed to load report. Please try again.');
+    }
+  }
+
+  function closeReportModal() {
+    document.getElementById('reportModal').style.display = 'none';
+  }
+
+  // ── Title editing ─────────────────────────────────────────────
+
+  async function editTitle() {
+    const newTitle = prompt('Enter new conversation title:', conversationData?.title || '');
+    if (newTitle && newTitle.trim()) {
+      try {
+        const response = await fetch(`/api/conversation/${conversationId}/title`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: newTitle.trim() })
         });
-    </script>
-</body>
-</html>
+        if (response.ok) {
+          const data = await response.json();
+          document.getElementById('conversationTitle').textContent = data.title;
+          conversationData.title = data.title;
+          document.title = `${data.title} - LLM Chat`;
+        }
+      } catch (error) {
+        console.error('Error updating title:', error);
+        showError('Failed to update title');
+      }
+    }
+  }
+
+  // ── Init ──────────────────────────────────────────────────────
+
+  loadConversationData();
+  loadSavedSelections();
+
+  // Auto-resize textarea
+  const textarea = document.getElementById('messageInput');
+  if (textarea) {
+    textarea.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 200) + 'px';
+    });
+  }
+
+  // Cleanup on page unload
+  window.addEventListener('beforeunload', function() {
+    if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+  });
+  window.addEventListener('pagehide', function() {
+    if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}Cloze{% endblock %}</title>
+  <link rel="icon" type="image/png" href="/static/images/logo.png">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'page':          '#FAF9F7',
+            'surface':       '#FFFFFF',
+            'muted':         '#F5F4F0',
+            'cloze-indigo':  '#5B5FC7',
+            'cloze-sky':     '#7DBBDA',
+            'cloze-hover':   '#4E51B0',
+          }
+        }
+      }
+    };
+  </script>
+  {% block head %}{% endblock %}
+  {% block styles %}{% endblock %}
+</head>
+
+{% block body_tag %}
+<body class="min-h-screen bg-page text-stone-900 antialiased">
+{% endblock %}
+
+{% block layout %}
+  <div class="flex min-h-screen">
+
+    {# ── Sidebar ─────────────────────────────────────────── #}
+    <aside id="sidebar"
+           class="fixed inset-y-0 left-0 z-40 w-64 -translate-x-full border-r border-stone-200 bg-white px-3 py-5 transition-transform lg:static lg:translate-x-0">
+
+      {# Logo + brand #}
+      <div class="mb-6 flex items-center gap-3 px-3">
+        <img src="/static/images/logo.png" alt="Cloze" class="h-8 w-8 rounded-md">
+        <span class="text-base font-semibold text-stone-900">Cloze</span>
+      </div>
+
+      <nav class="space-y-6 overflow-y-auto px-1">
+        <div>
+          <p class="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wider text-stone-400">Menu</p>
+          <ul class="space-y-0.5">
+
+            {# ── Patient nav ── #}
+            {% if current_user.role == 'user' %}
+            <li>
+              <a href="/dashboard"
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-50">
+                <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                  <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6"/>
+                </svg>
+                <span>Dashboard</span>
+              </a>
+            </li>
+            <li>
+              <a href="/chat-windows"
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-50"
+                 title="View and manage all your conversation windows">
+                <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                  <path d="M8 10h8M8 14h5"/><path d="M21 12a8.5 8.5 0 01-1.6 5l.6 3-3-1a8.5 8.5 0 11-2-14.5"/>
+                </svg>
+                <span>My Conversations</span>
+              </a>
+            </li>
+            <li>
+              <a href="/my-reports"
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-50"
+                 title="Review reports from completed conversations">
+                <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                  <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                <span>Reports</span>
+              </a>
+            </li>
+            <li>
+              <button type="button"
+                      onclick="typeof toggleSelections === 'function' && toggleSelections()"
+                      class="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-stone-600 transition hover:bg-stone-50"
+                      title="Quotes and insights you've saved from your conversations">
+                <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                  <path d="M6 4h12a1 1 0 011 1v16l-7-3-7 3V5a1 1 0 011-1z"/>
+                </svg>
+                <span>Saved Quotes</span>
+              </button>
+            </li>
+            {% endif %}
+
+            {# ── Provider nav ── #}
+            {% if current_user.role == 'provider' %}
+            <li>
+              <a href="/provider/dashboard"
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-50">
+                <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                  <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6"/>
+                </svg>
+                <span>Dashboard</span>
+              </a>
+            </li>
+            <li>
+              <a href="/provider/chat-windows"
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-50">
+                <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                  <path d="M8 10h8M8 14h5"/><path d="M21 12a8.5 8.5 0 01-1.6 5l.6 3-3-1a8.5 8.5 0 11-2-14.5"/>
+                </svg>
+                <span>Chat Windows</span>
+              </a>
+            </li>
+            {% endif %}
+
+            {# ── Admin nav ── #}
+            {% if current_user.role == 'admin' %}
+            <li>
+              <a href="/admin/dashboard"
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-50">
+                <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                  <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <span>Admin Dashboard</span>
+              </a>
+            </li>
+            {% endif %}
+
+          </ul>
+        </div>
+      </nav>
+
+      {# Sidebar footer #}
+      <div class="mt-auto border-t border-stone-100 pt-4 px-3">
+        <div class="text-xs text-stone-500">
+          {% if current_user.role == 'user' %}
+          {{ current_user.username }}
+          {% elif current_user.role == 'provider' %}
+          Provider
+          {% elif current_user.role == 'admin' %}
+          Admin
+          {% endif %}
+        </div>
+      </div>
+    </aside>
+
+    {# ── Mobile overlay ──────────────────────────────────── #}
+    <div id="overlay" class="fixed inset-0 z-30 hidden bg-black/20 lg:hidden"></div>
+
+    {# ── Main column ─────────────────────────────────────── #}
+    <div class="flex min-w-0 flex-1 flex-col">
+
+      {# Top bar #}
+      <header class="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-stone-200 bg-white/90 px-4 backdrop-blur-sm">
+        <button id="menuBtn"
+                class="inline-flex items-center gap-2 rounded-lg border border-stone-200 px-2.5 py-1.5 text-sm lg:hidden">
+          <svg class="h-4 w-4 text-stone-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+          Menu
+        </button>
+
+        <h1 class="text-[15px] font-semibold text-stone-900">{% block page_title %}{% endblock %}</h1>
+
+        <div class="ml-auto flex items-center gap-3">
+          {% block header_actions %}{% endblock %}
+          <button onclick="logout()"
+                  class="rounded-md border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:bg-stone-50">
+            Log out
+          </button>
+        </div>
+      </header>
+
+      {# Page content #}
+      <main class="w-full flex-1 p-6">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+{% endblock %}
+
+  {% block modals %}{% endblock %}
+
+  <script src="/static/js/shared.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

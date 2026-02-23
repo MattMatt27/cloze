@@ -1,7 +1,7 @@
 import json
 import time
 from datetime import datetime
-from flask import Blueprint, render_template, jsonify, request, abort
+from flask import Blueprint, render_template, jsonify, request, abort, redirect, url_for
 from flask_login import login_required, current_user
 from ..extensions import db
 from ..models import (
@@ -27,11 +27,15 @@ def user_dashboard():
 @conv_bp.route("/chat-windows")
 @login_required
 def new_conversation():
+    if current_user.is_patient():
+        return redirect('/dashboard')
     return render_template("user_chat_windows.html")
 
 @conv_bp.route("/my-reports")
 @login_required
 def patient_reports():
+    if current_user.is_patient():
+        return redirect('/dashboard')
     return render_template("patient_reports.html")
 
 @conv_bp.route("/api/provider_settings")
@@ -72,7 +76,11 @@ def view_conversation(conversation_id):
     if not current_user.can_access_patient(conversation.user_id):
         abort(403)
 
-    can_send_messages = conversation.user_id == current_user.id
+    # Patients use the unified dashboard
+    if current_user.is_patient():
+        return redirect('/dashboard?conversation=' + str(conversation_id))
+
+    can_send_messages = False
     is_provider = current_user.is_provider()
     window_status = None
 
@@ -81,8 +89,6 @@ def view_conversation(conversation_id):
         window = ChatWindow.query.get(conversation.window_id)
         if window:
             window_status = window.compute_status()
-            if not window.visible or window_status != 'active':
-                can_send_messages = False
 
     return render_template("conversation.html", conversation_id=conversation_id, can_send_messages=can_send_messages, is_provider=is_provider, window_status=window_status)
 
@@ -464,7 +470,7 @@ def get_available_models():
 @conv_bp.route("/api/system_prompts")
 @login_required
 def get_system_prompts():
-    """Get available system prompts with provider custom instructions applied"""
+    """Get available system prompts (domain-linked) for dropdowns."""
     prompts = SystemPrompt.query.filter_by(visible=True).all()
 
     provider_custom_instructions = None
@@ -489,11 +495,47 @@ def get_system_prompts():
                             content = f"{content}\n\nProvider Instructions: {provider_custom_instructions.strip()}"
                         return jsonify([{'id': prompt.id, 'name': prompt.name, 'content': content}])
 
+    from prompts.registry import PromptRegistry
+    registry = PromptRegistry.instance()
+
     result = []
     for p in prompts:
-        content = p.content
+        entry = {
+            'id': p.id,
+            'name': p.name,
+            'content': p.content,
+            'domain_prompt_id': p.domain_prompt_id,
+        }
+        # Enrich with domain metadata if linked
+        if p.domain_prompt_id:
+            domain = registry.get_domain_prompt(p.domain_prompt_id)
+            if domain:
+                entry['description'] = domain.description
+                entry['tags'] = domain.tags
         if provider_custom_instructions:
-            content = f"{content}\n\nProvider Instructions: {provider_custom_instructions.strip()}"
-        result.append({'id': p.id, 'name': p.name, 'content': content})
+            entry['content'] = f"{entry['content']}\n\nProvider Instructions: {provider_custom_instructions.strip()}"
+        result.append(entry)
+
+    return jsonify(result)
+
+
+@conv_bp.route("/api/prompts/domains")
+@login_required
+def get_domain_prompts():
+    """Get all domain prompts with metadata for the provider UI."""
+    from prompts.registry import PromptRegistry
+    registry = PromptRegistry.instance()
+
+    result = []
+    for domain in registry.list_domain_prompts():
+        # Find the corresponding SystemPrompt row (if seeded)
+        sp = SystemPrompt.query.filter_by(domain_prompt_id=domain.id).first()
+        result.append({
+            'id': domain.id,
+            'name': domain.name,
+            'description': domain.description,
+            'tags': domain.tags,
+            'system_prompt_id': sp.id if sp else None,
+        })
 
     return jsonify(result)

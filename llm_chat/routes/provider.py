@@ -1,5 +1,5 @@
 import json
-from flask import Blueprint, render_template, jsonify, request, abort
+from flask import Blueprint, render_template, jsonify, request, abort, redirect
 from flask_login import current_user
 from ..utils.decorators import role_required
 from ..extensions import db
@@ -20,7 +20,10 @@ def provider_chat_windows():
 @provider_bp.route("/provider/patient-progress")
 @role_required('provider', 'admin')
 def provider_patient_progress():
-    return render_template("provider_patient_progress.html")
+    patient_id = request.args.get('patient_id')
+    if patient_id:
+        return redirect('/provider/chat-windows?patient_id=' + str(patient_id))
+    return redirect('/provider/chat-windows')
 
 @provider_bp.route("/api/provider/patients")
 @role_required('provider', 'admin')
