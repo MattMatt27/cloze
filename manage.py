@@ -1,6 +1,8 @@
 import json
 import os
+import secrets
 import time
+from pathlib import Path
 from flask import Flask
 from llm_chat import create_app
 from llm_chat.extensions import db
@@ -12,6 +14,28 @@ from llm_chat.services.llm_interface import LLMInterface
 
 app: Flask = create_app()
 
+CREDENTIALS_FILE = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 'instance', 'seed_credentials.txt'
+)
+
+
+def _generate_password():
+    """Generate a secure 32-character hex password."""
+    return secrets.token_hex(16)
+
+
+def _save_credentials(credentials):
+    """Write seed credentials to instance/seed_credentials.txt."""
+    os.makedirs(os.path.dirname(CREDENTIALS_FILE), exist_ok=True)
+    with open(CREDENTIALS_FILE, 'w') as f:
+        f.write("# Seed account credentials — generated at first run\n")
+        f.write(f"# Generated: {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}\n\n")
+        for username, password, role in credentials:
+            f.write(f"{role:10s}  {username:15s}  {password}\n")
+    os.chmod(CREDENTIALS_FILE, 0o600)
+    print(f"\nCredentials saved to {CREDENTIALS_FILE}")
+
+
 def initialize_database():
     """Initialize database with default data (idempotent)."""
     with app.app_context():
@@ -22,28 +46,41 @@ def initialize_database():
         # Initialize LLM clients
         LLMInterface.initialize_clients()
 
+        # Track credentials for newly created users
+        new_credentials = []
+
         # Create default admin (only if doesn't exist)
         if not User.query.filter_by(role='admin').first():
+            pw = _generate_password()
             admin = User(username='admin', email='admin@example.com', role='admin')
-            admin.set_password('admin123')
+            admin.set_password(pw)
             db.session.add(admin)
+            new_credentials.append(('admin', pw, 'admin'))
             print("Created default admin user")
 
         # Demo provider (only if doesn't exist)
         if not User.query.filter_by(username='provider1').first():
+            pw = _generate_password()
             provider = User(username='provider1', email='provider1@example.com', role='provider')
-            provider.set_password('provider123')
+            provider.set_password(pw)
             db.session.add(provider)
+            new_credentials.append(('provider1', pw, 'provider'))
             print("Created demo provider")
 
         # Demo users (patients) - only create if they don't exist
         demo_users = ['user1', 'user2', 'user3']
         for username in demo_users:
             if not User.query.filter_by(username=username).first():
+                pw = _generate_password()
                 u = User(username=username, email=f'{username}@example.com', role='user')
-                u.set_password('user123')
+                u.set_password(pw)
                 db.session.add(u)
+                new_credentials.append((username, pw, 'patient'))
                 print(f"Created demo user: {username}")
+
+        # Save credentials file if any users were created
+        if new_credentials:
+            _save_credentials(new_credentials)
 
         # Assign provider to demo users (only if assignments don't exist)
         provider = User.query.filter_by(username='provider1').first()
@@ -172,6 +209,14 @@ def initialize_database():
                 ('assistant', "That sounds really frustrating — putting in the extra effort and still feeling behind. It makes sense that would affect your sleep too, with all that on your mind. Have you been able to do anything to unwind after those long days, even something small?", now - 13 * 86400 + 330),
                 ('user', "Not really. I usually just scroll on my phone until I fall asleep. I know that's not great.", now - 13 * 86400 + 500),
                 ('assistant', "No judgement at all — that's a really common way people wind down, especially when they're exhausted. It sounds like you're aware it might not be helping with the sleep though. Is sleep something you'd like to work on, or is the work stress feeling more pressing right now?", now - 13 * 86400 + 530),
+                ('user', "Probably the work stress. It's the root of everything right now. I used to enjoy my job but lately it just feels like a treadmill.", now - 13 * 86400 + 700),
+                ('assistant', "That shift — from enjoying something to it feeling like a treadmill — can be really disheartening. It sounds like something changed beyond just the workload. Do you have a sense of when it started feeling different?", now - 13 * 86400 + 730),
+                ('user', "Maybe a few months ago? We got a new manager and everything became about metrics. It doesn't feel like the work matters anymore, just the numbers.", now - 13 * 86400 + 900),
+                ('assistant', "That's a meaningful distinction — the work itself hasn't changed but the way it's valued has. When the thing that gave your work meaning gets replaced by metrics, it can drain motivation fast. Is there any part of the job that still feels rewarding?", now - 13 * 86400 + 930),
+                ('user', "I still like the problem-solving parts. When I can actually focus on a real problem and work through it. But that's maybe 20% of my day now.", now - 13 * 86400 + 1100),
+                ('assistant', "That 20% sounds important — it's the part that still connects you to why you got into this work. I'm curious, when you're in that zone, does the stress feel different? Or does it follow you even into the parts you enjoy?", now - 13 * 86400 + 1130),
+                ('user', "When I'm actually focused on a real problem, the stress kind of fades into the background. It's everything around it — the meetings, the status updates, the pressure — that wears me down.", now - 13 * 86400 + 1300),
+                ('assistant', "So the work itself can still be a source of flow for you, but the overhead is what's draining your energy. That's actually a useful thing to notice — it means the burnout isn't about the core of what you do, it's about the context around it. That might be worth exploring more — what you can and can't control in that picture.", now - 13 * 86400 + 1330),
             ]
             for role, content, ts in c1_messages:
                 db.session.add(Message(conversation_id=c1.id, role=role, content=content, timestamp=ts))
@@ -234,8 +279,16 @@ def initialize_database():
                 ('assistant', "That's really insightful — you know what works for you, but stress makes it harder to do the very thing that helps. That's such a common pattern. What if the walk didn't have to be a big thing? Even five minutes around the block during a work break?", now - 6 * 86400 + 430),
                 ('user', "Yeah, I could probably do that. I think I build it up in my head like it has to be this whole thing.", now - 6 * 86400 + 600),
                 ('assistant', "That makes a lot of sense. Sometimes lowering the bar is the most helpful thing — 'getting some air' for five minutes counts just as much as a long walk. Would you want to try that this week and see how it goes?", now - 6 * 86400 + 630),
-                ('user', "I'll try. It does help when I actually do it.", now - 6 * 86400 + 750),
-                ('assistant', "That's a great plan. And if you miss a day, that's fine too — no need to be perfect about it. The goal is just to give yourself a small reset when things feel heavy.", now - 6 * 86400 + 780),
+                ('user', "I'll try. It does help when I actually do it. I actually went for a short walk at lunch today and felt a bit better after.", now - 6 * 86400 + 750),
+                ('assistant', "That's great to hear — and the fact that you noticed feeling better is important. Sometimes we don't give ourselves credit for those small moments. What was that like for you?", now - 6 * 86400 + 780),
+                ('user', "It was only like ten minutes. I walked to the coffee shop and back. But my head felt clearer when I sat back down. I was less reactive in a meeting after that.", now - 6 * 86400 + 950),
+                ('assistant', "Less reactive — that's a really concrete benefit. So the walk didn't just feel nice in the moment, it actually changed how you showed up at work afterward. That's worth noticing.", now - 6 * 86400 + 980),
+                ('user', "I hadn't thought about it that way. I guess I always think of self-care as this big separate thing, but that was just part of my day.", now - 6 * 86400 + 1150),
+                ('assistant', "Exactly. It doesn't have to be a whole production — it can just be woven into the day. And it sounds like even a short break gave you something that the extra hour at your desk wouldn't have.", now - 6 * 86400 + 1180),
+                ('user', "That's true. I think I've been operating on this idea that more hours equals more productivity, but I'm starting to see that's not really how it works.", now - 6 * 86400 + 1350),
+                ('assistant', "That's a really important insight. The diminishing returns are real — past a certain point, more time at the desk just produces more stress, not more output. It sounds like you're starting to question that pattern, which is a big first step.", now - 6 * 86400 + 1380),
+                ('user', "Yeah. I'm not going to suddenly start leaving on time every day, but maybe I can be more intentional about taking breaks.", now - 6 * 86400 + 1550),
+                ('assistant', "That sounds like a really realistic goal — not an overnight change, but a gradual shift toward being more intentional. And you've already seen evidence that it works. Even one walk, one break, one moment of stepping away can change the tone of the rest of your day.", now - 6 * 86400 + 1580),
             ]
             for role, content, ts in c2a_messages:
                 db.session.add(Message(conversation_id=c2a.id, role=role, content=content, timestamp=ts))
@@ -264,6 +317,16 @@ def initialize_database():
                 ('assistant', "That's a great question — it's not about just removing the phone, it's about replacing it with something that actually helps you relax. Some people read, some people journal, some people just listen to music. You mentioned journaling helps you sometimes — writing it out, right? That could work well as a wind-down routine.", now - 4 * 86400 + 430),
                 ('user', "Yeah, I do like writing things down. It helps get the thoughts out of my head. Maybe I'll try that.", now - 4 * 86400 + 600),
                 ('assistant', "That sounds like a solid plan. Even a few minutes of writing before bed could help quiet things down. And if some nights you end up back on the phone, that's okay — it's about building the habit gradually, not flipping a switch overnight.", now - 4 * 86400 + 630),
+                ('user', "I actually tried it last night. I put my phone on the dresser across the room and wrote in a notebook for about ten minutes.", now - 4 * 86400 + 800),
+                ('assistant', "That's a great step — putting the phone physically out of reach is a smart move. How did it go? Did you notice anything different about falling asleep?", now - 4 * 86400 + 830),
+                ('user', "I think I fell asleep faster than usual. But it was hard at first. I kept wanting to check my phone. My brain just felt restless.", now - 4 * 86400 + 1000),
+                ('assistant', "That restlessness is completely normal — your brain is used to the constant stimulation of scrolling, so when you take it away, there's a gap. The journaling is a good way to redirect that energy. What did you end up writing about?", now - 4 * 86400 + 1030),
+                ('user', "Mostly just stuff from the day. Things that annoyed me, a few things I need to do tomorrow. Nothing deep, just kind of a brain dump.", now - 4 * 86400 + 1200),
+                ('assistant', "A brain dump is exactly right — you're essentially offloading all those thoughts onto paper so they don't keep circling in your head while you try to sleep. Some people find that writing a short to-do list for tomorrow is especially helpful because it signals to your brain that you don't need to hold onto those tasks anymore.", now - 4 * 86400 + 1230),
+                ('user', "That makes sense. I did write down some things for tomorrow and I remember feeling a little lighter after that. Like I'd given myself permission to stop thinking about it.", now - 4 * 86400 + 1400),
+                ('assistant', "That's exactly it — giving yourself permission to set it down for the night. That's a skill, and it sounds like the writing is helping you practice it. How are you feeling about trying it again tonight?", now - 4 * 86400 + 1430),
+                ('user', "I'm going to keep doing it. It's only been one night but it already felt better than my usual routine. And I think the sleep was actually better quality — I didn't wake up as much.", now - 4 * 86400 + 1600),
+                ('assistant', "That's really encouraging. Better quality sleep even after one night is a good sign. And the fact that you're willing to keep going with it — that matters. Remember, some nights will be harder than others and that's okay. The pattern over time is what counts, not any single night.", now - 4 * 86400 + 1630),
             ]
             for role, content, ts in c2b_messages:
                 db.session.add(Message(conversation_id=c2b.id, role=role, content=content, timestamp=ts))

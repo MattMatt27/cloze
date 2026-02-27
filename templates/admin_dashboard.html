@@ -1,83 +1,279 @@
 {% extends "base.html" %}
 
-{% block title %}Admin Dashboard — Cloze{% endblock %}
-{% block page_title %}Admin Dashboard{% endblock %}
+{% block title %}Dashboard — Cloze{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
 
 {% block content %}
-  {# ── Stats cards ───────────────────────────────────────────── #}
-  <section class="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-    <div class="rounded-lg border border-stone-200 bg-white px-4 py-4">
-      <div class="text-2xl font-semibold text-cloze-indigo" id="totalUsers">0</div>
-      <div class="mt-0.5 text-xs text-stone-500">Total Users</div>
-    </div>
-    <div class="rounded-lg border border-stone-200 bg-white px-4 py-4">
-      <div class="text-2xl font-semibold text-cloze-indigo" id="totalProviders">0</div>
-      <div class="mt-0.5 text-xs text-stone-500">Active Providers</div>
-    </div>
-    <div class="rounded-lg border border-stone-200 bg-white px-4 py-4">
-      <div class="text-2xl font-semibold text-cloze-indigo" id="totalPatients">0</div>
-      <div class="mt-0.5 text-xs text-stone-500">Active Patients</div>
-    </div>
-    <div class="rounded-lg border border-stone-200 bg-white px-4 py-4">
-      <div class="text-2xl font-semibold text-cloze-indigo" id="totalConversations">0</div>
-      <div class="mt-0.5 text-xs text-stone-500">Total Conversations</div>
-    </div>
-  </section>
-
-  {# ── Global system settings ────────────────────────────────── #}
-  <section class="mb-8 rounded-lg border border-stone-200 bg-muted p-5">
-    <h3 class="mb-3 text-sm font-semibold text-stone-900">Global System Settings</h3>
-    <div class="flex flex-wrap gap-3">
-      <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-sm font-medium text-stone-700 transition hover:border-stone-300">
-        <input type="checkbox" id="providersCanSetPrompts" class="accent-cloze-indigo"
-               onchange="updateGlobalSetting('providers_can_set_custom_prompts', this.checked)">
-        <span>Providers can set custom prompts</span>
-      </label>
-      <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-stone-200 bg-white px-4 py-2.5 text-sm font-medium text-stone-700 transition hover:border-stone-300">
-        <input type="checkbox" id="usersCanSaveSelections" class="accent-cloze-indigo"
-               onchange="updateGlobalSetting('users_can_save_selections', this.checked)">
-        <span>Users can save text selections</span>
-      </label>
-    </div>
-  </section>
-
-  {# ── Two-column panels ─────────────────────────────────────── #}
-  <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-
-    {# All Users panel #}
-    <section class="overflow-hidden rounded-lg border border-stone-200 bg-white">
-      <div class="flex items-center justify-between border-b border-stone-100 bg-cloze-indigo px-5 py-3">
-        <h2 class="text-sm font-semibold text-white">All Users</h2>
-        <button onclick="showCreateUserModal()"
-                class="rounded-md border border-white/30 bg-white/20 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/30">
-          <span class="inline-flex items-center gap-1">
-            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-            Add User
-          </span>
-        </button>
+  {# ══════════════════════════════════════════════════════════════
+     TAB 1 — OVERVIEW
+     ══════════════════════════════════════════════════════════════ #}
+  <div id="tab-overview" class="tab-panel">
+    {# Stat cards #}
+    <section class="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+      <div class="rounded-lg border border-violet-100 bg-violet-50/40 px-4 py-4">
+        <div class="text-2xl font-semibold text-cloze-indigo" id="statPatients">0</div>
+        <div class="mt-0.5 text-xs text-stone-500">Patients</div>
       </div>
-      <div class="max-h-[500px] divide-y divide-stone-100 overflow-y-auto" id="usersList">
-        <!-- Users will be loaded here -->
+      <div class="rounded-lg border border-violet-100 bg-violet-50/40 px-4 py-4">
+        <div class="text-2xl font-semibold text-cloze-indigo" id="statProviders">0</div>
+        <div class="mt-0.5 text-xs text-stone-500">Providers</div>
+      </div>
+      <div class="rounded-lg border border-violet-100 bg-violet-50/40 px-4 py-4">
+        <div class="text-2xl font-semibold text-cloze-indigo" id="statActiveWindows">0</div>
+        <div class="mt-0.5 text-xs text-stone-500">Active Windows</div>
+      </div>
+      <div class="rounded-lg border border-violet-100 bg-violet-50/40 px-4 py-4">
+        <div class="text-2xl font-semibold text-cloze-indigo" id="statConversations">0</div>
+        <div class="mt-0.5 text-xs text-stone-500">Conversations</div>
+      </div>
+      <div class="rounded-lg border border-violet-100 bg-violet-50/40 px-4 py-4">
+        <div class="text-2xl font-semibold text-cloze-indigo" id="statReports">0</div>
+        <div class="mt-0.5 text-xs text-stone-500">Reports</div>
+      </div>
+      <div class="rounded-lg border border-violet-100 bg-violet-50/40 px-4 py-4">
+        <div class="text-2xl font-semibold text-cloze-indigo" id="statPendingPlans">0</div>
+        <div class="mt-0.5 text-xs text-stone-500">Plans Pending</div>
       </div>
     </section>
 
-    {# Provider Assignments panel #}
-    <section class="overflow-hidden rounded-lg border border-stone-200 bg-white">
-      <div class="flex items-center justify-between border-b border-stone-100 bg-cloze-indigo px-5 py-3">
-        <h2 class="text-sm font-semibold text-white">Provider Assignments</h2>
+    {# Action items #}
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      {# Pending safety plans #}
+      <section class="overflow-hidden rounded-lg border border-stone-200 bg-white">
+        <div class="flex items-center justify-between border-b border-stone-100 bg-cloze-indigo px-5 py-3">
+          <h2 class="text-sm font-semibold text-white">Safety Plans Pending Review</h2>
+        </div>
+        <div class="max-h-[320px] divide-y divide-stone-100 overflow-y-auto" id="pendingPlansList">
+          <div class="py-6 text-center text-sm text-stone-400">Loading...</div>
+        </div>
+      </section>
+
+      {# Patients missing plans #}
+      <section class="overflow-hidden rounded-lg border border-stone-200 bg-white">
+        <div class="flex items-center justify-between border-b border-stone-100 bg-cloze-indigo px-5 py-3">
+          <h2 class="text-sm font-semibold text-white">Patients Without Active Safety Plan</h2>
+        </div>
+        <div class="max-h-[320px] divide-y divide-stone-100 overflow-y-auto" id="missingPlansList">
+          <div class="py-6 text-center text-sm text-stone-400">Loading...</div>
+        </div>
+      </section>
+
+      {# Anti-pattern conflicts #}
+      <section class="overflow-hidden rounded-lg border border-stone-200 bg-white">
+        <div class="flex items-center justify-between border-b border-stone-100 bg-cloze-indigo px-5 py-3">
+          <h2 class="text-sm font-semibold text-white">Anti-Pattern Conflicts</h2>
+        </div>
+        <div class="max-h-[320px] divide-y divide-stone-100 overflow-y-auto" id="conflictsList">
+          <div class="py-6 text-center text-sm text-stone-400">Loading...</div>
+        </div>
+      </section>
+
+      {# Recent activity feed #}
+      <section class="overflow-hidden rounded-lg border border-stone-200 bg-white">
+        <div class="flex items-center justify-between border-b border-stone-100 bg-cloze-indigo px-5 py-3">
+          <h2 class="text-sm font-semibold text-white">Recent Activity</h2>
+        </div>
+        <div class="max-h-[320px] divide-y divide-stone-100 overflow-y-auto" id="activityFeed">
+          <div class="py-6 text-center text-sm text-stone-400">Loading...</div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  {# ══════════════════════════════════════════════════════════════
+     TAB 2 — PATIENTS
+     ══════════════════════════════════════════════════════════════ #}
+  <div id="tab-patients" class="tab-panel hidden">
+    {# Header bar #}
+    <div class="mb-4 flex items-center justify-between gap-4">
+      <div class="relative flex-1 max-w-md">
+        <svg class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="patientSearch" placeholder="Search patients..."
+               oninput="filterPatients()"
+               class="w-full rounded-lg border border-stone-200 py-2 pl-10 pr-4 text-sm focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo">
+      </div>
+      <button onclick="showCreatePatientModal()"
+              class="inline-flex items-center gap-1.5 rounded-lg bg-cloze-indigo px-4 py-2 text-sm font-medium text-white transition hover:bg-cloze-hover">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        Add Patient
+      </button>
+    </div>
+
+    {# Patient table #}
+    <div class="overflow-hidden rounded-lg border border-stone-200 bg-white">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-stone-100 bg-violet-50/60 text-left">
+            <th class="px-4 py-3 font-semibold text-stone-700">Name</th>
+            <th class="px-4 py-3 font-semibold text-stone-700">Email</th>
+            <th class="px-4 py-3 font-semibold text-stone-700">Provider</th>
+            <th class="px-4 py-3 font-semibold text-stone-700">Safety Plan</th>
+            <th class="px-4 py-3 font-semibold text-stone-700">Windows</th>
+            <th class="px-4 py-3 font-semibold text-stone-700">Last Active</th>
+            <th class="px-4 py-3 font-semibold text-stone-700">Status</th>
+            <th class="px-4 py-3 font-semibold text-stone-700"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-stone-100" id="patientsTableBody">
+          <tr><td colspan="8" class="py-8 text-center text-stone-400">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    {# Patient drill-down panel (shown when a row is clicked) #}
+    <div id="patientDrillDown" class="mt-6 hidden">
+      <div class="rounded-lg border border-stone-200 bg-white">
+        <div class="flex items-center justify-between border-b border-stone-100 bg-violet-50/60 px-5 py-3">
+          <h3 class="text-sm font-semibold text-stone-900" id="drillDownTitle">Patient Details</h3>
+          <button onclick="closePatientDrillDown()" class="rounded-md p-1 text-stone-400 transition hover:text-stone-700">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M6 18L18 6"/></svg>
+          </button>
+        </div>
+        <div class="p-5" id="drillDownContent">
+          <!-- Content loaded dynamically -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ══════════════════════════════════════════════════════════════
+     TAB 3 — PROVIDERS
+     ══════════════════════════════════════════════════════════════ #}
+  <div id="tab-providers" class="tab-panel hidden">
+    <div class="mb-4 flex items-center justify-between gap-4">
+      <div class="relative flex-1 max-w-md">
+        <svg class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="providerSearch" placeholder="Search providers..."
+               oninput="filterProviders()"
+               class="w-full rounded-lg border border-stone-200 py-2 pl-10 pr-4 text-sm focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo">
+      </div>
+      <button onclick="showCreateProviderModal()"
+              class="inline-flex items-center gap-1.5 rounded-lg bg-cloze-indigo px-4 py-2 text-sm font-medium text-white transition hover:bg-cloze-hover">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        Add Provider
+      </button>
+    </div>
+
+    <div class="overflow-hidden rounded-lg border border-stone-200 bg-white">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="border-b border-stone-100 bg-violet-50/60 text-left">
+            <th class="px-4 py-3 font-semibold text-stone-700">Name</th>
+            <th class="px-4 py-3 font-semibold text-stone-700">Email</th>
+            <th class="px-4 py-3 font-semibold text-stone-700">Patients</th>
+            <th class="px-4 py-3 font-semibold text-stone-700">Active Windows</th>
+            <th class="px-4 py-3 font-semibold text-stone-700">Last Active</th>
+            <th class="px-4 py-3 font-semibold text-stone-700"></th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-stone-100" id="providersTableBody">
+          <tr><td colspan="6" class="py-8 text-center text-stone-400">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    {# Provider drill-down #}
+    <div id="providerDrillDown" class="mt-6 hidden">
+      <div class="rounded-lg border border-stone-200 bg-white">
+        <div class="flex items-center justify-between border-b border-stone-100 bg-violet-50/60 px-5 py-3">
+          <h3 class="text-sm font-semibold text-stone-900" id="providerDrillDownTitle">Provider Details</h3>
+          <button onclick="closeProviderDrillDown()" class="rounded-md p-1 text-stone-400 transition hover:text-stone-700">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M6 18L18 6"/></svg>
+          </button>
+        </div>
+        <div class="p-5" id="providerDrillDownContent">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ══════════════════════════════════════════════════════════════
+     TAB 4 — SETTINGS
+     ══════════════════════════════════════════════════════════════ #}
+  <div id="tab-settings" class="tab-panel hidden">
+    {# Global feature toggles #}
+    <section class="mb-8 rounded-lg border border-stone-200 bg-white">
+      <div class="border-b border-stone-100 bg-violet-50/60 px-5 py-3">
+        <h3 class="text-sm font-semibold text-stone-900">Global Feature Toggles</h3>
+      </div>
+      <div class="divide-y divide-stone-100" id="settingsToggles">
+        <label class="flex cursor-pointer items-center justify-between px-5 py-4 transition hover:bg-stone-50">
+          <div>
+            <div class="text-sm font-medium text-stone-800">Providers can set custom prompts</div>
+            <div class="mt-0.5 text-xs text-stone-500">Whether providers can write custom system prompt text in chat template creation</div>
+          </div>
+          <input type="checkbox" id="toggle_providers_can_set_custom_prompts" class="accent-cloze-indigo h-4 w-4"
+                 onchange="updateGlobalSetting('providers_can_set_custom_prompts', this.checked)">
+        </label>
+        <label class="flex cursor-pointer items-center justify-between px-5 py-4 transition hover:bg-stone-50">
+          <div>
+            <div class="text-sm font-medium text-stone-800">Users can save text selections</div>
+            <div class="mt-0.5 text-xs text-stone-500">Whether patients see the bookmark/save-quote UI in conversations</div>
+          </div>
+          <input type="checkbox" id="toggle_users_can_save_selections" class="accent-cloze-indigo h-4 w-4"
+                 onchange="updateGlobalSetting('users_can_save_selections', this.checked)">
+        </label>
+        <label class="flex cursor-pointer items-center justify-between px-5 py-4 transition hover:bg-stone-50">
+          <div>
+            <div class="text-sm font-medium text-stone-800">Require safety plan</div>
+            <div class="mt-0.5 text-xs text-stone-500">Whether patients must have an active safety plan to start conversations</div>
+          </div>
+          <input type="checkbox" id="toggle_require_safety_plan" class="accent-cloze-indigo h-4 w-4"
+                 onchange="updateGlobalSetting('require_safety_plan', this.checked)">
+        </label>
+        <label class="flex cursor-pointer items-center justify-between px-5 py-4 transition hover:bg-stone-50">
+          <div>
+            <div class="text-sm font-medium text-stone-800">Allow patient anti-patterns</div>
+            <div class="mt-0.5 text-xs text-stone-500">Whether patients can add their own anti-patterns to their safety plan</div>
+          </div>
+          <input type="checkbox" id="toggle_allow_patient_anti_patterns" class="accent-cloze-indigo h-4 w-4"
+                 onchange="updateGlobalSetting('allow_patient_anti_patterns', this.checked)">
+        </label>
+      </div>
+    </section>
+
+    {# Model management #}
+    <section class="mb-8 rounded-lg border border-stone-200 bg-white">
+      <div class="flex items-center justify-between border-b border-stone-100 bg-violet-50/60 px-5 py-3">
+        <h3 class="text-sm font-semibold text-stone-900">Model Management</h3>
+        <button onclick="showCreateModelModal()"
+                class="inline-flex items-center gap-1 rounded-md bg-cloze-indigo px-3 py-1.5 text-xs font-medium text-white transition hover:bg-cloze-hover">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          Add Model
+        </button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-stone-100 text-left">
+              <th class="px-4 py-2.5 font-medium text-stone-600">Name</th>
+              <th class="px-4 py-2.5 font-medium text-stone-600">Provider</th>
+              <th class="px-4 py-2.5 font-medium text-stone-600">Model ID</th>
+              <th class="px-4 py-2.5 font-medium text-stone-600">Visible</th>
+              <th class="px-4 py-2.5 font-medium text-stone-600"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-stone-100" id="modelsTableBody">
+            <tr><td colspan="5" class="py-6 text-center text-stone-400">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    {# Provider Assignments #}
+    <section class="rounded-lg border border-stone-200 bg-white">
+      <div class="flex items-center justify-between border-b border-stone-100 bg-violet-50/60 px-5 py-3">
+        <h3 class="text-sm font-semibold text-stone-900">Provider Assignments</h3>
         <button onclick="showAssignmentModal()"
-                class="rounded-md border border-white/30 bg-white/20 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-white/30">
-          <span class="inline-flex items-center gap-1">
-            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-            Assign Patient
-          </span>
+                class="inline-flex items-center gap-1 rounded-md bg-cloze-indigo px-3 py-1.5 text-xs font-medium text-white transition hover:bg-cloze-hover">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          Assign
         </button>
       </div>
-      <div class="max-h-[500px] divide-y divide-stone-100 overflow-y-auto" id="assignmentsList">
-        <!-- Assignments will be loaded here -->
+      <div class="max-h-[400px] divide-y divide-stone-100 overflow-y-auto" id="assignmentsList">
+        <div class="py-6 text-center text-sm text-stone-400">Loading...</div>
       </div>
     </section>
-
   </div>
 {% endblock %}
 
@@ -85,8 +281,9 @@
   {# ── Create User Modal ─────────────────────────────────────── #}
   <div class="modal fixed inset-0 z-50 hidden items-center justify-center bg-black/40" id="createUserModal">
     <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
-      <h3 class="mb-5 text-base font-semibold text-stone-900">Create New User</h3>
+      <h3 class="mb-5 text-base font-semibold text-stone-900" id="createUserTitle">Create New User</h3>
       <form onsubmit="createUser(event)">
+        <input type="hidden" id="newRole" value="user">
         <div class="mb-4">
           <label for="newUsername" class="mb-1.5 block text-sm font-medium text-stone-700">Username</label>
           <input type="text" id="newUsername" required
@@ -97,25 +294,16 @@
           <input type="email" id="newEmail" required
                  class="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo">
         </div>
-        <div class="mb-4">
+        <div class="mb-6">
           <label for="newPassword" class="mb-1.5 block text-sm font-medium text-stone-700">Password</label>
           <input type="password" id="newPassword" required
                  class="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo">
-        </div>
-        <div class="mb-6">
-          <label for="newRole" class="mb-1.5 block text-sm font-medium text-stone-700">Role</label>
-          <select id="newRole" required
-                  class="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo">
-            <option value="user">User (Patient)</option>
-            <option value="provider">Provider</option>
-            <option value="admin">Admin</option>
-          </select>
         </div>
         <div class="flex items-center justify-end gap-3">
           <button type="button" onclick="hideModal('createUserModal')"
                   class="rounded-md border border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 transition hover:bg-stone-50">Cancel</button>
           <button type="submit"
-                  class="rounded-md bg-cloze-indigo px-4 py-2 text-sm font-medium text-white transition hover:bg-cloze-hover">Create User</button>
+                  class="rounded-md bg-cloze-indigo px-4 py-2 text-sm font-medium text-white transition hover:bg-cloze-hover">Create</button>
         </div>
       </form>
     </div>
@@ -153,9 +341,7 @@
     <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
       <h3 class="mb-5 text-base font-semibold text-stone-900" id="userSettingsModalTitle">User Settings</h3>
       <form onsubmit="saveUserSettingsModal(event)">
-        <div id="userSettingsForm">
-          <!-- Settings form will be populated dynamically -->
-        </div>
+        <div id="userSettingsForm"></div>
         <div class="flex items-center justify-end gap-3">
           <button type="button" onclick="hideModal('userSettingsModal')"
                   class="rounded-md border border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 transition hover:bg-stone-50">Cancel</button>
@@ -165,107 +351,639 @@
       </form>
     </div>
   </div>
+
+  {# ── Reset Password Modal ──────────────────────────────────── #}
+  <div class="modal fixed inset-0 z-50 hidden items-center justify-center bg-black/40" id="resetPasswordModal">
+    <div class="w-full max-w-sm rounded-lg bg-white p-6 shadow-lg">
+      <h3 class="mb-4 text-base font-semibold text-stone-900">Reset Password</h3>
+      <p class="mb-4 text-sm text-stone-600" id="resetPasswordInfo"></p>
+      <input type="hidden" id="resetPasswordUserId">
+      <div class="mb-5">
+        <label class="mb-1.5 block text-sm font-medium text-stone-700">New Password</label>
+        <input type="password" id="resetPasswordInput" required minlength="6"
+               class="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo">
+      </div>
+      <div class="flex items-center justify-end gap-3">
+        <button type="button" onclick="hideModal('resetPasswordModal')"
+                class="rounded-md border border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 transition hover:bg-stone-50">Cancel</button>
+        <button onclick="submitResetPassword()"
+                class="rounded-md bg-cloze-indigo px-4 py-2 text-sm font-medium text-white transition hover:bg-cloze-hover">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  {# ── Create Model Modal ────────────────────────────────────── #}
+  <div class="modal fixed inset-0 z-50 hidden items-center justify-center bg-black/40" id="createModelModal">
+    <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
+      <h3 class="mb-5 text-base font-semibold text-stone-900">Add LLM Model</h3>
+      <form onsubmit="createModel(event)">
+        <div class="mb-4">
+          <label class="mb-1.5 block text-sm font-medium text-stone-700">Display Name</label>
+          <input type="text" id="modelName" required
+                 class="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo">
+        </div>
+        <div class="mb-4">
+          <label class="mb-1.5 block text-sm font-medium text-stone-700">Provider</label>
+          <select id="modelProvider"
+                  class="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo">
+            <option value="openai">OpenAI</option>
+            <option value="anthropic">Anthropic</option>
+            <option value="google">Google</option>
+            <option value="local">Local (Ollama)</option>
+          </select>
+        </div>
+        <div class="mb-4">
+          <label class="mb-1.5 block text-sm font-medium text-stone-700">Model Identifier</label>
+          <input type="text" id="modelIdentifier" required placeholder="e.g. gpt-4o, claude-sonnet-4-5-20250514"
+                 class="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo">
+        </div>
+        <div class="mb-4">
+          <label class="mb-1.5 block text-sm font-medium text-stone-700">API Endpoint (local models only)</label>
+          <input type="text" id="modelEndpoint" placeholder="http://localhost:11434/v1/chat/completions"
+                 class="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo">
+        </div>
+        <div class="grid grid-cols-2 gap-4 mb-6">
+          <div>
+            <label class="mb-1.5 block text-sm font-medium text-stone-700">Temperature</label>
+            <input type="number" id="modelTemp" value="0.7" min="0" max="2" step="0.1"
+                   class="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo">
+          </div>
+          <div>
+            <label class="mb-1.5 block text-sm font-medium text-stone-700">Max Tokens</label>
+            <input type="number" id="modelMaxTokens" value="1000" min="100" max="100000"
+                   class="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo">
+          </div>
+        </div>
+        <div class="flex items-center justify-end gap-3">
+          <button type="button" onclick="hideModal('createModelModal')"
+                  class="rounded-md border border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 transition hover:bg-stone-50">Cancel</button>
+          <button type="submit"
+                  class="rounded-md bg-cloze-indigo px-4 py-2 text-sm font-medium text-white transition hover:bg-cloze-hover">Add Model</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {# ── Safety Plan Viewer Modal ──────────────────────────────── #}
+  <div class="modal fixed inset-0 z-50 hidden items-center justify-center bg-black/40" id="safetyPlanModal">
+    <div class="w-full max-w-2xl max-h-[85vh] rounded-lg bg-white shadow-lg flex flex-col">
+      <div class="flex items-center justify-between border-b border-stone-200 px-5 py-3.5 shrink-0">
+        <h3 class="text-base font-semibold text-stone-900" id="safetyPlanModalTitle">Safety Plan</h3>
+        <button onclick="hideModal('safetyPlanModal')" class="rounded-md p-1 text-stone-400 transition hover:text-stone-700">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M6 18L18 6"/></svg>
+        </button>
+      </div>
+      <div class="flex-1 overflow-y-auto p-5" id="safetyPlanContent">
+      </div>
+    </div>
+  </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
+  // ── State ──────────────────────────────────────────────────────
   var allUsers = [];
-  var assignments = [];
+  var patientsData = [];
+  var providersData = [];
+  var currentTab = 'overview';
 
-  // ── Role badge classes ────────────────────────────────────────
   var ROLE_CLASSES = {
     admin:    'bg-red-50 text-red-700 ring-1 ring-inset ring-red-200',
     provider: 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200',
     user:     'bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-200'
   };
 
-  // ── SVG icons ─────────────────────────────────────────────────
-  var ICON_SETTINGS = '<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">' +
-    '<path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>' +
-    '<circle cx="12" cy="12" r="3"/></svg>';
+  var PLAN_STATUS_CLASSES = {
+    active:  'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200',
+    pending: 'bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200',
+    draft:   'bg-stone-100 text-stone-600 ring-1 ring-inset ring-stone-200',
+    none:    'bg-red-50 text-red-600 ring-1 ring-inset ring-red-200',
+  };
 
   var ICON_ARROW = '<svg class="inline-block h-3.5 w-3.5 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
 
-  // ── Dashboard loader ──────────────────────────────────────────
-  async function loadDashboard() {
+  // ── Tabs (hash-driven from sidebar) ─────────────────────────────
+  var VALID_TABS = ['overview', 'patients', 'providers', 'settings'];
+
+  function switchTab(tabId) {
+    if (VALID_TABS.indexOf(tabId) === -1) tabId = 'overview';
+    currentTab = tabId;
+
+    // Show/hide panels
+    document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.add('hidden'); });
+    document.getElementById('tab-' + tabId).classList.remove('hidden');
+
+    // Update hash without scrolling
+    history.replaceState(null, '', '#' + tabId);
+
+    // Highlight active sidebar link
+    var sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+      sidebar.querySelectorAll('nav a').forEach(function(a) {
+        var href = a.getAttribute('href') || '';
+        if (href === '/admin/dashboard#' + tabId) {
+          a.classList.add('bg-cloze-lavender', 'text-cloze-indigo', 'font-semibold');
+          a.classList.remove('text-stone-600');
+        } else if (href.startsWith('/admin/dashboard')) {
+          a.classList.remove('bg-cloze-lavender', 'text-cloze-indigo', 'font-semibold');
+          a.classList.add('text-stone-600');
+        }
+      });
+    }
+
+    // Update page title in header
+    var titleMap = { overview: 'Dashboard', patients: 'Patients', providers: 'Providers', settings: 'Settings' };
+    var headerTitle = document.querySelector('header h1');
+    if (headerTitle) headerTitle.textContent = titleMap[tabId] || 'Dashboard';
+
+    // Lazy load tab data
+    if (tabId === 'patients' && patientsData.length === 0) loadPatients();
+    if (tabId === 'providers' && providersData.length === 0) loadProviders();
+    if (tabId === 'settings') { loadSettings(); loadModels(); loadAssignments(); }
+  }
+
+  // Listen for hash changes (sidebar clicks)
+  window.addEventListener('hashchange', function() {
+    var hash = window.location.hash.replace('#', '');
+    if (hash && hash !== currentTab) switchTab(hash);
+  });
+
+  // ── Modal helpers ──────────────────────────────────────────────
+  function showModal(id) {
+    document.getElementById(id).classList.remove('hidden');
+    document.getElementById(id).classList.add('flex');
+  }
+  function hideModal(id) {
+    document.getElementById(id).classList.add('hidden');
+    document.getElementById(id).classList.remove('flex');
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  OVERVIEW TAB
+  // ══════════════════════════════════════════════════════════════
+
+  async function loadOverview() {
     try {
-      var statsResponse = await fetch('/api/admin/stats');
-      var stats = await statsResponse.json();
+      var [statsRes, pendingRes, missingRes, conflictsRes, auditRes] = await Promise.all([
+        fetch('/api/admin/stats'),
+        fetch('/api/admin/safety-plans/pending'),
+        fetch('/api/admin/safety-plans/missing'),
+        fetch('/api/admin/safety-plans/conflicts'),
+        fetch('/api/admin/audit-log?limit=20'),
+      ]);
 
-      document.getElementById('totalUsers').textContent = stats.total_users;
-      document.getElementById('totalProviders').textContent = stats.total_providers;
-      document.getElementById('totalPatients').textContent = stats.total_patients;
-      document.getElementById('totalConversations').textContent = stats.total_conversations;
+      var stats = await statsRes.json();
+      document.getElementById('statPatients').textContent = stats.total_patients;
+      document.getElementById('statProviders').textContent = stats.total_providers;
+      document.getElementById('statActiveWindows').textContent = stats.active_windows;
+      document.getElementById('statConversations').textContent = stats.total_conversations;
+      document.getElementById('statReports').textContent = stats.total_reports;
+      document.getElementById('statPendingPlans').textContent = stats.pending_plans;
 
-      var response = await fetch('/api/admin/users');
-      allUsers = await response.json();
+      // Pending plans
+      var pending = await pendingRes.json();
+      var pendingEl = document.getElementById('pendingPlansList');
+      if (pending.length === 0) {
+        pendingEl.innerHTML = '<div class="py-6 text-center text-sm text-stone-400">No plans pending review</div>';
+      } else {
+        pendingEl.innerHTML = pending.map(function(p) {
+          return '<div class="flex items-center justify-between px-5 py-3">' +
+            '<div class="min-w-0 flex-1"><div class="text-sm font-medium text-stone-800">' + escapeHtml(p.patient_name) + '</div>' +
+            '<div class="mt-0.5 text-xs text-stone-500">Provider: ' + escapeHtml(p.provider_name) + ' &middot; v' + p.version + ' &middot; Updated ' + formatRelativeTime(p.updated_at) + '</div></div>' +
+            '<span class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200">Pending</span>' +
+          '</div>';
+        }).join('');
+      }
 
-      displayUsers();
-      loadAssignments();
-      loadSystemSettings();
+      // Missing plans
+      var missing = await missingRes.json();
+      var missingEl = document.getElementById('missingPlansList');
+      if (missing.length === 0) {
+        missingEl.innerHTML = '<div class="py-6 text-center text-sm text-emerald-600">All patients with windows have active plans</div>';
+      } else {
+        missingEl.innerHTML = missing.map(function(m) {
+          return '<div class="flex items-center justify-between px-5 py-3">' +
+            '<div class="min-w-0 flex-1"><div class="text-sm font-medium text-stone-800">' + escapeHtml(m.patient_name) + '</div>' +
+            '<div class="mt-0.5 text-xs text-stone-500">Provider: ' + escapeHtml(m.provider_name) + ' &middot; ' + m.window_count + ' window(s)</div></div>' +
+            '<span class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold bg-red-50 text-red-600 ring-1 ring-inset ring-red-200">No Plan</span>' +
+          '</div>';
+        }).join('');
+      }
+
+      // Conflicts
+      var conflicts = await conflictsRes.json();
+      var conflictsEl = document.getElementById('conflictsList');
+      if (conflicts.length === 0) {
+        conflictsEl.innerHTML = '<div class="py-6 text-center text-sm text-emerald-600">No conflicts detected</div>';
+      } else {
+        conflictsEl.innerHTML = conflicts.map(function(c) {
+          return '<div class="px-5 py-3">' +
+            '<div class="text-sm font-medium text-stone-800">' + escapeHtml(c.patient_name) + '</div>' +
+            '<div class="mt-0.5 text-xs text-stone-500">' + c.conflict_count + ' conflicting anti-pattern(s)</div>' +
+          '</div>';
+        }).join('');
+      }
+
+      // Audit log
+      var audit = await auditRes.json();
+      var feedEl = document.getElementById('activityFeed');
+      if (audit.length === 0) {
+        feedEl.innerHTML = '<div class="py-6 text-center text-sm text-stone-400">No recent activity</div>';
+      } else {
+        feedEl.innerHTML = audit.map(function(e) {
+          var label = e.action.replace(/_/g, ' ');
+          return '<div class="px-5 py-3">' +
+            '<div class="flex items-center gap-2">' +
+              '<span class="text-sm font-medium text-stone-800">' + escapeHtml(e.actor_name) + '</span>' +
+              '<span class="text-xs text-stone-500">' + escapeHtml(label) + '</span>' +
+              (e.target_type ? '<span class="inline-flex rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-medium text-stone-600">' + escapeHtml(e.target_type) + '</span>' : '') +
+            '</div>' +
+            '<div class="mt-0.5 text-xs text-stone-400">' + formatRelativeTime(e.created_at) + '</div>' +
+          '</div>';
+        }).join('');
+      }
+
+      // Also load all users for modal dropdowns
+      var usersRes = await fetch('/api/admin/users');
+      allUsers = await usersRes.json();
+
     } catch (error) {
-      console.error('Error loading dashboard:', error);
+      console.error('Error loading overview:', error);
     }
   }
 
-  // ── User list rendering ───────────────────────────────────────
-  function displayUsers() {
-    var list = document.getElementById('usersList');
+  // ══════════════════════════════════════════════════════════════
+  //  PATIENTS TAB
+  // ══════════════════════════════════════════════════════════════
 
-    if (allUsers.length === 0) {
-      list.innerHTML = '<div class="py-8 text-center text-sm text-stone-400">No users yet</div>';
+  async function loadPatients() {
+    try {
+      var response = await fetch('/api/admin/patients');
+      patientsData = await response.json();
+      renderPatients();
+    } catch (error) {
+      console.error('Error loading patients:', error);
+    }
+  }
+
+  function renderPatients() {
+    var query = (document.getElementById('patientSearch').value || '').toLowerCase();
+    var filtered = patientsData.filter(function(p) {
+      return p.username.toLowerCase().includes(query) || p.email.toLowerCase().includes(query);
+    });
+
+    var tbody = document.getElementById('patientsTableBody');
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-stone-400">' + (query ? 'No matching patients' : 'No patients yet') + '</td></tr>';
       return;
     }
 
-    list.innerHTML = allUsers.map(function(user) {
-      var roleCls = ROLE_CLASSES[user.role] || ROLE_CLASSES.user;
-      var actions = '';
-
-      if (user.role === 'user') {
-        actions += '<button class="rounded-md border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:bg-stone-50" onclick="viewUserConversations(' + user.id + ')">View Chats</button>';
-      }
-      if (user.role === 'provider') {
-        actions += '<button class="rounded-md border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:bg-stone-50" onclick="viewProviderPatients(' + user.id + ')">View Patients</button>';
-      }
-      actions += '<button class="inline-flex items-center gap-1 rounded-md border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:bg-stone-50" onclick="showUserSettingsModal(' + user.id + ', \'' + user.role + '\')">' + ICON_SETTINGS + ' Settings</button>';
-
-      return '<div class="flex items-center justify-between px-5 py-3">' +
-        '<div class="min-w-0 flex-1">' +
-          '<div class="flex items-center gap-2">' +
-            '<span class="text-sm font-medium text-stone-900">' + escapeHtml(user.username) + '</span>' +
-            '<span class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ' + roleCls + '">' + user.role.toUpperCase() + '</span>' +
-          '</div>' +
-          '<div class="mt-0.5 text-xs text-stone-500">' + escapeHtml(user.email) + '</div>' +
-        '</div>' +
-        '<div class="flex items-center gap-2">' + actions + '</div>' +
-      '</div>';
+    tbody.innerHTML = filtered.map(function(p) {
+      var planCls = PLAN_STATUS_CLASSES[p.plan_status] || PLAN_STATUS_CLASSES.none;
+      return '<tr class="cursor-pointer transition hover:bg-violet-50/40" onclick="openPatientDrillDown(' + p.id + ')">' +
+        '<td class="px-4 py-3 font-medium text-stone-900">' + escapeHtml(p.username) + '</td>' +
+        '<td class="px-4 py-3 text-stone-600">' + escapeHtml(p.email) + '</td>' +
+        '<td class="px-4 py-3 text-stone-600">' + (p.provider_name ? escapeHtml(p.provider_name) : '<span class="text-stone-400">Unassigned</span>') + '</td>' +
+        '<td class="px-4 py-3"><span class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ' + planCls + '">' + p.plan_status + '</span></td>' +
+        '<td class="px-4 py-3 text-stone-600">' + p.window_count + (p.active_windows > 0 ? ' <span class="text-emerald-600">(' + p.active_windows + ' active)</span>' : '') + '</td>' +
+        '<td class="px-4 py-3 text-stone-500 text-xs">' + (p.last_activity ? formatRelativeTime(p.last_activity) : 'Never') + '</td>' +
+        '<td class="px-4 py-3">' + (p.visible ? '<span class="text-emerald-600 text-xs font-medium">Active</span>' : '<span class="text-red-500 text-xs font-medium">Disabled</span>') + '</td>' +
+        '<td class="px-4 py-3"><button onclick="event.stopPropagation(); showUserSettingsModal(' + p.id + ', \'user\')" class="rounded-md border border-stone-200 px-2 py-1 text-xs text-stone-600 hover:bg-stone-50">Settings</button></td>' +
+      '</tr>';
     }).join('');
   }
 
-  // ── Assignments rendering ─────────────────────────────────────
+  function filterPatients() { renderPatients(); }
+
+  async function openPatientDrillDown(patientId) {
+    var panel = document.getElementById('patientDrillDown');
+    var content = document.getElementById('drillDownContent');
+    panel.classList.remove('hidden');
+    content.innerHTML = '<div class="py-8 text-center text-sm text-stone-400">Loading...</div>';
+
+    try {
+      var response = await fetch('/api/admin/patient/' + patientId + '/details');
+      var data = await response.json();
+
+      document.getElementById('drillDownTitle').textContent = data.username + ' — Patient Details';
+
+      var html = '';
+
+      // Info header
+      html += '<div class="mb-6 flex flex-wrap items-center gap-4">';
+      html += '<div class="text-sm"><span class="text-stone-500">Email:</span> <span class="font-medium">' + escapeHtml(data.email) + '</span></div>';
+      html += '<div class="text-sm"><span class="text-stone-500">Provider:</span> <span class="font-medium">' + (data.provider_name ? escapeHtml(data.provider_name) : 'Unassigned') + '</span>';
+      if (data.all_providers.length > 0) {
+        html += ' <select onchange="reassignPatient(' + patientId + ', this.value)" class="ml-2 rounded border border-stone-200 px-2 py-1 text-xs">';
+        html += '<option value="">Reassign...</option>';
+        data.all_providers.forEach(function(pv) {
+          html += '<option value="' + pv.id + '"' + (pv.id === data.provider_id ? ' selected disabled' : '') + '>' + escapeHtml(pv.username) + '</option>';
+        });
+        html += '</select>';
+      }
+      html += '</div>';
+      html += '<div class="text-sm"><span class="text-stone-500">Status:</span> ' + (data.visible ? '<span class="font-medium text-emerald-600">Active</span>' : '<span class="font-medium text-red-500">Disabled</span>') + '</div>';
+      html += '<button onclick="toggleUserVisibility(' + patientId + ', ' + !data.visible + ')" class="rounded-md border border-stone-200 px-3 py-1 text-xs text-stone-600 hover:bg-stone-50">' + (data.visible ? 'Disable Account' : 'Enable Account') + '</button>';
+      html += '<button onclick="showResetPasswordModal(' + patientId + ', \'' + escapeHtml(data.username) + '\')" class="rounded-md border border-stone-200 px-3 py-1 text-xs text-stone-600 hover:bg-stone-50">Reset Password</button>';
+      html += '</div>';
+
+      // Safety plan
+      html += '<div class="mb-6">';
+      html += '<h4 class="mb-2 text-sm font-semibold text-stone-800">Safety Plan</h4>';
+      var sp = data.safety_plan;
+      if (sp.active) {
+        html += '<div class="flex items-center gap-2 mb-2"><span class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200">Active (v' + sp.active.version + ')</span>';
+        html += '<button onclick="viewSafetyPlan(' + sp.active.id + ', ' + patientId + ')" class="rounded-md border border-cloze-indigo/30 bg-cloze-indigo/5 px-3 py-1 text-xs font-medium text-cloze-indigo transition hover:bg-cloze-indigo/10">View Full Plan</button></div>';
+      } else if (sp.pending) {
+        html += '<div class="flex items-center gap-2 mb-2"><span class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200">Pending Review (v' + sp.pending.version + ')</span>';
+        html += '<button onclick="viewSafetyPlan(' + sp.pending.id + ', ' + patientId + ')" class="rounded-md border border-cloze-indigo/30 bg-cloze-indigo/5 px-3 py-1 text-xs font-medium text-cloze-indigo transition hover:bg-cloze-indigo/10">View Plan</button></div>';
+      } else if (sp.draft) {
+        html += '<span class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold bg-stone-100 text-stone-600 ring-1 ring-inset ring-stone-200">Draft (v' + sp.draft.version + ')</span>';
+      } else {
+        html += '<span class="text-sm text-stone-400">No safety plan created</span>';
+      }
+      // Version history
+      if (sp.history && sp.history.length > 1) {
+        html += '<div class="mt-2 text-xs text-stone-500">Versions: ';
+        html += sp.history.map(function(v) {
+          return 'v' + v.version + ' (' + v.status + ')';
+        }).join(', ');
+        html += '</div>';
+      }
+      html += '</div>';
+
+      // Chat windows
+      html += '<div class="mb-4">';
+      html += '<h4 class="mb-2 text-sm font-semibold text-stone-800">Chat Windows</h4>';
+      if (data.windows.length === 0) {
+        html += '<p class="text-sm text-stone-400">No chat windows</p>';
+      } else {
+        html += '<div class="space-y-3">';
+        data.windows.forEach(function(w) {
+          var statusCls = STATUS_CLASSES[w.status] || 'bg-stone-100 text-stone-600';
+          html += '<div class="rounded-lg border border-stone-200 p-3">';
+          html += '<div class="flex items-center justify-between mb-1">';
+          html += '<span class="text-sm font-medium text-stone-800">' + escapeHtml(w.title) + '</span>';
+          html += '<span class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ' + statusCls + '">' + (STATUS_LABELS[w.status] || w.status) + '</span>';
+          html += '</div>';
+          html += '<div class="text-xs text-stone-500 mb-2">' + formatDate(w.start_date) + ' — ' + formatDate(w.end_date) + '</div>';
+
+          // Conversations
+          if (w.conversations.length > 0) {
+            html += '<div class="space-y-1">';
+            w.conversations.forEach(function(c) {
+              html += '<div class="flex items-center justify-between rounded bg-stone-50 px-3 py-1.5">';
+              html += '<div class="text-xs"><span class="font-medium text-stone-700">' + escapeHtml(c.title || 'Untitled') + '</span><span class="ml-2 text-stone-400">' + c.message_count + ' messages</span></div>';
+              html += '<a href="/admin/transcript/' + c.id + '" class="text-xs text-cloze-indigo underline" target="_blank">View Transcript</a>';
+              html += '</div>';
+            });
+            html += '</div>';
+          }
+
+          // Reports
+          if (w.reports.length > 0) {
+            html += '<div class="mt-1.5 text-xs text-stone-500">' + w.reports.length + ' report(s) generated</div>';
+          }
+
+          html += '</div>';
+        });
+        html += '</div>';
+      }
+      html += '</div>';
+
+      content.innerHTML = html;
+
+    } catch (error) {
+      content.innerHTML = '<div class="py-8 text-center text-sm text-red-500">Failed to load patient details</div>';
+      console.error('Error:', error);
+    }
+  }
+
+  function closePatientDrillDown() {
+    document.getElementById('patientDrillDown').classList.add('hidden');
+  }
+
+  function showCreatePatientModal() {
+    document.getElementById('newRole').value = 'user';
+    document.getElementById('createUserTitle').textContent = 'Create New Patient';
+    document.getElementById('newUsername').value = '';
+    document.getElementById('newEmail').value = '';
+    document.getElementById('newPassword').value = '';
+    showModal('createUserModal');
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  PROVIDERS TAB
+  // ══════════════════════════════════════════════════════════════
+
+  async function loadProviders() {
+    try {
+      var response = await fetch('/api/admin/providers');
+      providersData = await response.json();
+      renderProviders();
+    } catch (error) {
+      console.error('Error loading providers:', error);
+    }
+  }
+
+  function renderProviders() {
+    var query = (document.getElementById('providerSearch').value || '').toLowerCase();
+    var filtered = providersData.filter(function(p) {
+      return p.username.toLowerCase().includes(query) || p.email.toLowerCase().includes(query);
+    });
+
+    var tbody = document.getElementById('providersTableBody');
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-stone-400">' + (query ? 'No matching providers' : 'No providers yet') + '</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(function(p) {
+      return '<tr class="cursor-pointer transition hover:bg-violet-50/40" onclick="openProviderDrillDown(' + p.id + ')">' +
+        '<td class="px-4 py-3 font-medium text-stone-900">' + escapeHtml(p.username) + '</td>' +
+        '<td class="px-4 py-3 text-stone-600">' + escapeHtml(p.email) + '</td>' +
+        '<td class="px-4 py-3 text-stone-600">' + p.patient_count + '</td>' +
+        '<td class="px-4 py-3 text-stone-600">' + p.active_windows + '</td>' +
+        '<td class="px-4 py-3 text-stone-500 text-xs">' + (p.last_activity ? formatRelativeTime(p.last_activity) : 'Never') + '</td>' +
+        '<td class="px-4 py-3"><button onclick="event.stopPropagation(); showUserSettingsModal(' + p.id + ', \'provider\')" class="rounded-md border border-stone-200 px-2 py-1 text-xs text-stone-600 hover:bg-stone-50">Settings</button></td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function filterProviders() { renderProviders(); }
+
+  async function openProviderDrillDown(providerId) {
+    var panel = document.getElementById('providerDrillDown');
+    var content = document.getElementById('providerDrillDownContent');
+    panel.classList.remove('hidden');
+    content.innerHTML = '<div class="py-8 text-center text-sm text-stone-400">Loading...</div>';
+
+    try {
+      var response = await fetch('/api/admin/provider/' + providerId + '/details');
+      var data = await response.json();
+
+      document.getElementById('providerDrillDownTitle').textContent = data.username + ' — Provider Details';
+
+      var html = '';
+
+      // Info header
+      html += '<div class="mb-6 flex flex-wrap items-center gap-4">';
+      html += '<div class="text-sm"><span class="text-stone-500">Email:</span> <span class="font-medium">' + escapeHtml(data.email) + '</span></div>';
+      html += '<div class="text-sm"><span class="text-stone-500">Status:</span> ' + (data.visible ? '<span class="font-medium text-emerald-600">Active</span>' : '<span class="font-medium text-red-500">Disabled</span>') + '</div>';
+      html += '<button onclick="toggleUserVisibility(' + providerId + ', ' + !data.visible + ')" class="rounded-md border border-stone-200 px-3 py-1 text-xs text-stone-600 hover:bg-stone-50">' + (data.visible ? 'Disable Account' : 'Enable Account') + '</button>';
+      html += '<button onclick="showResetPasswordModal(' + providerId + ', \'' + escapeHtml(data.username) + '\')" class="rounded-md border border-stone-200 px-3 py-1 text-xs text-stone-600 hover:bg-stone-50">Reset Password</button>';
+      html += '</div>';
+
+      // Assigned patients
+      html += '<div class="mb-6">';
+      html += '<div class="flex items-center justify-between mb-2">';
+      html += '<h4 class="text-sm font-semibold text-stone-800">Assigned Patients (' + data.patients.length + ')</h4>';
+      if (data.unassigned_patients.length > 0) {
+        html += '<select onchange="if(this.value) assignPatientToProvider(' + providerId + ', this.value); this.value=\'\';" class="rounded border border-stone-200 px-2 py-1 text-xs">';
+        html += '<option value="">Assign patient...</option>';
+        data.unassigned_patients.forEach(function(u) {
+          html += '<option value="' + u.id + '">' + escapeHtml(u.username) + '</option>';
+        });
+        html += '</select>';
+      }
+      html += '</div>';
+      if (data.patients.length === 0) {
+        html += '<p class="text-sm text-stone-400">No assigned patients</p>';
+      } else {
+        html += '<div class="space-y-1">';
+        data.patients.forEach(function(p) {
+          var planCls = PLAN_STATUS_CLASSES[p.plan_status] || PLAN_STATUS_CLASSES.none;
+          html += '<div class="flex items-center justify-between rounded bg-stone-50 px-3 py-2 cursor-pointer hover:bg-violet-50/40" onclick="switchTab(\'patients\'); setTimeout(function(){openPatientDrillDown(' + p.id + ')}, 100)">';
+          html += '<span class="text-sm font-medium text-stone-700">' + escapeHtml(p.username) + '</span>';
+          html += '<span class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ' + planCls + '">' + p.plan_status + '</span>';
+          html += '</div>';
+        });
+        html += '</div>';
+      }
+      html += '</div>';
+
+      // Recent windows
+      html += '<div>';
+      html += '<h4 class="mb-2 text-sm font-semibold text-stone-800">Chat Windows (' + data.windows.length + ')</h4>';
+      if (data.windows.length === 0) {
+        html += '<p class="text-sm text-stone-400">No chat windows</p>';
+      } else {
+        html += '<div class="space-y-1">';
+        data.windows.forEach(function(w) {
+          var statusCls = STATUS_CLASSES[w.status] || 'bg-stone-100 text-stone-600';
+          html += '<div class="flex items-center justify-between rounded bg-stone-50 px-3 py-2">';
+          html += '<div><span class="text-sm font-medium text-stone-700">' + escapeHtml(w.title) + '</span><span class="ml-2 text-xs text-stone-400">for ' + escapeHtml(w.patient_name) + '</span></div>';
+          html += '<span class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ' + statusCls + '">' + (STATUS_LABELS[w.status] || w.status) + '</span>';
+          html += '</div>';
+        });
+        html += '</div>';
+      }
+      html += '</div>';
+
+      content.innerHTML = html;
+
+    } catch (error) {
+      content.innerHTML = '<div class="py-8 text-center text-sm text-red-500">Failed to load provider details</div>';
+      console.error('Error:', error);
+    }
+  }
+
+  function closeProviderDrillDown() {
+    document.getElementById('providerDrillDown').classList.add('hidden');
+  }
+
+  function showCreateProviderModal() {
+    document.getElementById('newRole').value = 'provider';
+    document.getElementById('createUserTitle').textContent = 'Create New Provider';
+    document.getElementById('newUsername').value = '';
+    document.getElementById('newEmail').value = '';
+    document.getElementById('newPassword').value = '';
+    showModal('createUserModal');
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  SETTINGS TAB
+  // ══════════════════════════════════════════════════════════════
+
+  async function loadSettings() {
+    try {
+      var response = await fetch('/api/admin/settings');
+      var settings = await response.json();
+
+      var toggleMap = {
+        'providers_can_set_custom_prompts': true,
+        'users_can_save_selections': true,
+        'require_safety_plan': true,
+        'allow_patient_anti_patterns': true,
+      };
+
+      Object.keys(toggleMap).forEach(function(key) {
+        var el = document.getElementById('toggle_' + key);
+        if (el) {
+          el.checked = settings[key] === true || settings[key] === 'true' || settings[key] === 'True';
+          // If setting doesn't exist, use default
+          if (settings[key] === undefined || settings[key] === null) {
+            el.checked = toggleMap[key];
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    }
+  }
+
+  async function loadModels() {
+    try {
+      var response = await fetch('/api/admin/models');
+      var models = await response.json();
+
+      var tbody = document.getElementById('modelsTableBody');
+      if (models.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-stone-400">No models configured</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = models.map(function(m) {
+        return '<tr>' +
+          '<td class="px-4 py-2.5 font-medium text-stone-800">' + escapeHtml(m.name) + '</td>' +
+          '<td class="px-4 py-2.5 text-stone-600">' + escapeHtml(m.provider || '') + '</td>' +
+          '<td class="px-4 py-2.5 text-stone-500 text-xs font-mono">' + escapeHtml(m.model_identifier || '') + '</td>' +
+          '<td class="px-4 py-2.5">' +
+            '<button onclick="toggleModel(' + m.id + ')" class="rounded-full px-2 py-0.5 text-[11px] font-semibold ' +
+              (m.visible ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200' : 'bg-red-50 text-red-600 ring-1 ring-inset ring-red-200') + '">' +
+              (m.visible ? 'Visible' : 'Hidden') +
+            '</button>' +
+          '</td>' +
+          '<td class="px-4 py-2.5"></td>' +
+        '</tr>';
+      }).join('');
+    } catch (error) {
+      console.error('Error loading models:', error);
+    }
+  }
+
   async function loadAssignments() {
     try {
       var response = await fetch('/api/admin/assignments');
       var assignmentData = await response.json();
 
       var list = document.getElementById('assignmentsList');
-
       if (assignmentData.length === 0) {
-        list.innerHTML = '<div class="py-8 text-center text-sm text-stone-400">No assignments yet</div>';
+        list.innerHTML = '<div class="py-6 text-center text-sm text-stone-400">No assignments yet</div>';
         return;
       }
 
-      list.innerHTML = assignmentData.map(function(assignment) {
+      list.innerHTML = assignmentData.map(function(a) {
         return '<div class="flex items-center justify-between px-5 py-3">' +
           '<div class="min-w-0 flex-1">' +
             '<div class="flex items-center gap-1.5 text-sm text-stone-700">' +
-              '<span class="font-medium">' + escapeHtml(assignment.provider_name) + '</span>' +
+              '<span class="font-medium">' + escapeHtml(a.provider_name) + '</span>' +
               ' ' + ICON_ARROW + ' ' +
-              '<span>' + escapeHtml(assignment.patient_name) + '</span>' +
+              '<span>' + escapeHtml(a.patient_name) + '</span>' +
             '</div>' +
-            '<div class="mt-0.5 text-xs text-stone-400">Assigned by ' + escapeHtml(assignment.assigned_by) + ' on ' + formatDate(assignment.created_at) + '</div>' +
+            '<div class="mt-0.5 text-xs text-stone-400">Assigned by ' + escapeHtml(a.assigned_by) + ' on ' + formatDate(a.created_at) + '</div>' +
           '</div>' +
-          '<button class="rounded-md bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-100" onclick="removeAssignment(' + assignment.id + ')">Remove</button>' +
+          '<button class="rounded-md bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-100" onclick="removeAssignment(' + a.id + ')">Remove</button>' +
         '</div>';
       }).join('');
     } catch (error) {
@@ -273,37 +991,12 @@
     }
   }
 
-  // ── Modals ────────────────────────────────────────────────────
-  function showCreateUserModal() {
-    document.getElementById('createUserModal').classList.remove('hidden');
-    document.getElementById('createUserModal').classList.add('flex');
-  }
+  // ══════════════════════════════════════════════════════════════
+  //  SHARED CRUD OPERATIONS
+  // ══════════════════════════════════════════════════════════════
 
-  function showAssignmentModal() {
-    var providers = allUsers.filter(function(u) { return u.role === 'provider'; });
-    var patients = allUsers.filter(function(u) { return u.role === 'user'; });
-
-    document.getElementById('selectProvider').innerHTML =
-      '<option value="">Select a provider...</option>' +
-      providers.map(function(p) { return '<option value="' + p.id + '">' + escapeHtml(p.username) + '</option>'; }).join('');
-
-    document.getElementById('selectPatient').innerHTML =
-      '<option value="">Select a patient...</option>' +
-      patients.map(function(p) { return '<option value="' + p.id + '">' + escapeHtml(p.username) + '</option>'; }).join('');
-
-    document.getElementById('assignmentModal').classList.remove('hidden');
-    document.getElementById('assignmentModal').classList.add('flex');
-  }
-
-  function hideModal(modalId) {
-    document.getElementById(modalId).classList.add('hidden');
-    document.getElementById(modalId).classList.remove('flex');
-  }
-
-  // ── CRUD ──────────────────────────────────────────────────────
   async function createUser(event) {
     event.preventDefault();
-
     var userData = {
       username: document.getElementById('newUsername').value,
       email:    document.getElementById('newEmail').value,
@@ -320,8 +1013,10 @@
 
       if (response.ok) {
         hideModal('createUserModal');
-        loadDashboard();
-        alert('User created successfully!');
+        // Refresh the relevant tab
+        if (userData.role === 'user') { patientsData = []; loadPatients(); }
+        else if (userData.role === 'provider') { providersData = []; loadProviders(); }
+        loadOverview();
       } else {
         var error = await response.json();
         alert('Error: ' + error.error);
@@ -332,9 +1027,160 @@
     }
   }
 
+  async function updateGlobalSetting(settingName, value) {
+    try {
+      var body = {};
+      body[settingName] = value;
+      await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+    } catch (error) {
+      console.error('Error updating setting:', error);
+      alert('Error updating setting');
+    }
+  }
+
+  async function toggleModel(modelId) {
+    try {
+      await fetch('/api/admin/models/' + modelId + '/toggle', { method: 'POST' });
+      loadModels();
+    } catch (error) {
+      console.error('Error toggling model:', error);
+    }
+  }
+
+  async function createModel(event) {
+    event.preventDefault();
+    try {
+      var response = await fetch('/api/admin/models', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: document.getElementById('modelName').value,
+          provider: document.getElementById('modelProvider').value,
+          model_identifier: document.getElementById('modelIdentifier').value,
+          api_endpoint: document.getElementById('modelEndpoint').value || null,
+          config: {
+            temperature: parseFloat(document.getElementById('modelTemp').value),
+            max_tokens: parseInt(document.getElementById('modelMaxTokens').value)
+          }
+        })
+      });
+      if (response.ok) {
+        hideModal('createModelModal');
+        loadModels();
+      } else {
+        var error = await response.json();
+        alert('Error: ' + (error.error || 'Failed to create model'));
+      }
+    } catch (error) {
+      console.error('Error creating model:', error);
+      alert('Failed to create model');
+    }
+  }
+
+  function showCreateModelModal() { showModal('createModelModal'); }
+
+  async function toggleUserVisibility(userId, newVisible) {
+    try {
+      await fetch('/api/admin/user/' + userId + '/toggle-visibility', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visible: newVisible })
+      });
+      // Refresh current drill-down
+      patientsData = []; providersData = [];
+      if (currentTab === 'patients') { loadPatients(); }
+      if (currentTab === 'providers') { loadProviders(); }
+    } catch (error) {
+      console.error('Error toggling visibility:', error);
+    }
+  }
+
+  async function reassignPatient(patientId, newProviderId) {
+    if (!newProviderId) return;
+    try {
+      await fetch('/api/admin/patient/' + patientId + '/reassign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider_id: parseInt(newProviderId) })
+      });
+      patientsData = [];
+      loadPatients();
+      openPatientDrillDown(patientId);
+    } catch (error) {
+      console.error('Error reassigning patient:', error);
+    }
+  }
+
+  async function assignPatientToProvider(providerId, patientId) {
+    try {
+      await fetch('/api/admin/assign_provider', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider_id: providerId, patient_id: parseInt(patientId) })
+      });
+      providersData = [];
+      loadProviders();
+      openProviderDrillDown(providerId);
+    } catch (error) {
+      console.error('Error assigning patient:', error);
+    }
+  }
+
+  function showResetPasswordModal(userId, username) {
+    document.getElementById('resetPasswordUserId').value = userId;
+    document.getElementById('resetPasswordInfo').textContent = 'Reset password for ' + username;
+    document.getElementById('resetPasswordInput').value = '';
+    showModal('resetPasswordModal');
+  }
+
+  async function submitResetPassword() {
+    var userId = document.getElementById('resetPasswordUserId').value;
+    var password = document.getElementById('resetPasswordInput').value;
+    if (!password || password.length < 6) { alert('Password must be at least 6 characters'); return; }
+
+    try {
+      var response = await fetch('/api/admin/user/' + userId + '/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: password })
+      });
+      if (response.ok) {
+        hideModal('resetPasswordModal');
+        alert('Password reset successfully');
+      } else {
+        var error = await response.json();
+        alert('Error: ' + error.error);
+      }
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      alert('Failed to reset password');
+    }
+  }
+
+  // ── Assignments ────────────────────────────────────────────────
+
+  function showAssignmentModal() {
+    // Populate dropdowns
+    var providers = allUsers.filter(function(u) { return u.role === 'provider'; });
+    var patients = allUsers.filter(function(u) { return u.role === 'user'; });
+
+    document.getElementById('selectProvider').innerHTML =
+      '<option value="">Select a provider...</option>' +
+      providers.map(function(p) { return '<option value="' + p.id + '">' + escapeHtml(p.username) + '</option>'; }).join('');
+
+    document.getElementById('selectPatient').innerHTML =
+      '<option value="">Select a patient...</option>' +
+      patients.map(function(p) { return '<option value="' + p.id + '">' + escapeHtml(p.username) + '</option>'; }).join('');
+
+    showModal('assignmentModal');
+  }
+
   async function assignProvider(event) {
     event.preventDefault();
-
     var assignment = {
       provider_id: parseInt(document.getElementById('selectProvider').value),
       patient_id:  parseInt(document.getElementById('selectPatient').value)
@@ -350,7 +1196,7 @@
       if (response.ok) {
         hideModal('assignmentModal');
         loadAssignments();
-        alert('Assignment created successfully!');
+        loadOverview();
       } else {
         var error = await response.json();
         alert('Error: ' + error.error);
@@ -361,125 +1207,157 @@
     }
   }
 
-  async function viewUserConversations(userId) {
-    try {
-      var response = await fetch('/api/admin/user/' + userId + '/conversations');
-      var conversations = await response.json();
-
-      var user = allUsers.find(function(u) { return u.id === userId; });
-      var userName = user ? user.username : 'Unknown User';
-
-      if (conversations.length === 0) {
-        alert(userName + ' has no conversations yet.');
-        return;
-      }
-
-      var message = 'Conversations for ' + userName + ':\n\n';
-      conversations.forEach(function(conv, index) {
-        var date = new Date(conv.created_at * 1000).toLocaleDateString();
-        message += (index + 1) + '. ' + conv.title + '\n';
-        message += '   Model: ' + conv.model + ' | Messages: ' + conv.message_count + ' | Created: ' + date + '\n\n';
-      });
-
-      alert(message);
-    } catch (error) {
-      console.error('Error loading conversations:', error);
-      alert('Failed to load conversations');
-    }
-  }
-
-  async function viewProviderPatients(providerId) {
-    try {
-      var response = await fetch('/api/admin/provider/' + providerId + '/patients');
-      var patients = await response.json();
-
-      var provider = allUsers.find(function(u) { return u.id === providerId; });
-      var providerName = provider ? provider.username : 'Unknown Provider';
-
-      if (patients.length === 0) {
-        alert(providerName + ' has no assigned patients yet.');
-        return;
-      }
-
-      var message = 'Patients assigned to ' + providerName + ':\n\n';
-      patients.forEach(function(patient, index) {
-        message += (index + 1) + '. ' + patient.username + ' (' + patient.email + ')\n';
-        message += '   Conversations: ' + patient.conversation_count + '\n';
-        if (patient.last_active) {
-          var lastActive = new Date(patient.last_active * 1000).toLocaleDateString();
-          message += '   Last active: ' + lastActive + '\n';
-        }
-        message += '\n';
-      });
-
-      alert(message);
-    } catch (error) {
-      console.error('Error loading patients:', error);
-      alert('Failed to load patients');
-    }
-  }
-
   async function removeAssignment(assignmentId) {
     if (!confirm('Are you sure you want to remove this assignment?')) return;
-
     try {
       var response = await fetch('/api/admin/assignment/' + assignmentId, { method: 'DELETE' });
-
       if (response.ok) {
         loadAssignments();
-        alert('Assignment removed successfully!');
+        loadOverview();
       } else {
         alert('Failed to remove assignment');
       }
     } catch (error) {
       console.error('Error removing assignment:', error);
-      alert('Failed to remove assignment');
     }
   }
 
-  // ── System settings ───────────────────────────────────────────
-  async function loadSystemSettings() {
+  // ── Safety plan viewer ─────────────────────────────────────────
+
+  async function viewSafetyPlan(planId, patientId) {
     try {
-      var response = await fetch('/api/admin/settings');
-      var settings = await response.json();
+      var response = await fetch('/api/safety-plan/patient/' + patientId);
+      var data = await response.json();
 
-      document.getElementById('providersCanSetPrompts').checked = settings.providers_can_set_custom_prompts === true;
-      document.getElementById('usersCanSaveSelections').checked = settings.users_can_save_selections === true;
-    } catch (error) {
-      console.error('Error loading system settings:', error);
-    }
-  }
+      // Find the specific plan
+      var plan = data.active || data.pending || data.draft;
+      if (!plan) { alert('No plan found'); return; }
 
-  async function updateGlobalSetting(settingName, value) {
-    try {
-      var body = {};
-      body[settingName] = value;
+      document.getElementById('safetyPlanModalTitle').textContent = 'Safety Plan (v' + plan.version + ' — ' + plan.status + ')';
 
-      var response = await fetch('/api/admin/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
+      var html = '';
 
-      if (response.ok) {
-        console.log('Updated ' + settingName + ' to ' + value);
-      } else {
-        alert('Failed to update setting');
+      // Warning signs
+      if (plan.warning_signs && plan.warning_signs.length > 0) {
+        html += '<div class="mb-5"><h4 class="mb-2 text-sm font-semibold text-stone-800">Warning Signs</h4>';
+        html += '<div class="space-y-1.5">';
+        plan.warning_signs.forEach(function(w) {
+          html += '<div class="rounded bg-violet-50/60 px-3 py-2 text-sm">';
+          html += '<span class="font-medium">' + escapeHtml(w.sign) + '</span>';
+          if (w.severity) html += ' <span class="text-xs text-stone-500">(severity: ' + w.severity + '/5)</span>';
+          if (w.context) html += '<div class="text-xs text-stone-500 mt-0.5">' + escapeHtml(w.context) + '</div>';
+          html += '</div>';
+        });
+        html += '</div></div>';
       }
+
+      // Coping strategies
+      if (plan.coping_strategies && plan.coping_strategies.length > 0) {
+        html += '<div class="mb-5"><h4 class="mb-2 text-sm font-semibold text-stone-800">Coping Strategies</h4>';
+        html += '<div class="space-y-1.5">';
+        plan.coping_strategies.forEach(function(c) {
+          html += '<div class="rounded bg-violet-50/60 px-3 py-2 text-sm">';
+          html += '<span class="font-medium">' + escapeHtml(c.strategy) + '</span>';
+          if (c.patient_language) html += ' <span class="text-xs text-stone-400">(' + escapeHtml(c.patient_language) + ')</span>';
+          if (c.effectiveness) html += ' <span class="text-xs text-stone-500">effectiveness: ' + c.effectiveness + '/5</span>';
+          html += '</div>';
+        });
+        html += '</div></div>';
+      }
+
+      // Support network
+      if (plan.support_network && plan.support_network.length > 0) {
+        html += '<div class="mb-5"><h4 class="mb-2 text-sm font-semibold text-stone-800">Support Network</h4>';
+        html += '<div class="space-y-1.5">';
+        plan.support_network.forEach(function(s) {
+          html += '<div class="rounded bg-violet-50/60 px-3 py-2 text-sm">';
+          html += '<span class="font-medium">' + escapeHtml(s.person) + '</span>';
+          if (s.relationship) html += ' <span class="text-xs text-stone-500">(' + escapeHtml(s.relationship) + ')</span>';
+          if (s.contact_preference) html += '<div class="text-xs text-stone-500 mt-0.5">' + escapeHtml(s.contact_preference) + '</div>';
+          html += '</div>';
+        });
+        html += '</div></div>';
+      }
+
+      // Reasons for living
+      if (plan.reasons_for_living && plan.reasons_for_living.length > 0) {
+        html += '<div class="mb-5"><h4 class="mb-2 text-sm font-semibold text-stone-800">Reasons for Living</h4>';
+        html += '<div class="space-y-1.5">';
+        plan.reasons_for_living.forEach(function(r) {
+          html += '<div class="rounded bg-violet-50/60 px-3 py-2 text-sm">';
+          html += '<span class="font-medium">' + escapeHtml(r.reason) + '</span>';
+          if (r.context) html += '<div class="text-xs text-stone-500 mt-0.5">' + escapeHtml(r.context) + '</div>';
+          html += '</div>';
+        });
+        html += '</div></div>';
+      }
+
+      // Anti-patterns (admin sees all, including hidden)
+      if (plan.anti_patterns && plan.anti_patterns.length > 0) {
+        html += '<div class="mb-5"><h4 class="mb-2 text-sm font-semibold text-stone-800">Anti-Patterns</h4>';
+        html += '<div class="space-y-1.5">';
+        plan.anti_patterns.forEach(function(ap) {
+          var hidden = ap.visible_to_patient === false;
+          html += '<div class="rounded px-3 py-2 text-sm ' + (hidden ? 'bg-amber-50 border border-amber-200' : 'bg-violet-50/60') + '">';
+          html += '<span class="font-medium">' + escapeHtml(ap.pattern) + '</span>';
+          if (hidden) html += ' <span class="text-[10px] font-semibold text-amber-700">HIDDEN FROM PATIENT</span>';
+          html += ' <span class="text-xs text-stone-400">(' + (ap.source || 'provider') + ')</span>';
+          if (ap.reason) html += '<div class="text-xs text-stone-500 mt-0.5">' + escapeHtml(ap.reason) + '</div>';
+          html += '</div>';
+        });
+        html += '</div></div>';
+      }
+
+      // Care team
+      if (plan.care_team && plan.care_team.length > 0) {
+        html += '<div class="mb-5"><h4 class="mb-2 text-sm font-semibold text-stone-800">Care Team</h4>';
+        plan.care_team.forEach(function(ct) {
+          html += '<div class="rounded bg-violet-50/60 px-3 py-2 text-sm mb-1">';
+          html += '<span class="font-medium">' + escapeHtml(ct.name) + '</span>';
+          if (ct.role) html += ' <span class="text-xs text-stone-500">(' + escapeHtml(ct.role) + ')</span>';
+          if (ct.contact_protocol) html += '<div class="text-xs text-stone-500 mt-0.5">' + escapeHtml(ct.contact_protocol) + '</div>';
+          html += '</div>';
+        });
+        html += '</div>';
+      }
+
+      // Emergency plan
+      if (plan.emergency_plan && Object.keys(plan.emergency_plan).length > 0) {
+        html += '<div class="mb-5"><h4 class="mb-2 text-sm font-semibold text-stone-800">Emergency Plan</h4>';
+        html += '<div class="rounded bg-red-50 border border-red-200 px-3 py-2 text-sm space-y-1">';
+        if (plan.emergency_plan.activation_conditions) html += '<div><span class="font-medium text-red-800">Activation:</span> ' + escapeHtml(plan.emergency_plan.activation_conditions) + '</div>';
+        if (plan.emergency_plan.preferred_facility) html += '<div><span class="font-medium text-red-800">Facility:</span> ' + escapeHtml(plan.emergency_plan.preferred_facility) + '</div>';
+        if (plan.emergency_plan.contraindications) html += '<div><span class="font-medium text-red-800">Contraindications:</span> ' + escapeHtml(plan.emergency_plan.contraindications) + '</div>';
+        html += '</div></div>';
+      }
+
+      // Provider notes (admin can see)
+      if (plan.provider_notes) {
+        html += '<div class="mb-5"><h4 class="mb-2 text-sm font-semibold text-stone-800">Provider Notes</h4>';
+        html += '<div class="rounded bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-stone-700 whitespace-pre-wrap">' + escapeHtml(plan.provider_notes) + '</div>';
+        html += '</div>';
+      }
+
+      document.getElementById('safetyPlanContent').innerHTML = html;
+      showModal('safetyPlanModal');
     } catch (error) {
-      console.error('Error updating setting:', error);
-      alert('Error updating setting');
+      console.error('Error viewing safety plan:', error);
+      alert('Failed to load safety plan');
     }
   }
 
-  // ── Per-user settings modal ───────────────────────────────────
+  // ── Per-user settings modal ────────────────────────────────────
+
   var currentUserSettings = {};
 
   async function showUserSettingsModal(userId, userRole) {
-    var user = allUsers.find(function(u) { return u.id === userId; });
-    if (!user) return;
+    // Try to find user from existing data
+    var user = allUsers.find(function(u) { return u.id === userId; })
+      || patientsData.find(function(u) { return u.id === userId; })
+      || providersData.find(function(u) { return u.id === userId; });
+    var userName = user ? user.username : 'User #' + userId;
 
-    document.getElementById('userSettingsModalTitle').textContent = 'Settings for ' + user.username + ' (' + userRole + ')';
+    document.getElementById('userSettingsModalTitle').textContent = 'Settings for ' + userName + ' (' + userRole + ')';
 
     try {
       var response = await fetch('/api/admin/user/' + userId + '/settings');
@@ -488,9 +1366,7 @@
       currentUserSettings.userRole = userRole;
 
       populateUserSettingsForm(userRole);
-
-      document.getElementById('userSettingsModal').classList.remove('hidden');
-      document.getElementById('userSettingsModal').classList.add('flex');
+      showModal('userSettingsModal');
     } catch (error) {
       console.error('Error loading user settings:', error);
       alert('Error loading user settings');
@@ -582,7 +1458,6 @@
       });
 
       if (response.ok) {
-        alert('User settings saved successfully!');
         hideModal('userSettingsModal');
       } else {
         alert('Failed to save user settings');
@@ -593,15 +1468,17 @@
     }
   }
 
-  // ── Init ──────────────────────────────────────────────────────
-  loadDashboard();
+  // ── Init ───────────────────────────────────────────────────────
+  loadOverview();
+
+  // Switch to tab from URL hash (default: overview)
+  var initTab = (window.location.hash || '#overview').replace('#', '');
+  switchTab(initTab);
 
   // Click outside modal to close
   document.querySelectorAll('.modal').forEach(function(modal) {
     modal.addEventListener('click', function(e) {
-      if (e.target === this) {
-        hideModal(this.id);
-      }
+      if (e.target === this) hideModal(this.id);
     });
   });
 </script>

@@ -52,10 +52,10 @@
 
   {# ── Left Sidebar ── #}
   <aside id="sidebar"
-         class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col border-r border-stone-200 bg-white transition-transform lg:static lg:translate-x-0">
+         class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col border-r border-violet-100 bg-[#F8F6FC] transition-transform lg:static lg:translate-x-0">
 
     {# Logo #}
-    <div class="flex items-center gap-3 px-4 py-4 border-b border-stone-100">
+    <div class="flex items-center gap-3 px-4 py-4 border-b border-violet-100">
       <img src="/static/images/logo.png" alt="Cloze" class="h-7 w-7 rounded-md">
       <span class="text-base font-semibold text-stone-900">Cloze</span>
     </div>
@@ -63,7 +63,7 @@
     {# Home button #}
     <div class="px-3 pt-3 pb-1">
       <button onclick="showHome()" id="homeBtn"
-              class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-50">
+              class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-700 transition hover:bg-violet-50">
         <svg class="h-[18px] w-[18px] text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
           <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6"/>
         </svg>
@@ -77,9 +77,9 @@
     </div>
 
     {# Footer #}
-    <div class="border-t border-stone-100 px-3 py-3">
+    <div class="border-t border-violet-100 px-3 py-3">
       <button type="button" onclick="toggleSelections()"
-              class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-stone-600 transition hover:bg-stone-50">
+              class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-stone-600 transition hover:bg-violet-50">
         <svg class="h-[18px] w-[18px] text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
           <path d="M6 4h12a1 1 0 011 1v16l-7-3-7 3V5a1 1 0 011-1z"/>
         </svg>
@@ -194,11 +194,11 @@
           <h2 id="convTitle" class="truncate text-[15px] font-semibold text-stone-900">Loading...</h2>
         </div>
         <div class="flex items-center gap-3 shrink-0">
-          <div class="hidden sm:flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs">
+          <div class="hidden sm:flex items-center gap-2 rounded-full bg-violet-50 px-3 py-1 text-xs">
             <span class="text-stone-500">Model:</span>
             <span class="font-semibold text-stone-800" id="convModel">-</span>
           </div>
-          <div id="convTimer" class="hidden items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs">
+          <div id="convTimer" class="hidden items-center gap-2 rounded-full bg-violet-50 px-3 py-1 text-xs">
             <span class="time-label text-stone-500">Time left:</span>
             <span class="time-value font-semibold text-stone-800" id="convTimeValue"></span>
           </div>
@@ -241,7 +241,7 @@
           <div id="messagesContainer" class="flex-1 overflow-y-auto px-6 py-6 space-y-5"></div>
 
           {# Typing indicator #}
-          <div id="typingIndicator" class="hidden items-center gap-2 px-6 py-2.5 bg-muted rounded-lg mx-6 mb-2 text-sm text-stone-600">
+          <div id="typingIndicator" class="hidden items-center gap-2 px-6 py-2.5 bg-violet-50 rounded-lg mx-6 mb-2 text-sm text-stone-600">
             <span>AI is thinking</span>
             <div class="typing-dot h-2 w-2 rounded-full bg-stone-500"></div>
             <div class="typing-dot h-2 w-2 rounded-full bg-stone-500"></div>
@@ -460,22 +460,22 @@ function showAllReports() {
 function highlightHomeBtn(active) {
   var btn = document.getElementById('homeBtn');
   if (active) {
-    btn.classList.remove('text-stone-700', 'hover:bg-stone-50');
-    btn.classList.add('bg-stone-100', 'text-stone-900');
+    btn.classList.remove('text-stone-700', 'hover:bg-violet-50');
+    btn.classList.add('bg-cloze-lavender', 'text-cloze-indigo');
   } else {
-    btn.classList.remove('bg-stone-100', 'text-stone-900');
-    btn.classList.add('text-stone-700', 'hover:bg-stone-50');
+    btn.classList.remove('bg-cloze-lavender', 'text-cloze-indigo');
+    btn.classList.add('text-stone-700', 'hover:bg-violet-50');
   }
 }
 
 function highlightSidebarItem(convId) {
   document.querySelectorAll('.sidebar-conv').forEach(function(el) {
     if (convId && el.dataset.convId == convId) {
-      el.classList.remove('text-stone-700', 'hover:bg-stone-50');
-      el.classList.add('bg-stone-100', 'text-stone-900');
+      el.classList.remove('text-stone-700', 'hover:bg-violet-50');
+      el.classList.add('bg-cloze-lavender', 'text-cloze-indigo');
     } else {
-      el.classList.remove('bg-stone-100', 'text-stone-900');
-      el.classList.add('text-stone-700', 'hover:bg-stone-50');
+      el.classList.remove('bg-cloze-lavender', 'text-cloze-indigo');
+      el.classList.add('text-stone-700', 'hover:bg-violet-50');
     }
   });
 }
@@ -630,7 +630,7 @@ function renderSafetyPlanReadOnly(plan, isCurrentlyActive) {
   var editBtn = '<button onclick="event.stopPropagation(); startSafetyPlanEdit()" class="text-xs font-medium text-cloze-indigo hover:text-cloze-hover">Edit</button>';
 
   var html = '<div class="rounded-lg border border-stone-200 bg-white">';
-  html += '<div class="border-b border-stone-100 px-5 py-3 flex items-center justify-between cursor-pointer hover:bg-stone-50 transition" onclick="toggleSafetyPlanBody()">';
+  html += '<div class="border-b border-stone-100 px-5 py-3 flex items-center justify-between cursor-pointer hover:bg-violet-50 transition" onclick="toggleSafetyPlanBody()">';
   html += '<div class="flex items-center gap-2"><h3 class="text-sm font-semibold text-stone-900">My Safety Plan</h3>' + label + '</div>';
   html += '<div class="flex items-center gap-3">' + editBtn +
     '<svg id="spChevron" class="h-4 w-4 text-stone-400 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>' +
@@ -817,7 +817,7 @@ function renderSafetyPlanForm(plan) {
 // Row builders for repeatable fields
 function spWarningSignRow(i, data) {
   data = data || {};
-  return '<div class="sp-warning-row rounded-md border border-stone-200 bg-stone-50 p-3 space-y-2">' +
+  return '<div class="sp-warning-row rounded-md border border-violet-100 bg-violet-50/40 p-3 space-y-2">' +
     '<input type="text" class="sp-ws-sign w-full rounded-md border border-stone-200 px-3 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none" placeholder="What happens?" value="' + escapeHtml(data.sign || '') + '">' +
     '<div class="grid grid-cols-2 gap-2">' +
       '<select class="sp-ws-severity rounded-md border border-stone-200 px-2 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none">' + selectOptions(SEVERITY_OPTIONS, data.severity || 3) + '</select>' +
@@ -829,7 +829,7 @@ function spWarningSignRow(i, data) {
 
 function spCopingRow(i, data) {
   data = data || {};
-  return '<div class="sp-coping-row rounded-md border border-stone-200 bg-stone-50 p-3 space-y-2">' +
+  return '<div class="sp-coping-row rounded-md border border-violet-100 bg-violet-50/40 p-3 space-y-2">' +
     '<input type="text" class="sp-cs-strategy w-full rounded-md border border-stone-200 px-3 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none" placeholder="What do you do?" value="' + escapeHtml(data.strategy || '') + '">' +
     '<div class="grid grid-cols-3 gap-2">' +
       '<select class="sp-cs-effectiveness rounded-md border border-stone-200 px-2 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none">' + selectOptions(EFFECTIVENESS_OPTIONS, data.effectiveness || 3) + '</select>' +
@@ -842,7 +842,7 @@ function spCopingRow(i, data) {
 
 function spSupportRow(i, data) {
   data = data || {};
-  return '<div class="sp-support-row rounded-md border border-stone-200 bg-stone-50 p-3 space-y-2">' +
+  return '<div class="sp-support-row rounded-md border border-violet-100 bg-violet-50/40 p-3 space-y-2">' +
     '<div class="grid grid-cols-2 gap-2">' +
       '<input type="text" class="sp-sn-person rounded-md border border-stone-200 px-3 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none" placeholder="Name" value="' + escapeHtml(data.person || '') + '">' +
       '<input type="text" class="sp-sn-relationship rounded-md border border-stone-200 px-3 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none" placeholder="Relationship" value="' + escapeHtml(data.relationship || '') + '">' +
@@ -857,7 +857,7 @@ function spSupportRow(i, data) {
 
 function spReasonRow(i, data) {
   data = data || {};
-  return '<div class="sp-reason-row rounded-md border border-stone-200 bg-stone-50 p-3 space-y-2">' +
+  return '<div class="sp-reason-row rounded-md border border-violet-100 bg-violet-50/40 p-3 space-y-2">' +
     '<input type="text" class="sp-rfl-reason w-full rounded-md border border-stone-200 px-3 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none" placeholder="What matters to you?" value="' + escapeHtml(data.reason || '') + '">' +
     '<input type="text" class="sp-rfl-context w-full rounded-md border border-stone-200 px-3 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none" placeholder="Tell us more (optional)" value="' + escapeHtml(data.context || '') + '">' +
     '<button type="button" onclick="this.closest(\'.sp-reason-row\').remove()" class="text-xs text-stone-400 hover:text-red-500">Remove</button>' +
@@ -866,7 +866,7 @@ function spReasonRow(i, data) {
 
 function spAntiPatternRow(i, data) {
   data = data || {};
-  return '<div class="sp-ap-row rounded-md border border-stone-200 bg-stone-50 p-3 space-y-2">' +
+  return '<div class="sp-ap-row rounded-md border border-violet-100 bg-violet-50/40 p-3 space-y-2">' +
     '<input type="text" class="sp-ap-pattern w-full rounded-md border border-stone-200 px-3 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none" placeholder="What should the AI avoid?" value="' + escapeHtml(data.pattern || '') + '">' +
     '<input type="text" class="sp-ap-reason w-full rounded-md border border-stone-200 px-3 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none" placeholder="Why? (optional)" value="' + escapeHtml(data.reason || '') + '">' +
     '<button type="button" onclick="this.closest(\'.sp-ap-row\').remove()" class="text-xs text-stone-400 hover:text-red-500">Remove</button>' +
@@ -1049,7 +1049,7 @@ function renderSidebar() {
     items.forEach(function(c) {
       var title = escapeHtml(c.title || 'Untitled Conversation');
       var isActive = activeConversationId == c.id;
-      var classes = isActive ? 'bg-stone-100 text-stone-900' : 'text-stone-700 hover:bg-stone-50';
+      var classes = isActive ? 'bg-cloze-lavender text-cloze-indigo' : 'text-stone-700 hover:bg-violet-50';
       html += '<button data-conv-id="' + c.id + '" onclick="showConversation(' + c.id + ')" ' +
         'class="sidebar-conv flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm transition ' + classes + '">' +
         '<svg class="h-4 w-4 shrink-0 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">' +
@@ -1098,7 +1098,7 @@ function renderHomeView() {
       var t = item.template;
       var w = item.window;
       return '<button onclick="startTemplate(' + t.id + ')" ' +
-        'class="flex w-full items-center gap-3 rounded-lg border border-stone-200 bg-white p-3 text-left transition hover:border-cloze-indigo/40 hover:bg-stone-50">' +
+        'class="flex w-full items-center gap-3 rounded-lg border border-stone-200 bg-white p-3 text-left transition hover:border-cloze-indigo/40 hover:bg-violet-50">' +
         '<div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cloze-indigo/10 text-cloze-indigo">' +
         '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>' +
         '<div class="min-w-0 flex-1">' +
@@ -1123,7 +1123,7 @@ function renderHomeView() {
     continueSection.classList.remove('hidden');
     continueCards.innerHTML = inProgress.map(function(c) {
       return '<button onclick="showConversation(' + c.id + ')" ' +
-        'class="flex w-full items-center gap-3 rounded-lg border border-stone-200 bg-white p-3 text-left transition hover:border-stone-300 hover:bg-stone-50">' +
+        'class="flex w-full items-center gap-3 rounded-lg border border-stone-200 bg-white p-3 text-left transition hover:border-stone-300 hover:bg-violet-50">' +
         '<div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">' +
         '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">' +
         '<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>' +
@@ -1547,7 +1547,7 @@ function renderAllReportsView() {
   }
   container.innerHTML = '<div class="overflow-hidden rounded-lg border border-stone-200 bg-white">' +
     '<table class="w-full text-sm">' +
-    '<thead><tr class="border-b border-stone-200 bg-muted text-left">' +
+    '<thead><tr class="border-b border-stone-200 bg-violet-50/60 text-left">' +
     '<th class="px-4 py-2.5 font-medium text-stone-600">Window</th>' +
     '<th class="px-4 py-2.5 font-medium text-stone-600 hidden sm:table-cell">Date Range</th>' +
     '<th class="px-4 py-2.5 font-medium text-stone-600 hidden sm:table-cell">Generated</th>' +

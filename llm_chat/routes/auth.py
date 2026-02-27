@@ -25,6 +25,13 @@ def login():
     """Render the login page"""
     return render_template("login.html")
 
+@auth_blp.route("/admin/login")
+def admin_login():
+    """Render the admin login page"""
+    if current_user.is_authenticated and current_user.is_admin():
+        return redirect(url_for('admin.admin_dashboard'))
+    return render_template("admin_login.html")
+
 @auth_blp.route("/logout")
 @login_required
 def logout():

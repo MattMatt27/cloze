@@ -116,12 +116,20 @@ async function logout() {
 
 (function markActive() {
   var path = location.pathname.replace(/\/+$/, '');
+  var hash = location.hash || '';
+  var fullUrl = path + hash;
   document.querySelectorAll('#sidebar a[href]').forEach(function (a) {
     var href = a.getAttribute('href').replace(/\/+$/, '');
-    if (href && (href === path || (href !== '/' && path.startsWith(href)))) {
-      // Remove default styles, apply active styles
-      a.classList.remove('text-stone-600', 'hover:bg-stone-50');
-      a.classList.add('bg-stone-100', 'text-stone-900');
+    // For hash-based links (e.g. /admin/dashboard#patients), match exactly
+    var isMatch = false;
+    if (href.indexOf('#') !== -1) {
+      isMatch = (href === fullUrl);
+    } else {
+      isMatch = href && (href === path || (href !== '/' && path.startsWith(href)));
+    }
+    if (isMatch) {
+      a.classList.remove('text-stone-600', 'hover:bg-violet-50');
+      a.classList.add('bg-cloze-lavender', 'text-cloze-indigo', 'font-medium');
       var icon = a.querySelector('svg');
       if (icon) {
         icon.classList.remove('text-stone-400');

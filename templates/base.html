@@ -18,6 +18,7 @@
             'cloze-indigo':  '#5B5FC7',
             'cloze-sky':     '#7DBBDA',
             'cloze-hover':   '#4E51B0',
+            'cloze-lavender':'#EEEAF6',
           }
         }
       }
@@ -36,7 +37,7 @@
 
     {# ── Sidebar ─────────────────────────────────────────── #}
     <aside id="sidebar"
-           class="fixed inset-y-0 left-0 z-40 w-64 -translate-x-full border-r border-stone-200 bg-white px-3 py-5 transition-transform lg:static lg:translate-x-0">
+           class="fixed inset-y-0 left-0 z-40 w-64 -translate-x-full border-r border-violet-100 bg-[#F8F6FC] px-3 py-5 transition-transform lg:static lg:translate-x-0">
 
       {# Logo + brand #}
       <div class="mb-6 flex items-center gap-3 px-3">
@@ -53,7 +54,7 @@
             {% if current_user.role == 'user' %}
             <li>
               <a href="/dashboard"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-50">
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50">
                 <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6"/>
                 </svg>
@@ -62,7 +63,7 @@
             </li>
             <li>
               <a href="/chat-windows"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-50"
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50"
                  title="View and manage all your conversation windows">
                 <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M8 10h8M8 14h5"/><path d="M21 12a8.5 8.5 0 01-1.6 5l.6 3-3-1a8.5 8.5 0 11-2-14.5"/>
@@ -72,7 +73,7 @@
             </li>
             <li>
               <a href="/my-reports"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-50"
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50"
                  title="Review reports from completed conversations">
                 <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -83,7 +84,7 @@
             <li>
               <button type="button"
                       onclick="typeof toggleSelections === 'function' && toggleSelections()"
-                      class="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-stone-600 transition hover:bg-stone-50"
+                      class="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-stone-600 transition hover:bg-violet-50"
                       title="Quotes and insights you've saved from your conversations">
                 <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M6 4h12a1 1 0 011 1v16l-7-3-7 3V5a1 1 0 011-1z"/>
@@ -97,7 +98,7 @@
             {% if current_user.role == 'provider' %}
             <li>
               <a href="/provider/dashboard"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-50">
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50">
                 <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6"/>
                 </svg>
@@ -106,7 +107,7 @@
             </li>
             <li>
               <a href="/provider/chat-windows"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-50">
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50">
                 <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M8 10h8M8 14h5"/><path d="M21 12a8.5 8.5 0 01-1.6 5l.6 3-3-1a8.5 8.5 0 11-2-14.5"/>
                 </svg>
@@ -118,13 +119,40 @@
             {# ── Admin nav ── #}
             {% if current_user.role == 'admin' %}
             <li>
-              <a href="/admin/dashboard"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-50">
+              <a href="/admin/dashboard#overview"
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50">
+                <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                  <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6"/>
+                </svg>
+                <span>Dashboard</span>
+              </a>
+            </li>
+            <li>
+              <a href="/admin/dashboard#patients"
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50">
+                <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+                </svg>
+                <span>Patients</span>
+              </a>
+            </li>
+            <li>
+              <a href="/admin/dashboard#providers"
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50">
+                <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                  <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                </svg>
+                <span>Providers</span>
+              </a>
+            </li>
+            <li>
+              <a href="/admin/dashboard#settings"
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50">
                 <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
                   <circle cx="12" cy="12" r="3"/>
                 </svg>
-                <span>Admin Dashboard</span>
+                <span>Settings</span>
               </a>
             </li>
             {% endif %}
@@ -134,7 +162,7 @@
       </nav>
 
       {# Sidebar footer #}
-      <div class="mt-auto border-t border-stone-100 pt-4 px-3">
+      <div class="mt-auto border-t border-violet-100 pt-4 px-3">
         <div class="text-xs text-stone-500">
           {% if current_user.role == 'user' %}
           {{ current_user.username }}
