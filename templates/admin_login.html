@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Cloze</title>
+  <link rel="icon" type="image/png" href="/static/images/logo.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'cloze-indigo':  '#5B5FC7',
+            'cloze-hover':   '#4E51B0',
+          }
+        }
+      }
+    };
+  </script>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4 antialiased" style="background:#1c1926">
+
+  <div class="w-full max-w-sm">
+    {# Logo + title #}
+    <div class="mb-8 text-center">
+      <img src="/static/images/logo.png" alt="Cloze" class="mx-auto mb-4 h-14 w-14 rounded-lg">
+      <h1 class="text-xl font-semibold text-white">Admin Sign In</h1>
+      <p class="mt-1 text-sm text-stone-400">Cloze administration</p>
+    </div>
+
+    {# Card #}
+    <div class="rounded-lg border border-stone-700 bg-stone-800 p-6">
+
+      {# Error #}
+      <div id="errorMessage"
+           class="mb-4 hidden rounded-md bg-red-900/40 px-3 py-2.5 text-sm text-red-300 ring-1 ring-inset ring-red-800">
+      </div>
+
+      {# Form #}
+      <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <label for="username" class="mb-1.5 block text-sm font-medium text-stone-300">Username</label>
+          <input type="text" id="username" name="username" required autocomplete="username"
+                 class="w-full rounded-md border border-stone-600 bg-stone-700 px-3 py-2 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-cloze-indigo focus:ring-1 focus:ring-cloze-indigo">
+        </div>
+
+        <div>
+          <label for="password" class="mb-1.5 block text-sm font-medium text-stone-300">Password</label>
+          <input type="password" id="password" name="password" required autocomplete="current-password"
+                 class="w-full rounded-md border border-stone-600 bg-stone-700 px-3 py-2 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-cloze-indigo focus:ring-1 focus:ring-cloze-indigo">
+        </div>
+
+        <button type="submit" id="loginBtn"
+                class="w-full rounded-md bg-cloze-indigo px-4 py-2.5 text-sm font-medium text-white transition hover:bg-cloze-hover disabled:opacity-50 disabled:cursor-not-allowed">
+          Sign in
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    async function handleLogin(event) {
+      event.preventDefault();
+
+      var errorDiv = document.getElementById('errorMessage');
+      var loginBtn = document.getElementById('loginBtn');
+
+      errorDiv.classList.add('hidden');
+      loginBtn.disabled = true;
+
+      var formData = {
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value
+      };
+
+      try {
+        var response = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        });
+
+        var data = await response.json();
+
+        if (response.ok) {
+          if (data.role !== 'admin') {
+            errorDiv.textContent = 'This account does not have admin access.';
+            errorDiv.classList.remove('hidden');
+            loginBtn.disabled = false;
+            // Log them out since they were just logged in by the API
+            fetch('/logout');
+            return;
+          }
+          window.location.href = data.redirect;
+        } else {
+          errorDiv.textContent = data.message || 'Invalid credentials';
+          errorDiv.classList.remove('hidden');
+          loginBtn.disabled = false;
+        }
+      } catch (e) {
+        errorDiv.textContent = 'An error occurred. Please try again.';
+        errorDiv.classList.remove('hidden');
+        loginBtn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
