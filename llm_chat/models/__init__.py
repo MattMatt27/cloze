@@ -4,6 +4,7 @@ from .chat import Model, Conversation, Message, SavedSelection
 from .chat_window import ChatWindow, ChatTemplate
 from .report import Report
 from .safety_plan import SafetyPlan
+from .audit import AuditLog, EscalationEvent
 
 __all__ = [
     "User", "ProviderPatient",
@@ -12,4 +13,5 @@ __all__ = [
     "ChatWindow", "ChatTemplate",
     "Report",
     "SafetyPlan",
+    "AuditLog", "EscalationEvent",
 ]
