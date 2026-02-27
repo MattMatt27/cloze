@@ -3,9 +3,19 @@ import time
 from flask import Blueprint, jsonify, request, abort
 from flask_login import login_required, current_user
 from ..extensions import db
-from ..models import SafetyPlan, User, ProviderPatient
+from ..models import SafetyPlan, User, ProviderPatient, AdminSettings
 
 safety_bp = Blueprint("safety_plan", __name__, url_prefix="/api/safety-plan")
+
+
+def _get_admin_setting(name, default=None):
+    row = AdminSettings.query.filter_by(setting_name=name).first()
+    if not row or not row.setting_value:
+        return default
+    try:
+        return json.loads(row.setting_value)
+    except Exception:
+        return row.setting_value
 
 
 # ── Patient endpoints ──────────────────────────────────────────
@@ -93,6 +103,9 @@ def add_patient_anti_pattern():
     """Patient adds an anti-pattern (source='patient', visible=true)."""
     if not current_user.is_patient():
         abort(403)
+
+    if not _get_admin_setting('allow_patient_anti_patterns', True):
+        return jsonify({'error': 'Adding anti-patterns is currently disabled by your administrator.'}), 403
 
     data = request.json or {}
     if not data.get('pattern'):

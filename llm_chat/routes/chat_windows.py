@@ -4,9 +4,19 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request, abort
 from flask_login import login_required, current_user
 from ..extensions import db
-from ..models import ChatWindow, ChatTemplate, User, Conversation, Model, SystemPrompt, SafetyPlan
+from ..models import ChatWindow, ChatTemplate, User, Conversation, Model, SystemPrompt, SafetyPlan, AdminSettings
 
 window_bp = Blueprint("chat_windows", __name__, url_prefix="/api/windows")
+
+
+def _get_admin_setting(name, default=None):
+    row = AdminSettings.query.filter_by(setting_name=name).first()
+    if not row or not row.setting_value:
+        return default
+    try:
+        return json.loads(row.setting_value)
+    except Exception:
+        return row.setting_value
 
 @window_bp.route("/", methods=["GET"])
 @login_required
@@ -152,15 +162,19 @@ def create_chat_window():
         print(f"Report config for window {window.id}: {report_config}")
 
     # Create templates
+    can_set_custom_prompts = _get_admin_setting('providers_can_set_custom_prompts', True)
     templates = data.get('templates', [])
     for idx, template_data in enumerate(templates):
+        custom_prompt = template_data.get('custom_system_prompt')
+        if not can_set_custom_prompts:
+            custom_prompt = None
         template = ChatTemplate(
             window_id=window.id,
             title=template_data.get('title'),
             purpose=template_data.get('purpose'),
             model_id=template_data.get('model_id'),
             system_prompt_id=template_data.get('system_prompt_id'),
-            custom_system_prompt=template_data.get('custom_system_prompt'),
+            custom_system_prompt=custom_prompt,
             max_messages=template_data.get('max_messages'),
             order_index=idx
         )
@@ -203,18 +217,22 @@ def update_chat_window(window_id):
 
     # Update templates if provided
     if 'templates' in data:
+        can_set_custom_prompts = _get_admin_setting('providers_can_set_custom_prompts', True)
         # Remove existing templates
         ChatTemplate.query.filter_by(window_id=window_id).delete()
 
         # Add new templates
         for idx, template_data in enumerate(data['templates']):
+            custom_prompt = template_data.get('custom_system_prompt')
+            if not can_set_custom_prompts:
+                custom_prompt = None
             template = ChatTemplate(
                 window_id=window_id,
                 title=template_data.get('title'),
                 purpose=template_data.get('purpose'),
                 model_id=template_data.get('model_id'),
                 system_prompt_id=template_data.get('system_prompt_id'),
-                custom_system_prompt=template_data.get('custom_system_prompt'),
+                custom_system_prompt=custom_prompt,
                 max_messages=template_data.get('max_messages'),
                 order_index=idx
             )
@@ -272,12 +290,13 @@ def start_conversation_from_template():
         abort(403)
 
     # Safety plan gating: patient must have an active (approved) safety plan
-    active_plan = SafetyPlan.get_active_plan(current_user.id)
-    if not active_plan:
-        return jsonify({
-            'error': 'You must have an approved safety plan before starting conversations. '
-                     'Please complete your safety plan sections first.'
-        }), 403
+    if _get_admin_setting('require_safety_plan', True):
+        active_plan = SafetyPlan.get_active_plan(current_user.id)
+        if not active_plan:
+            return jsonify({
+                'error': 'You must have an approved safety plan before starting conversations. '
+                         'Please complete your safety plan sections first.'
+            }), 403
 
     # Check if conversation already exists for this template
     existing = Conversation.query.filter_by(

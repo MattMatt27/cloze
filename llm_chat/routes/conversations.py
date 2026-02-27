@@ -9,6 +9,7 @@ from ..models import (
     Conversation, Model, Message, SavedSelection, ChatWindow, ChatTemplate
 )
 from ..services.llm_interface import LLMInterface
+from ..models import AdminSettings
 
 conv_bp = Blueprint("conversations", __name__, url_prefix="")
 
@@ -517,6 +518,30 @@ def get_system_prompts():
         result.append(entry)
 
     return jsonify(result)
+
+
+def _get_admin_setting(name, default=None):
+    """Read a single admin setting value."""
+    row = AdminSettings.query.filter_by(setting_name=name).first()
+    if not row or not row.setting_value:
+        return default
+    try:
+        import json as _json
+        return _json.loads(row.setting_value)
+    except Exception:
+        return row.setting_value
+
+
+@conv_bp.route("/api/user/settings-flags")
+@login_required
+def get_user_settings_flags():
+    """Feature flags relevant to the current user's role."""
+    flags = {
+        'users_can_save_selections': _get_admin_setting('users_can_save_selections', True),
+    }
+    if current_user.is_provider():
+        flags['providers_can_set_custom_prompts'] = _get_admin_setting('providers_can_set_custom_prompts', True)
+    return jsonify(flags)
 
 
 @conv_bp.route("/api/prompts/domains")
