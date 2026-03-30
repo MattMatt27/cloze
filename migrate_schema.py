@@ -112,7 +112,7 @@ def run_migration(apply=False):
             print(f"  ADD   {table_name}.{col_name} ({col_type})")
 
     # ── Check for new tables (will be created by db.create_all) ──
-    new_tables = ['safety_plans', 'audit_log', 'escalation_events']
+    new_tables = ['safety_plans', 'audit_log', 'escalation_events', 'provider_feature_flags']
     print()
     for t in new_tables:
         if table_exists(cursor, t, db_type):

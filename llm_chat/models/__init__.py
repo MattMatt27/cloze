@@ -1,5 +1,5 @@
 from .core import User, ProviderPatient
-from .settings import ProviderSettings, AdminSettings, UserSettings, SystemPrompt
+from .settings import ProviderSettings, AdminSettings, UserSettings, SystemPrompt, ProviderFeatureFlags
 from .chat import Model, Conversation, Message, SavedSelection
 from .chat_window import ChatWindow, ChatTemplate
 from .report import Report
@@ -8,7 +8,7 @@ from .audit import AuditLog, EscalationEvent
 
 __all__ = [
     "User", "ProviderPatient",
-    "ProviderSettings", "AdminSettings", "UserSettings", "SystemPrompt",
+    "ProviderSettings", "AdminSettings", "UserSettings", "SystemPrompt", "ProviderFeatureFlags",
     "Model", "Conversation", "Message", "SavedSelection",
     "ChatWindow", "ChatTemplate",
     "Report",

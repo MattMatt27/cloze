@@ -59,3 +59,42 @@ class UserSettings(db.Model):
 
     # Relationship
     user = db.relationship('User', backref='settings')
+
+
+class ProviderFeatureFlags(db.Model):
+    """Admin-controlled feature flags scoped to a specific provider.
+
+    NULL on any column means "inherit the global AdminSettings default."
+    """
+    __tablename__ = 'provider_feature_flags'
+    id = db.Column(db.Integer, primary_key=True)
+    provider_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)
+
+    # Safety
+    require_safety_plan = db.Column(db.Boolean, nullable=True)
+    allow_patient_anti_patterns = db.Column(db.Boolean, nullable=True)
+
+    # NLP / Reports
+    enable_nlp_report = db.Column(db.Boolean, nullable=True)
+    report_config = db.Column(db.Text, nullable=True)  # JSON override
+
+    # Prompts
+    default_system_prompt_id = db.Column(db.Integer, db.ForeignKey('system_prompts.id'), nullable=True)
+    allow_custom_prompts = db.Column(db.Boolean, nullable=True)
+
+    # Model restrictions (admin-enforced allowlist)
+    allowed_models = db.Column(db.Text, nullable=True)  # JSON array of model IDs
+
+    # Conversation limits
+    max_turns_per_conversation = db.Column(db.Integer, nullable=True)
+
+    # Configurable content
+    safety_disclaimer_text = db.Column(db.Text, nullable=True)
+    system_context_override = db.Column(db.Text, nullable=True)
+
+    created_at = db.Column(db.Float, default=lambda: time.time())
+    updated_at = db.Column(db.Float, onupdate=lambda: time.time())
+
+    # Relationships
+    provider = db.relationship('User', foreign_keys=[provider_id])
+    default_system_prompt = db.relationship('SystemPrompt', foreign_keys=[default_system_prompt_id])

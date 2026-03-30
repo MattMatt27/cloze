@@ -9,7 +9,8 @@ from ..models import (
     Conversation, Model, Message, SavedSelection, ChatWindow, ChatTemplate
 )
 from ..services.llm_interface import LLMInterface
-from ..models import AdminSettings
+from ..models import AdminSettings, ProviderFeatureFlags
+from ..utils.settings_resolution import get_effective_setting, get_provider_id_for_patient
 
 conv_bp = Blueprint("conversations", __name__, url_prefix="")
 
@@ -271,6 +272,7 @@ def create_conversation():
     if current_user.is_patient():
         provider_assignment = ProviderPatient.query.filter_by(patient_id=current_user.id).first()
         if provider_assignment:
+            # Provider-set per-patient model restrictions
             settings = ProviderSettings.query.filter_by(
                 provider_id=provider_assignment.provider_id,
                 patient_id=current_user.id
@@ -279,6 +281,12 @@ def create_conversation():
                 allowed = json.loads(settings.allowed_models)
                 if model_id not in allowed:
                     return jsonify({'error': 'Model not allowed by provider'}), 403
+            # Admin-enforced provider-level model allowlist
+            flags = ProviderFeatureFlags.query.filter_by(provider_id=provider_assignment.provider_id).first()
+            if flags and flags.allowed_models:
+                admin_allowed = json.loads(flags.allowed_models)
+                if model_id not in admin_allowed:
+                    return jsonify({'error': 'Model not permitted for this study'}), 403
 
     # Get system prompt content (with custom instructions applied)
     system_prompt_content = None
@@ -316,6 +324,18 @@ def send_message(conversation_id):
             status = window.compute_status()
             if not window.visible or status != 'active':
                 return jsonify({'error': 'Chat window has expired or is no longer active'}), 403
+
+    # Max turns per conversation enforcement
+    if current_user.is_patient():
+        provider_id = get_provider_id_for_patient(current_user.id)
+        max_turns = get_effective_setting('max_turns_per_conversation', provider_id)
+        if max_turns:
+            user_message_count = Message.query.filter_by(
+                conversation_id=conversation_id,
+                role='user'
+            ).count()
+            if user_message_count >= max_turns:
+                return jsonify({'error': f'This conversation has reached its maximum of {max_turns} exchanges.'}), 403
 
     # Time window and limits for patients
     if current_user.is_patient():
@@ -449,6 +469,7 @@ def get_available_models():
         if current_user.is_patient():
             provider_assignment = ProviderPatient.query.filter_by(patient_id=current_user.id).first()
             if provider_assignment:
+                # Provider-set per-patient restrictions
                 settings = ProviderSettings.query.filter_by(
                     provider_id=provider_assignment.provider_id,
                     patient_id=current_user.id
@@ -456,6 +477,12 @@ def get_available_models():
                 if settings and settings.allowed_models:
                     allowed = json.loads(settings.allowed_models)
                     if model.id not in allowed:
+                        continue
+                # Admin-enforced provider-level allowlist
+                flags = ProviderFeatureFlags.query.filter_by(provider_id=provider_assignment.provider_id).first()
+                if flags and flags.allowed_models:
+                    admin_allowed = json.loads(flags.allowed_models)
+                    if model.id not in admin_allowed:
                         continue
 
         available.append({'id': model.id, 'name': model.name, 'provider': model.provider})
@@ -520,28 +547,40 @@ def get_system_prompts():
     return jsonify(result)
 
 
-def _get_admin_setting(name, default=None):
-    """Read a single admin setting value."""
-    row = AdminSettings.query.filter_by(setting_name=name).first()
-    if not row or not row.setting_value:
-        return default
-    try:
-        import json as _json
-        return _json.loads(row.setting_value)
-    except Exception:
-        return row.setting_value
-
-
 @conv_bp.route("/api/user/settings-flags")
 @login_required
 def get_user_settings_flags():
     """Feature flags relevant to the current user's role."""
+    provider_id = None
+    if current_user.is_patient():
+        provider_id = get_provider_id_for_patient(current_user.id)
+    elif current_user.is_provider():
+        provider_id = current_user.id
+
     flags = {
-        'users_can_save_selections': _get_admin_setting('users_can_save_selections', True),
+        'users_can_save_selections': get_effective_setting('users_can_save_selections', provider_id, True),
     }
     if current_user.is_provider():
-        flags['providers_can_set_custom_prompts'] = _get_admin_setting('providers_can_set_custom_prompts', True)
+        flags['providers_can_set_custom_prompts'] = get_effective_setting('allow_custom_prompts', current_user.id, True)
     return jsonify(flags)
+
+
+@conv_bp.route("/api/safety-disclaimer")
+@login_required
+def get_safety_disclaimer():
+    """Get the safety disclaimer text for the current patient's provider."""
+    provider_id = None
+    if current_user.is_patient():
+        provider_id = get_provider_id_for_patient(current_user.id)
+    elif current_user.is_provider():
+        provider_id = current_user.id
+
+    if provider_id:
+        flags = ProviderFeatureFlags.query.filter_by(provider_id=provider_id).first()
+        if flags and flags.safety_disclaimer_text:
+            return jsonify({'text': flags.safety_disclaimer_text, 'custom': True})
+
+    return jsonify({'text': None, 'custom': False})
 
 
 @conv_bp.route("/api/prompts/domains")

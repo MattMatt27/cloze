@@ -8,7 +8,7 @@ from ..models import (
     User, ProviderPatient, Conversation, Message,
     AdminSettings, UserSettings, ChatWindow, ChatTemplate,
     Report, SafetyPlan, Model, SystemPrompt,
-    AuditLog, EscalationEvent,
+    AuditLog, EscalationEvent, ProviderFeatureFlags,
 )
 
 admin_bp = Blueprint("admin", __name__, url_prefix="")
@@ -816,3 +816,113 @@ def get_settings_flags():
         'require_safety_plan': _get_admin_setting('require_safety_plan', True),
         'allow_patient_anti_patterns': _get_admin_setting('allow_patient_anti_patterns', True),
     })
+
+
+# ── Provider Feature Flags API ─────────────────────────────────
+
+# Columns that are editable via the API
+_FLAG_COLUMNS = [
+    'require_safety_plan', 'allow_patient_anti_patterns',
+    'enable_nlp_report', 'report_config',
+    'default_system_prompt_id', 'allow_custom_prompts',
+    'allowed_models', 'max_turns_per_conversation',
+    'safety_disclaimer_text', 'system_context_override',
+]
+
+_BOOL_FLAGS = {
+    'require_safety_plan', 'allow_patient_anti_patterns',
+    'enable_nlp_report', 'allow_custom_prompts',
+}
+
+_JSON_FLAGS = {'allowed_models', 'report_config'}
+_INT_FLAGS = {'max_turns_per_conversation', 'default_system_prompt_id'}
+_TEXT_FLAGS = {'safety_disclaimer_text', 'system_context_override'}
+
+
+@admin_bp.route("/api/admin/provider/<int:provider_id>/feature-flags", methods=["GET"])
+@role_required('admin')
+def get_provider_feature_flags(provider_id):
+    """Get feature flags for a provider. Returns explicit values + inherited globals."""
+    provider = User.query.get_or_404(provider_id)
+    if provider.role != 'provider':
+        return jsonify({'error': 'User is not a provider'}), 400
+
+    flags = ProviderFeatureFlags.query.filter_by(provider_id=provider_id).first()
+
+    result = {'provider_id': provider_id, 'flags': {}}
+    for col in _FLAG_COLUMNS:
+        explicit = getattr(flags, col, None) if flags else None
+        # For JSON columns stored as text, parse them
+        if col in _JSON_FLAGS and explicit is not None:
+            try:
+                explicit = json.loads(explicit)
+            except Exception:
+                pass
+        result['flags'][col] = {
+            'value': explicit,
+            'inherited': explicit is None,
+            'effective': _resolve_effective(col, explicit),
+        }
+
+    return jsonify(result)
+
+
+def _resolve_effective(col, explicit):
+    """Compute effective value: explicit if set, else global default."""
+    if explicit is not None:
+        return explicit
+    # Map column names to AdminSettings keys
+    admin_key_map = {
+        'require_safety_plan': 'require_safety_plan',
+        'allow_patient_anti_patterns': 'allow_patient_anti_patterns',
+        'allow_custom_prompts': 'providers_can_set_custom_prompts',
+    }
+    admin_key = admin_key_map.get(col)
+    if admin_key:
+        return _get_admin_setting(admin_key, True)
+    # No global equivalent — return None to indicate "not set"
+    return None
+
+
+@admin_bp.route("/api/admin/provider/<int:provider_id>/feature-flags", methods=["POST"])
+@role_required('admin')
+def update_provider_feature_flags(provider_id):
+    """Create or update feature flags for a provider."""
+    provider = User.query.get_or_404(provider_id)
+    if provider.role != 'provider':
+        return jsonify({'error': 'User is not a provider'}), 400
+
+    data = request.json or {}
+    flags = ProviderFeatureFlags.query.filter_by(provider_id=provider_id).first()
+    if not flags:
+        flags = ProviderFeatureFlags(provider_id=provider_id)
+        db.session.add(flags)
+
+    changes = {}
+    for col in _FLAG_COLUMNS:
+        if col not in data:
+            continue
+        val = data[col]
+        old_val = getattr(flags, col)
+
+        # None means "reset to inherit global"
+        if val is None:
+            setattr(flags, col, None)
+        elif col in _BOOL_FLAGS:
+            setattr(flags, col, bool(val))
+        elif col in _INT_FLAGS:
+            setattr(flags, col, int(val) if val is not None else None)
+        elif col in _JSON_FLAGS:
+            setattr(flags, col, json.dumps(val) if val is not None else None)
+        elif col in _TEXT_FLAGS:
+            setattr(flags, col, str(val) if val else None)
+
+        new_val = getattr(flags, col)
+        if str(old_val) != str(new_val):
+            changes[col] = {'from': old_val, 'to': new_val}
+
+    if changes:
+        _log_action('update_provider_feature_flags', 'provider_feature_flags', provider_id, changes)
+
+    db.session.commit()
+    return jsonify({'status': 'success', 'changes': changes})

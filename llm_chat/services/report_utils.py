@@ -3,6 +3,7 @@ from typing import List
 
 from ..extensions import db
 from ..models import ChatWindow, Report
+from ..utils.settings_resolution import get_effective_setting
 from report.generator import UnifiedReportGenerator
 
 
@@ -10,11 +11,18 @@ def generate_report_for_window(window_id: int, report_type: str = None):
     """Generate and persist both summary and detailed reports for a window.
 
     Always generates both report types. Returns the summary report for
-    backward compatibility.
+    backward compatibility. Returns None if NLP reports are disabled for
+    this provider.
     """
     window = ChatWindow.query.get(window_id)
     if not window:
         raise ValueError(f"Chat window {window_id} not found")
+
+    # Check if NLP reports are enabled for this provider
+    if not get_effective_setting('enable_nlp_report', window.provider_id, True):
+        window.status = 'report_ready'
+        db.session.commit()
+        return None
 
     # Generate summary report if missing
     summary = Report.query.filter_by(window_id=window.id, report_type='summary').first()
@@ -52,6 +60,13 @@ def finalize_expired_windows() -> List[int]:
             changed = True
 
         if current_status == 'generating_report':
+            # Skip report generation if disabled for this provider
+            if not get_effective_setting('enable_nlp_report', window.provider_id, True):
+                window.status = 'report_ready'
+                processed.append(window.id)
+                changed = True
+                continue
+
             try:
                 if not Report.query.filter_by(window_id=window.id, report_type='summary').first():
                     UnifiedReportGenerator.save_report(window.id, report_type='summary')
