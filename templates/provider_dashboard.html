@@ -105,6 +105,15 @@
 
 {% block scripts %}
 <script>
+  function showModal(id) {
+    document.getElementById(id).classList.remove('hidden');
+    document.getElementById(id).classList.add('flex');
+  }
+  function hideModal(id) {
+    document.getElementById(id).classList.add('hidden');
+    document.getElementById(id).classList.remove('flex');
+  }
+
   var allPatients = [];
   var allWindows = [];
   var allReports = [];
