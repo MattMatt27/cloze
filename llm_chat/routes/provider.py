@@ -233,6 +233,58 @@ def get_my_flags():
     })
 
 
+@provider_bp.route("/api/provider/content-defaults", methods=['GET'])
+@role_required('provider')
+def get_content_defaults():
+    """Returns the default safety disclaimer HTML and system context markdown."""
+    from prompts.registry import PromptRegistry
+    registry = PromptRegistry.instance()
+
+    # Get system_context constitutional prompt content
+    system_context_default = ''
+    for prompt in registry.get_constitutional_prompts():
+        if prompt.id == 'system_context':
+            system_context_default = prompt.content
+            break
+
+    # Default disclaimer HTML (the hardcoded modal body content)
+    disclaimer_default = """<p class="mb-4 text-sm leading-relaxed text-stone-700">
+  This conversation partner is designed for general discussion and support between your regular sessions.
+  It is <strong>NOT</strong> a substitute for emergency services or crisis intervention.
+</p>
+<div class="rounded-lg border-l-4 border-amber-400 bg-amber-50 p-4 my-5">
+  <h3 class="flex items-center gap-1.5 text-sm font-semibold text-amber-800 mb-2">Crisis Support</h3>
+  <p class="text-sm text-amber-900 mb-2">If you are experiencing a mental health crisis, please:</p>
+  <ul class="list-disc pl-5 text-sm text-amber-900 space-y-1">
+    <li>Call <strong>988</strong> (Suicide &amp; Crisis Lifeline)</li>
+    <li>Call <strong>911</strong> for immediate emergency assistance</li>
+    <li>Contact your provider directly</li>
+  </ul>
+</div>
+<div class="rounded-lg border-l-4 border-red-500 bg-red-50 p-4 my-5">
+  <h3 class="flex items-center gap-1.5 text-sm font-semibold text-red-900 mb-2">Required Reporting</h3>
+  <p class="text-sm text-red-900">
+    For your safety, if you express active suicidal or homicidal thoughts with specific means or plans,
+    we are required to notify your provider and may contact local authorities.
+  </p>
+</div>
+<p class="text-sm text-stone-500 leading-relaxed mt-5">
+  This conversation partner is here to support you between sessions, but it cannot provide clinical
+  treatment or emergency intervention.
+</p>
+<div class="mt-5 pt-5 border-t border-stone-200">
+  <label class="flex items-start gap-2.5 cursor-pointer select-none">
+    <input type="checkbox" id="safetyAcknowledge" class="mt-0.5 h-4 w-4 cursor-pointer rounded border-stone-300 text-cloze-indigo focus:ring-cloze-indigo">
+    <span class="text-sm text-stone-700">I understand this information and agree to use this conversation partner for general discussion only, not for clinical treatment or emergencies.</span>
+  </label>
+</div>"""
+
+    return jsonify({
+        'disclaimer_default': disclaimer_default,
+        'system_context_default': system_context_default,
+    })
+
+
 @provider_bp.route("/api/provider/my-flags", methods=['PUT'])
 @role_required('provider')
 def update_my_flags():
