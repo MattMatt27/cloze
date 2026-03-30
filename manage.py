@@ -67,12 +67,20 @@ def initialize_database():
             new_credentials.append(('provider1', pw, 'provider'))
             print("Created demo provider")
 
-        # Demo users (patients) - only create if they don't exist
+        # Flush so provider/admin IDs are available for created_by
+        db.session.flush()
+        provider = User.query.filter_by(username='provider1').first()
+        admin = User.query.filter_by(role='admin').first()
+
+        # Demo users (patients) - created by provider1
         demo_users = ['user1', 'user2', 'user3']
         for username in demo_users:
             if not User.query.filter_by(username=username).first():
                 pw = _generate_password()
-                u = User(username=username, email=f'{username}@example.com', role='user')
+                u = User(
+                    username=username, email=f'{username}@example.com', role='user',
+                    created_by=provider.id if provider else None,
+                )
                 u.set_password(pw)
                 db.session.add(u)
                 new_credentials.append((username, pw, 'patient'))
@@ -83,8 +91,6 @@ def initialize_database():
             _save_credentials(new_credentials)
 
         # Assign provider to demo users (only if assignments don't exist)
-        provider = User.query.filter_by(username='provider1').first()
-        admin = User.query.filter_by(role='admin').first()
         if provider and admin:
             for username in demo_users:
                 patient = User.query.filter_by(username=username).first()

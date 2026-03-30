@@ -37,7 +37,11 @@ def get_effective_setting(setting_name, provider_id=None, default=None):
 
 
 def get_provider_id_for_patient(patient_id):
-    """Look up the provider_id for a given patient. Returns None if unassigned."""
+    """Look up the provider_id for a given patient. Returns None if unassigned.
+
+    Deterministic: ProviderPatient has a unique constraint on patient_id,
+    so each patient has at most one provider.
+    """
     from ..models import ProviderPatient
     assignment = ProviderPatient.query.filter_by(patient_id=patient_id).first()
     return assignment.provider_id if assignment else None

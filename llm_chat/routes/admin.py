@@ -126,11 +126,36 @@ def create_user():
     data = request.json or {}
     if User.query.filter_by(username=data['username']).first():
         return jsonify({'error': 'Username already exists'}), 400
-    user = User(username=data['username'], email=data['email'], role=data['role'])
+
+    role = data['role']
+    # Patients must be assigned to a provider
+    provider_id = data.get('provider_id')
+    if role == 'user' and not provider_id:
+        return jsonify({'error': 'Patients must be assigned to a provider'}), 400
+    if provider_id:
+        provider = User.query.get(provider_id)
+        if not provider or provider.role != 'provider':
+            return jsonify({'error': 'Invalid provider'}), 400
+
+    user = User(
+        username=data['username'], email=data['email'], role=role,
+        created_by=current_user.id,
+    )
     user.set_password(data['password'])
     db.session.add(user)
-    _log_action('user_created', 'user', details={
-        'username': data['username'], 'role': data['role'],
+    db.session.flush()
+
+    # Auto-create provider assignment for patients
+    if role == 'user' and provider_id:
+        db.session.add(ProviderPatient(
+            provider_id=provider_id,
+            patient_id=user.id,
+            assigned_by=current_user.id,
+        ))
+
+    _log_action('user_created', 'user', user.id, {
+        'username': data['username'], 'role': role,
+        'provider_id': provider_id,
     })
     db.session.commit()
     return jsonify({'id': user.id})
@@ -253,8 +278,8 @@ def get_patient_details(patient_id):
             } for r in reports],
         })
 
-    # All providers for reassignment dropdown
-    all_providers = User.query.filter_by(role='provider').all()
+    # Created by info
+    created_by_user = User.query.get(patient.created_by) if patient.created_by else None
 
     return jsonify({
         'id': patient.id,
@@ -262,6 +287,7 @@ def get_patient_details(patient_id):
         'email': patient.email,
         'visible': patient.visible,
         'created_at': patient.created_at,
+        'created_by': created_by_user.username if created_by_user else None,
         'provider_id': provider.id if provider else None,
         'provider_name': provider.username if provider else None,
         'assignment_id': assignment.id if assignment else None,
@@ -274,41 +300,7 @@ def get_patient_details(patient_id):
                         for p in all_plans],
         },
         'windows': window_data,
-        'all_providers': [{'id': pv.id, 'username': pv.username} for pv in all_providers],
     })
-
-
-@admin_bp.route("/api/admin/patient/<int:patient_id>/reassign", methods=['POST'])
-@role_required('admin')
-def reassign_patient(patient_id):
-    """Reassign a patient to a different provider."""
-    data = request.json or {}
-    new_provider_id = data.get('provider_id')
-    if not new_provider_id:
-        return jsonify({'error': 'provider_id is required'}), 400
-
-    new_provider = User.query.get(new_provider_id)
-    if not new_provider or new_provider.role != 'provider':
-        return jsonify({'error': 'Invalid provider'}), 400
-
-    # Remove existing assignment
-    old_assignment = ProviderPatient.query.filter_by(patient_id=patient_id).first()
-    old_provider_id = old_assignment.provider_id if old_assignment else None
-    if old_assignment:
-        db.session.delete(old_assignment)
-
-    # Create new assignment
-    assignment = ProviderPatient(
-        provider_id=new_provider_id,
-        patient_id=patient_id,
-        assigned_by=current_user.id,
-    )
-    db.session.add(assignment)
-    _log_action('assignment_changed', 'assignment', patient_id, {
-        'old_provider_id': old_provider_id, 'new_provider_id': new_provider_id,
-    })
-    db.session.commit()
-    return jsonify({'status': 'success'})
 
 
 # ── Provider management ────────────────────────────────────────
@@ -386,13 +378,6 @@ def get_provider_details(provider_id):
             'report_count': len(reports),
         })
 
-    # Unassigned patients for assignment dropdown
-    assigned_ids = {a.patient_id for a in assignments}
-    unassigned = User.query.filter(
-        User.role == 'user',
-        ~User.id.in_(assigned_ids) if assigned_ids else True,
-    ).all()
-
     return jsonify({
         'id': provider.id,
         'username': provider.username,
@@ -400,7 +385,6 @@ def get_provider_details(provider_id):
         'visible': provider.visible,
         'patients': patients,
         'windows': window_data,
-        'unassigned_patients': [{'id': u.id, 'username': u.username} for u in unassigned],
     })
 
 
@@ -448,28 +432,6 @@ def get_provider_assignments():
             'created_at': assignment.assigned_at,
         })
     return jsonify(assignment_data)
-
-
-@admin_bp.route("/api/admin/assign_provider", methods=['POST'])
-@role_required('admin')
-def assign_provider():
-    data = request.json or {}
-    existing = ProviderPatient.query.filter_by(
-        provider_id=data['provider_id'], patient_id=data['patient_id']
-    ).first()
-    if existing:
-        return jsonify({'error': 'Assignment already exists'}), 400
-    assignment = ProviderPatient(
-        provider_id=data['provider_id'],
-        patient_id=data['patient_id'],
-        assigned_by=current_user.id,
-    )
-    db.session.add(assignment)
-    _log_action('assignment_created', 'assignment', details={
-        'provider_id': data['provider_id'], 'patient_id': data['patient_id'],
-    })
-    db.session.commit()
-    return jsonify({'status': 'success'})
 
 
 @admin_bp.route("/api/admin/assignment/<int:assignment_id>", methods=['DELETE'])

@@ -13,6 +13,7 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), nullable=False, default='user')  # 'admin', 'provider', 'user'
     visible = db.Column(db.Boolean, default=True)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     created_at = db.Column(db.Float, default=lambda: time.time())
 
     # Relationships
@@ -76,4 +77,7 @@ class ProviderPatient(db.Model):
     assigned_at = db.Column(db.Float, default=lambda: time.time())
     assigned_by = db.Column(db.Integer, db.ForeignKey('users.id'))
 
-    __table_args__ = (db.UniqueConstraint('provider_id', 'patient_id'),)
+    __table_args__ = (
+        db.UniqueConstraint('provider_id', 'patient_id'),
+        db.UniqueConstraint('patient_id'),  # One provider per patient
+    )

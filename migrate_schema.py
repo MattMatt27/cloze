@@ -27,6 +27,7 @@ DATABASE_URL = os.environ.get('DATABASE_URL', 'sqlite:///llm_chat.db')
 # Format: (table_name, column_name, column_sql)
 COLUMN_ADDITIONS = [
     ('system_prompts', 'domain_prompt_id', 'VARCHAR(50)'),
+    ('users', 'created_by', 'INTEGER'),
 ]
 
 
