@@ -930,14 +930,14 @@
         html += '<div class="flex-shrink-0">';
 
         if (def.type === 'bool') {
-          html += '<select id="flag_' + def.key + '" onchange="saveProviderFlag(' + providerId + ', \'' + def.key + '\', this.value, \'bool\')" class="rounded border border-stone-200 bg-white px-2 py-1 text-xs">';
+          html += '<select id="flag_' + def.key + '" class="rounded border border-stone-200 bg-white px-2 py-1 text-xs">';
           html += '<option value="inherit"' + (f.inherited ? ' selected' : '') + '>Inherit (' + (f.effective !== null ? (f.effective ? 'On' : 'Off') : 'On') + ')</option>';
           html += '<option value="true"' + (!f.inherited && f.value === true ? ' selected' : '') + '>On</option>';
           html += '<option value="false"' + (!f.inherited && f.value === false ? ' selected' : '') + '>Off</option>';
           html += '</select>';
         } else if (def.type === 'int') {
           var intVal = f.inherited ? '' : (f.value || '');
-          html += '<input type="number" min="1" id="flag_' + def.key + '" value="' + intVal + '" placeholder="Inherit" onchange="saveProviderFlag(' + providerId + ', \'' + def.key + '\', this.value, \'int\')" class="w-24 rounded border border-stone-200 bg-white px-2 py-1 text-xs">';
+          html += '<input type="number" min="1" id="flag_' + def.key + '" value="' + intVal + '" placeholder="Inherit" class="w-24 rounded border border-stone-200 bg-white px-2 py-1 text-xs">';
         } else if (def.type === 'models') {
           html += '</div></div>';
           html += '<div class="mt-2 flex flex-wrap gap-1.5">';
@@ -947,7 +947,7 @@
             html += '<label class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs cursor-pointer transition ' +
               (checked ? 'bg-cloze-indigo text-white' : 'bg-white text-stone-600 border border-stone-200 hover:border-cloze-indigo') + '">';
             html += '<input type="checkbox" class="hidden provider-model-check" data-model-id="' + m.id + '" ' + (checked ? 'checked' : '') +
-              ' onchange="saveProviderModels(' + providerId + ')">' + escapeHtml(m.name) + '</label>';
+              ' onchange="toggleModelChip(this)">' + escapeHtml(m.name) + '</label>';
           });
           if (selectedModels.length > 0) {
             html += '<button onclick="clearProviderModels(' + providerId + ')" class="text-xs text-stone-400 hover:text-red-500 ml-1">Clear (inherit all)</button>';
@@ -956,7 +956,7 @@
           html += '</div>';
           return;
         } else if (def.type === 'prompt') {
-          html += '<select id="flag_' + def.key + '" onchange="saveProviderFlag(' + providerId + ', \'' + def.key + '\', this.value, \'int\')" class="max-w-[200px] rounded border border-stone-200 bg-white px-2 py-1 text-xs">';
+          html += '<select id="flag_' + def.key + '" class="max-w-[200px] rounded border border-stone-200 bg-white px-2 py-1 text-xs">';
           html += '<option value="">Inherit (none)</option>';
           allPrompts.forEach(function(p) {
             html += '<option value="' + p.id + '"' + (!f.inherited && f.value == p.id ? ' selected' : '') + '>' + escapeHtml(p.name) + '</option>';
@@ -965,7 +965,7 @@
         } else if (def.type === 'text') {
           html += '</div></div>';
           var textVal = f.inherited ? '' : (f.value || '');
-          html += '<div class="mt-2"><textarea id="flag_' + def.key + '" rows="3" placeholder="Leave blank to inherit default" onchange="saveProviderFlag(' + providerId + ', \'' + def.key + '\', this.value, \'text\')" class="w-full rounded border border-stone-200 bg-white px-3 py-2 text-xs">' + escapeHtml(textVal) + '</textarea></div>';
+          html += '<div class="mt-2"><textarea id="flag_' + def.key + '" rows="3" placeholder="Leave blank to inherit default" class="w-full rounded border border-stone-200 bg-white px-3 py-2 text-xs">' + escapeHtml(textVal) + '</textarea></div>';
           html += '</div>';
           return;
         }
@@ -973,6 +973,10 @@
         html += '</div></div></div>';
       });
 
+      html += '</div>';
+      html += '<div class="mt-4 flex items-center gap-3">';
+      html += '<button onclick="saveAllProviderFlags(' + providerId + ')" class="rounded-lg bg-cloze-indigo px-4 py-2 text-sm font-medium text-white hover:bg-cloze-hover">Save Settings</button>';
+      html += '<span id="flagsSaveStatus" class="text-xs text-stone-400"></span>';
       html += '</div>';
       container.innerHTML = html;
 
@@ -982,15 +986,43 @@
     }
   }
 
-  async function saveProviderFlag(providerId, key, value, type) {
-    var payload = {};
-    if (type === 'bool') {
-      payload[key] = value === 'inherit' ? null : (value === 'true');
-    } else if (type === 'int') {
-      payload[key] = value === '' ? null : parseInt(value, 10);
-    } else if (type === 'text') {
-      payload[key] = value === '' ? null : value;
+  function toggleModelChip(cb) {
+    var label = cb.parentElement;
+    if (cb.checked) {
+      label.className = label.className.replace('bg-white text-stone-600 border border-stone-200 hover:border-cloze-indigo', 'bg-cloze-indigo text-white');
+    } else {
+      label.className = label.className.replace('bg-cloze-indigo text-white', 'bg-white text-stone-600 border border-stone-200 hover:border-cloze-indigo');
     }
+  }
+
+  async function saveAllProviderFlags(providerId) {
+    var payload = {};
+
+    FLAG_DEFS.forEach(function(def) {
+      if (def.type === 'bool') {
+        var el = document.getElementById('flag_' + def.key);
+        if (el) payload[def.key] = el.value === 'inherit' ? null : (el.value === 'true');
+      } else if (def.type === 'int') {
+        var el = document.getElementById('flag_' + def.key);
+        if (el) payload[def.key] = el.value === '' ? null : parseInt(el.value, 10);
+      } else if (def.type === 'prompt') {
+        var el = document.getElementById('flag_' + def.key);
+        if (el) payload[def.key] = el.value === '' ? null : parseInt(el.value, 10);
+      } else if (def.type === 'text') {
+        var el = document.getElementById('flag_' + def.key);
+        if (el) payload[def.key] = el.value === '' ? null : el.value;
+      } else if (def.type === 'models') {
+        var checkboxes = document.querySelectorAll('.provider-model-check');
+        var selected = [];
+        checkboxes.forEach(function(cb) {
+          if (cb.checked) selected.push(parseInt(cb.dataset.modelId, 10));
+        });
+        payload.allowed_models = selected.length > 0 ? selected : null;
+      }
+    });
+
+    var statusEl = document.getElementById('flagsSaveStatus');
+    statusEl.textContent = 'Saving...';
 
     try {
       var response = await fetch('/api/admin/provider/' + providerId + '/feature-flags', {
@@ -1000,51 +1032,29 @@
       });
       var result = await response.json();
       if (result.status === 'success') {
-        // Briefly flash the control green
-        var el = document.getElementById('flag_' + key);
-        if (el) {
-          el.classList.add('ring-1', 'ring-emerald-400');
-          setTimeout(function() { el.classList.remove('ring-1', 'ring-emerald-400'); }, 800);
-        }
+        statusEl.textContent = 'Saved';
+        statusEl.classList.add('text-emerald-600');
+        statusEl.classList.remove('text-stone-400');
+        setTimeout(function() {
+          statusEl.textContent = '';
+          statusEl.classList.remove('text-emerald-600');
+          statusEl.classList.add('text-stone-400');
+        }, 2000);
+      } else {
+        statusEl.textContent = 'Error: ' + (result.error || 'Save failed');
+        statusEl.classList.add('text-red-500');
       }
     } catch (error) {
-      console.error('Error saving flag:', error);
-    }
-  }
-
-  async function saveProviderModels(providerId) {
-    var checkboxes = document.querySelectorAll('.provider-model-check');
-    var selected = [];
-    checkboxes.forEach(function(cb) {
-      if (cb.checked) selected.push(parseInt(cb.dataset.modelId, 10));
-    });
-
-    var payload = { allowed_models: selected.length > 0 ? selected : null };
-    try {
-      await fetch('/api/admin/provider/' + providerId + '/feature-flags', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      // Reload to reflect visual state
-      loadProviderFlags(providerId);
-    } catch (error) {
-      console.error('Error saving model allowlist:', error);
+      statusEl.textContent = 'Error saving';
+      statusEl.classList.add('text-red-500');
+      console.error('Error saving flags:', error);
     }
   }
 
   async function clearProviderModels(providerId) {
-    var payload = { allowed_models: null };
-    try {
-      await fetch('/api/admin/provider/' + providerId + '/feature-flags', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      loadProviderFlags(providerId);
-    } catch (error) {
-      console.error('Error clearing model allowlist:', error);
-    }
+    document.querySelectorAll('.provider-model-check').forEach(function(cb) { cb.checked = false; });
+    // Visual update
+    document.querySelectorAll('.provider-model-check').forEach(function(cb) { toggleModelChip(cb); });
   }
 
   function showCreateProviderModal() {

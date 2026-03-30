@@ -465,10 +465,12 @@ def get_available_models():
         if not model.is_available:
             continue
 
-        # Provider restrictions for patients
+        # Admin-enforced provider-level model allowlist
+        check_provider_id = None
         if current_user.is_patient():
             provider_assignment = ProviderPatient.query.filter_by(patient_id=current_user.id).first()
             if provider_assignment:
+                check_provider_id = provider_assignment.provider_id
                 # Provider-set per-patient restrictions
                 settings = ProviderSettings.query.filter_by(
                     provider_id=provider_assignment.provider_id,
@@ -478,12 +480,15 @@ def get_available_models():
                     allowed = json.loads(settings.allowed_models)
                     if model.id not in allowed:
                         continue
-                # Admin-enforced provider-level allowlist
-                flags = ProviderFeatureFlags.query.filter_by(provider_id=provider_assignment.provider_id).first()
-                if flags and flags.allowed_models:
-                    admin_allowed = json.loads(flags.allowed_models)
-                    if model.id not in admin_allowed:
-                        continue
+        elif current_user.is_provider():
+            check_provider_id = current_user.id
+
+        if check_provider_id:
+            flags = ProviderFeatureFlags.query.filter_by(provider_id=check_provider_id).first()
+            if flags and flags.allowed_models:
+                admin_allowed = json.loads(flags.allowed_models)
+                if model.id not in admin_allowed:
+                    continue
 
         available.append({'id': model.id, 'name': model.name, 'provider': model.provider})
 
@@ -559,6 +564,8 @@ def get_user_settings_flags():
 
     flags = {
         'users_can_save_selections': get_effective_setting('users_can_save_selections', provider_id, True),
+        'require_safety_plan': get_effective_setting('require_safety_plan', provider_id, True),
+        'enable_nlp_report': get_effective_setting('enable_nlp_report', provider_id, True),
     }
     if current_user.is_provider():
         flags['providers_can_set_custom_prompts'] = get_effective_setting('allow_custom_prompts', current_user.id, True)

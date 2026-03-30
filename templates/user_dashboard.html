@@ -403,6 +403,7 @@ var currentWindows = [];
 var allReports = [];
 var safetyPlanData = null;
 var hasActivePlan = false;
+var featureFlags = {};
 var activeConversationId = null;
 var conversationData = null;
 var countdownInterval = null;
@@ -513,12 +514,14 @@ async function loadAllData() {
       fetch('/api/conversations').then(function(r) { return r.ok ? r.json() : []; }),
       fetch('/api/windows/current').then(function(r) { return r.ok ? r.json() : []; }),
       fetch('/api/reports/').then(function(r) { return r.ok ? r.json() : []; }),
-      fetch('/api/safety-plan/').then(function(r) { return r.ok ? r.json() : null; })
+      fetch('/api/safety-plan/').then(function(r) { return r.ok ? r.json() : null; }),
+      fetch('/api/user/settings-flags').then(function(r) { return r.ok ? r.json() : {}; })
     ]);
     allConversations = results[0];
     currentWindows = results[1];
     allReports = results[2];
     safetyPlanData = results[3];
+    featureFlags = results[4];
     hasActivePlan = !!(safetyPlanData && safetyPlanData.active);
 
     renderSidebar();
@@ -557,6 +560,14 @@ function renderSafetyPlan() {
   var section = document.getElementById('safetyPlanSection');
   var content = document.getElementById('safetyPlanContent');
   var gating = document.getElementById('safetyPlanGating');
+
+  // If safety plans are disabled for this provider, hide everything
+  if (featureFlags.require_safety_plan === false) {
+    section.classList.add('hidden');
+    gating.classList.add('hidden');
+    hasActivePlan = true;  // Bypass gating in renderHomeView
+    return;
+  }
 
   if (!safetyPlanData) {
     section.classList.add('hidden');
