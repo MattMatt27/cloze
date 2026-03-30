@@ -16,21 +16,21 @@
       <p class="mt-0.5 text-xs text-stone-500">HTML shown to patients before starting conversations. Edit the default or write your own. The acknowledgment checkbox is included automatically.</p>
     </div>
     <div class="p-5">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:items-stretch">
+        <div class="flex flex-col">
           <label class="mb-1.5 block text-xs font-medium text-stone-500 uppercase tracking-wide">Editor</label>
-          <textarea id="disclaimerText" rows="14" oninput="updateDisclaimerPreview()"
-                    class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-mono focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo"
+          <textarea id="disclaimerText" oninput="updateDisclaimerPreview()"
+                    class="flex-1 min-h-[300px] w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-mono focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo"
                     placeholder="Loading default..."></textarea>
-          <button onclick="resetDisclaimer()" class="mt-2 text-xs text-stone-400 hover:text-cloze-indigo">Reset to default</button>
+          <button onclick="resetDisclaimer()" class="mt-2 text-xs text-stone-400 hover:text-cloze-indigo self-start">Reset to default</button>
         </div>
-        <div>
+        <div class="flex flex-col">
           <label class="mb-1.5 block text-xs font-medium text-stone-500 uppercase tracking-wide">Preview</label>
-          <div class="rounded-lg border border-stone-200 bg-white overflow-hidden">
-            <div class="bg-cloze-indigo px-4 py-3 text-white">
+          <div class="flex-1 rounded-lg border border-stone-200 bg-white overflow-hidden flex flex-col">
+            <div class="bg-cloze-indigo px-4 py-3 text-white shrink-0">
               <h3 class="text-sm font-semibold">Important Safety Information</h3>
             </div>
-            <div id="disclaimerPreview" class="px-4 py-4 max-h-[400px] overflow-y-auto text-sm">
+            <div id="disclaimerPreview" class="px-4 py-4 overflow-y-auto text-sm flex-1">
             </div>
           </div>
         </div>
