@@ -566,6 +566,21 @@ def get_system_prompts():
         prompts = SystemPrompt.query.filter(
             or_(SystemPrompt.visible == True, SystemPrompt.created_by == current_user.id)
         ).all()
+        # Filter by admin-enforced allowed_prompts if set
+        flags = ProviderFeatureFlags.query.filter_by(provider_id=current_user.id).first()
+        if flags and flags.allowed_prompts:
+            allowed_ids = set(json.loads(flags.allowed_prompts))
+            # Always include provider's own prompts + the allowed set
+            prompts = [p for p in prompts if p.id in allowed_ids or p.created_by == current_user.id]
+    elif current_user.is_patient():
+        prompts = SystemPrompt.query.filter_by(visible=True).all()
+        # Filter by patient's provider allowed_prompts
+        provider_id = get_provider_id_for_patient(current_user.id)
+        if provider_id:
+            flags = ProviderFeatureFlags.query.filter_by(provider_id=provider_id).first()
+            if flags and flags.allowed_prompts:
+                allowed_ids = set(json.loads(flags.allowed_prompts))
+                prompts = [p for p in prompts if p.id in allowed_ids]
     else:
         prompts = SystemPrompt.query.filter_by(visible=True).all()
 

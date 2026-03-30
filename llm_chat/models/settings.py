@@ -85,6 +85,9 @@ class ProviderFeatureFlags(db.Model):
     # Model restrictions (admin-enforced allowlist)
     allowed_models = db.Column(db.Text, nullable=True)  # JSON array of model IDs
 
+    # Prompt restrictions (admin-enforced allowlist)
+    allowed_prompts = db.Column(db.Text, nullable=True)  # JSON array of system_prompt IDs
+
     # Conversation limits
     max_turns_per_conversation = db.Column(db.Integer, nullable=True)
 

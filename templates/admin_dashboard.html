@@ -260,6 +260,41 @@
       </div>
     </section>
 
+    {# System Prompts Management #}
+    <section class="rounded-lg border border-stone-200 bg-white">
+      <div class="flex items-center justify-between border-b border-stone-100 bg-violet-50/60 px-5 py-3">
+        <h3 class="text-sm font-semibold text-stone-900">System Prompts</h3>
+        <button onclick="showPromptModal()"
+                class="inline-flex items-center gap-1 rounded-md bg-cloze-indigo px-3 py-1.5 text-xs font-medium text-white transition hover:bg-cloze-hover">
+          <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          New Prompt
+        </button>
+      </div>
+      <div class="max-h-[400px] divide-y divide-stone-100 overflow-y-auto" id="promptsTableBody">
+        <div class="py-6 text-center text-sm text-stone-400">Loading...</div>
+      </div>
+    </section>
+
+    {# Prompt Create/Edit Modal #}
+    <div class="modal fixed inset-0 z-50 hidden items-center justify-center bg-black/40" id="promptModal">
+      <div class="w-full max-w-lg rounded-lg bg-white p-6 shadow-lg">
+        <h3 class="mb-4 text-base font-semibold text-stone-900" id="promptModalTitle">New System Prompt</h3>
+        <input type="hidden" id="promptModalId" value="">
+        <div class="mb-4">
+          <label class="mb-1 block text-sm font-medium text-stone-700">Name</label>
+          <input type="text" id="promptModalName" class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none" placeholder="e.g., Homework Module - Mindfulness">
+        </div>
+        <div class="mb-4">
+          <label class="mb-1 block text-sm font-medium text-stone-700">Content</label>
+          <textarea id="promptModalContent" rows="8" class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-mono focus:border-cloze-indigo focus:outline-none" placeholder="System prompt instructions..."></textarea>
+        </div>
+        <div class="flex justify-end gap-3">
+          <button type="button" onclick="hideModal('promptModal')" class="rounded-lg border border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50">Cancel</button>
+          <button type="button" onclick="saveAdminPrompt()" class="rounded-lg bg-cloze-indigo px-4 py-2 text-sm font-medium text-white hover:bg-cloze-hover">Save</button>
+        </div>
+      </div>
+    </div>
+
     {# Provider Assignments (read-only) #}
     <section class="rounded-lg border border-stone-200 bg-white">
       <div class="border-b border-stone-100 bg-violet-50/60 px-5 py-3">
@@ -495,7 +530,7 @@
     // Lazy load tab data
     if (tabId === 'patients' && patientsData.length === 0) loadPatients();
     if (tabId === 'providers' && providersData.length === 0) loadProviders();
-    if (tabId === 'settings') { loadSettings(); loadModels(); loadAssignments(); }
+    if (tabId === 'settings') { loadSettings(); loadModels(); loadAdminPrompts(); loadAssignments(); }
   }
 
   // Listen for hash changes (sidebar clicks)
@@ -901,6 +936,7 @@
     { key: 'allow_custom_prompts', label: 'Allow custom prompts', desc: 'Provider can write custom system prompt text in templates', type: 'bool' },
     { key: 'max_turns_per_conversation', label: 'Max turns per conversation', desc: 'Maximum user exchanges per conversation (blank = unlimited)', type: 'int' },
     { key: 'allowed_models', label: 'Allowed models', desc: 'Restrict this provider to specific models (blank = all models)', type: 'models' },
+    { key: 'allowed_prompts', label: 'Available system prompts', desc: 'Restrict this provider to specific prompts (blank = all prompts)', type: 'prompts' },
     { key: 'default_system_prompt_id', label: 'Default system prompt', desc: 'Prompt used when templates don\'t specify one', type: 'prompt' },
     { key: 'system_context_override', label: 'System context override', desc: 'Replace the default platform context prompt', type: 'text' },
     { key: 'safety_disclaimer_text', label: 'Safety disclaimer override', desc: 'Custom safety disclaimer modal text (HTML allowed)', type: 'text' },
@@ -912,11 +948,12 @@
       var [flagsResp, modelsResp, promptsResp] = await Promise.all([
         fetch('/api/admin/provider/' + providerId + '/feature-flags'),
         fetch('/api/admin/models'),
-        fetch('/api/system_prompts'),
+        fetch('/api/admin/prompts'),
       ]);
       var flagsData = await flagsResp.json();
       var allModels = await modelsResp.json();
       var allPrompts = await promptsResp.json();
+      var visiblePrompts = allPrompts.filter(function(p) { return p.visible; });
 
       var flags = flagsData.flags;
       var html = '<div class="space-y-3">';
@@ -955,10 +992,27 @@
           html += '</div>';
           html += '</div>';
           return;
+        } else if (def.type === 'prompts') {
+          html += '</div></div>';
+          html += '<div class="mt-2 flex flex-wrap gap-1.5">';
+          var selectedPrompts = (!f.inherited && f.value) ? f.value : [];
+          visiblePrompts.forEach(function(p) {
+            var checked = selectedPrompts.includes(p.id);
+            html += '<label class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs cursor-pointer transition ' +
+              (checked ? 'bg-cloze-indigo text-white' : 'bg-white text-stone-600 border border-stone-200 hover:border-cloze-indigo') + '">';
+            html += '<input type="checkbox" class="hidden provider-prompt-check" data-prompt-id="' + p.id + '" ' + (checked ? 'checked' : '') +
+              ' onchange="toggleModelChip(this)">' + escapeHtml(p.name) + '</label>';
+          });
+          if (selectedPrompts.length > 0) {
+            html += '<button onclick="clearProviderPrompts()" class="text-xs text-stone-400 hover:text-red-500 ml-1">Clear (inherit all)</button>';
+          }
+          html += '</div>';
+          html += '</div>';
+          return;
         } else if (def.type === 'prompt') {
           html += '<select id="flag_' + def.key + '" class="max-w-[200px] rounded border border-stone-200 bg-white px-2 py-1 text-xs">';
           html += '<option value="">Inherit (none)</option>';
-          allPrompts.forEach(function(p) {
+          visiblePrompts.forEach(function(p) {
             html += '<option value="' + p.id + '"' + (!f.inherited && f.value == p.id ? ' selected' : '') + '>' + escapeHtml(p.name) + '</option>';
           });
           html += '</select>';
@@ -1018,6 +1072,13 @@
           if (cb.checked) selected.push(parseInt(cb.dataset.modelId, 10));
         });
         payload.allowed_models = selected.length > 0 ? selected : null;
+      } else if (def.type === 'prompts') {
+        var checkboxes = document.querySelectorAll('.provider-prompt-check');
+        var selected = [];
+        checkboxes.forEach(function(cb) {
+          if (cb.checked) selected.push(parseInt(cb.dataset.promptId, 10));
+        });
+        payload.allowed_prompts = selected.length > 0 ? selected : null;
       }
     });
 
@@ -1052,9 +1113,101 @@
   }
 
   async function clearProviderModels(providerId) {
-    document.querySelectorAll('.provider-model-check').forEach(function(cb) { cb.checked = false; });
-    // Visual update
-    document.querySelectorAll('.provider-model-check').forEach(function(cb) { toggleModelChip(cb); });
+    document.querySelectorAll('.provider-model-check').forEach(function(cb) { cb.checked = false; toggleModelChip(cb); });
+  }
+
+  function clearProviderPrompts() {
+    document.querySelectorAll('.provider-prompt-check').forEach(function(cb) { cb.checked = false; toggleModelChip(cb); });
+  }
+
+  // ── System Prompt Management ───────────────────────────────
+
+  var adminPrompts = [];
+
+  async function loadAdminPrompts() {
+    try {
+      var resp = await fetch('/api/admin/prompts');
+      adminPrompts = await resp.json();
+      renderAdminPrompts();
+    } catch(e) {
+      console.error('Error loading prompts:', e);
+    }
+  }
+
+  function renderAdminPrompts() {
+    var container = document.getElementById('promptsTableBody');
+    var visible = adminPrompts.filter(function(p) { return p.visible; });
+    if (!visible.length) {
+      container.innerHTML = '<div class="py-6 text-center text-sm text-stone-400">No system prompts. Click "New Prompt" to create one.</div>';
+      return;
+    }
+    container.innerHTML = visible.map(function(p) {
+      return '<div class="flex items-center justify-between px-5 py-3 hover:bg-stone-50">' +
+        '<div class="min-w-0 flex-1">' +
+          '<div class="text-sm font-medium text-stone-800">' + escapeHtml(p.name) + '</div>' +
+          '<div class="mt-0.5 text-xs text-stone-500 truncate">' + escapeHtml((p.content || '').substring(0, 100)) + '</div>' +
+        '</div>' +
+        '<div class="flex gap-2 ml-4 shrink-0">' +
+          '<button onclick="editAdminPrompt(' + p.id + ')" class="rounded-md border border-stone-200 px-2 py-1 text-xs text-stone-600 hover:bg-stone-50">Edit</button>' +
+          '<button onclick="deleteAdminPrompt(' + p.id + ', \'' + escapeHtml(p.name).replace(/'/g, "\\'") + '\')" class="rounded-md border border-stone-200 px-2 py-1 text-xs text-red-500 hover:bg-red-50">Delete</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function showPromptModal(id) {
+    document.getElementById('promptModalId').value = '';
+    document.getElementById('promptModalName').value = '';
+    document.getElementById('promptModalContent').value = '';
+    document.getElementById('promptModalTitle').textContent = 'New System Prompt';
+    showModal('promptModal');
+  }
+
+  function editAdminPrompt(id) {
+    var p = adminPrompts.find(function(pr) { return pr.id === id; });
+    if (!p) return;
+    document.getElementById('promptModalId').value = id;
+    document.getElementById('promptModalName').value = p.name;
+    document.getElementById('promptModalContent').value = p.content || '';
+    document.getElementById('promptModalTitle').textContent = 'Edit System Prompt';
+    showModal('promptModal');
+  }
+
+  async function saveAdminPrompt() {
+    var id = document.getElementById('promptModalId').value;
+    var name = document.getElementById('promptModalName').value.trim();
+    var content = document.getElementById('promptModalContent').value.trim();
+    if (!name) { alert('Name is required'); return; }
+
+    try {
+      if (id) {
+        await fetch('/api/admin/prompts/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name, content: content })
+        });
+      } else {
+        await fetch('/api/admin/prompts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name, content: content })
+        });
+      }
+      hideModal('promptModal');
+      loadAdminPrompts();
+    } catch(e) {
+      alert('Error saving prompt');
+    }
+  }
+
+  async function deleteAdminPrompt(id, name) {
+    if (!confirm('Delete prompt "' + name + '"?')) return;
+    try {
+      await fetch('/api/admin/prompts/' + id, { method: 'DELETE' });
+      loadAdminPrompts();
+    } catch(e) {
+      alert('Error deleting prompt');
+    }
   }
 
   function showCreateProviderModal() {

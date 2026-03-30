@@ -787,7 +787,7 @@ _FLAG_COLUMNS = [
     'require_safety_plan', 'allow_patient_anti_patterns',
     'enable_nlp_report', 'report_config',
     'default_system_prompt_id', 'allow_custom_prompts',
-    'allowed_models', 'max_turns_per_conversation',
+    'allowed_models', 'allowed_prompts', 'max_turns_per_conversation',
     'safety_disclaimer_text', 'system_context_override',
 ]
 
@@ -796,7 +796,7 @@ _BOOL_FLAGS = {
     'enable_nlp_report', 'allow_custom_prompts',
 }
 
-_JSON_FLAGS = {'allowed_models', 'report_config'}
+_JSON_FLAGS = {'allowed_models', 'allowed_prompts', 'report_config'}
 _INT_FLAGS = {'max_turns_per_conversation', 'default_system_prompt_id'}
 _TEXT_FLAGS = {'safety_disclaimer_text', 'system_context_override'}
 
@@ -888,3 +888,73 @@ def update_provider_feature_flags(provider_id):
 
     db.session.commit()
     return jsonify({'status': 'success', 'changes': changes})
+
+
+# ── System Prompt Management ────────────────────────────────────
+
+@admin_bp.route("/api/admin/prompts", methods=["GET"])
+@role_required('admin')
+def get_all_prompts():
+    """Get all system prompts for management."""
+    prompts = SystemPrompt.query.all()
+    return jsonify([{
+        'id': p.id,
+        'name': p.name,
+        'content': p.content,
+        'domain_prompt_id': p.domain_prompt_id,
+        'visible': p.visible,
+        'created_by': p.created_by,
+        'created_at': p.created_at,
+    } for p in prompts])
+
+
+@admin_bp.route("/api/admin/prompts", methods=["POST"])
+@role_required('admin')
+def create_prompt():
+    """Admin creates a system prompt."""
+    data = request.json or {}
+    name = data.get('name', '').strip()
+    content = data.get('content', '').strip()
+    if not name:
+        return jsonify({'error': 'Name is required'}), 400
+
+    prompt = SystemPrompt(
+        name=name,
+        content=content,
+        created_by=current_user.id,
+        visible=True,
+    )
+    db.session.add(prompt)
+    _log_action('prompt_created', 'system_prompt', details={'name': name})
+    db.session.commit()
+    return jsonify({'id': prompt.id, 'name': prompt.name}), 201
+
+
+@admin_bp.route("/api/admin/prompts/<int:prompt_id>", methods=["PUT"])
+@role_required('admin')
+def update_prompt(prompt_id):
+    """Admin edits a system prompt."""
+    prompt = SystemPrompt.query.get_or_404(prompt_id)
+    data = request.json or {}
+    if 'name' in data:
+        prompt.name = data['name'].strip()
+    if 'content' in data:
+        prompt.content = data['content'].strip()
+    if 'visible' in data:
+        prompt.visible = bool(data['visible'])
+    _log_action('prompt_updated', 'system_prompt', prompt_id, {
+        k: data[k] for k in ('name', 'visible') if k in data
+    })
+    db.session.commit()
+    return jsonify({'status': 'success'})
+
+
+@admin_bp.route("/api/admin/prompts/<int:prompt_id>", methods=["DELETE"])
+@role_required('admin')
+def delete_prompt(prompt_id):
+    """Admin soft-deletes a system prompt."""
+    prompt = SystemPrompt.query.get_or_404(prompt_id)
+    prompt.visible = False
+    _log_action('prompt_deleted', 'system_prompt', prompt_id, {'name': prompt.name})
+    db.session.commit()
+    return jsonify({'status': 'success'})
