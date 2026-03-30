@@ -185,7 +185,7 @@
         </button>
       </div>
 
-      <div>
+      <div id="reportSettingsWrapper">
         <button type="button" onclick="toggleReportSettings()" class="flex w-full items-center justify-between rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-left transition hover:bg-stone-100">
           <div>
             <span class="text-sm font-semibold text-stone-800">Report Settings</span>
@@ -802,7 +802,7 @@
         </select>
       </div>
       <div class="mb-3">
-        <label class="mb-1 block text-sm font-semibold">Clinical Focus</label>
+        <label class="mb-1 block text-sm font-semibold">System Prompt</label>
         <select class="template-prompt-select w-full rounded-md border-2 border-stone-200 px-3 py-2 outline-none focus:border-cloze-indigo"
                 onchange="updatePromptDescription(this, '${promptDescId}')">
           <option value="" data-description="General support with safety and identity guardrails">-- General (no specific focus) --</option>
@@ -1470,7 +1470,32 @@
   }
 
   // ===== Init =====
+  var providerFlags = {};
+
+  async function loadProviderFlags() {
+    try {
+      var resp = await fetch('/api/user/settings-flags');
+      providerFlags = await resp.json();
+    } catch(e) { providerFlags = {}; }
+
+    // Hide report settings if reports disabled
+    if (providerFlags.enable_nlp_report === false) {
+      var rw = document.getElementById('reportSettingsWrapper');
+      if (rw) rw.classList.add('hidden');
+      // Hide reports tab
+      var reportsBtn = document.querySelector('[data-tab="reports"]');
+      if (reportsBtn) reportsBtn.classList.add('hidden');
+    }
+
+    // Hide safety plan tab if safety plans disabled
+    if (providerFlags.require_safety_plan === false) {
+      var safetyBtn = document.querySelector('[data-tab="safety"]');
+      if (safetyBtn) safetyBtn.classList.add('hidden');
+    }
+  }
+
   (async function initialize(){
+    await loadProviderFlags();
     await loadModels();
     await loadSystemPrompts();
     await loadFeatureRegistry();

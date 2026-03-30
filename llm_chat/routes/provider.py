@@ -4,7 +4,8 @@ from flask import Blueprint, render_template, jsonify, request, abort, redirect
 from flask_login import current_user
 from ..utils.decorators import role_required
 from ..extensions import db
-from ..models import User, Conversation, ProviderPatient, ProviderSettings, ChatWindow, AuditLog
+from ..models import User, Conversation, ProviderPatient, ProviderSettings, ChatWindow, AuditLog, ProviderFeatureFlags, SystemPrompt
+from ..utils.settings_resolution import get_effective_setting
 
 provider_bp = Blueprint("provider", __name__, url_prefix="")
 
@@ -207,3 +208,120 @@ def reset_patient_password(patient_id):
         'username': patient.username,
         'password': password,
     })
+
+
+# ── Provider settings page ────────────────────────────────────
+
+@provider_bp.route("/provider/settings")
+@role_required('provider')
+def provider_settings_page():
+    return render_template("provider_settings.html")
+
+
+@provider_bp.route("/api/provider/my-flags", methods=['GET'])
+@role_required('provider')
+def get_my_flags():
+    """Provider reads their own feature flags (admin-set + editable content)."""
+    flags = ProviderFeatureFlags.query.filter_by(provider_id=current_user.id).first()
+    return jsonify({
+        'require_safety_plan': get_effective_setting('require_safety_plan', current_user.id, True),
+        'enable_nlp_report': get_effective_setting('enable_nlp_report', current_user.id, True),
+        'allow_custom_prompts': get_effective_setting('allow_custom_prompts', current_user.id, True),
+        'max_turns_per_conversation': get_effective_setting('max_turns_per_conversation', current_user.id, None),
+        'safety_disclaimer_text': flags.safety_disclaimer_text if flags else None,
+        'system_context_override': flags.system_context_override if flags else None,
+    })
+
+
+@provider_bp.route("/api/provider/my-flags", methods=['PUT'])
+@role_required('provider')
+def update_my_flags():
+    """Provider updates their editable content fields."""
+    data = request.json or {}
+    flags = ProviderFeatureFlags.query.filter_by(provider_id=current_user.id).first()
+    if not flags:
+        flags = ProviderFeatureFlags(provider_id=current_user.id)
+        db.session.add(flags)
+
+    editable = ['safety_disclaimer_text', 'system_context_override']
+    for key in editable:
+        if key in data:
+            setattr(flags, key, data[key] or None)
+
+    _log_provider_action('update_provider_content', 'provider_feature_flags', current_user.id,
+                         {k: data[k] for k in editable if k in data})
+    db.session.commit()
+    return jsonify({'status': 'success'})
+
+
+# ── Provider prompt management ────────────────────────────────
+
+@provider_bp.route("/api/provider/prompts", methods=['GET'])
+@role_required('provider')
+def get_provider_prompts():
+    """Get prompts created by this provider."""
+    prompts = SystemPrompt.query.filter_by(created_by=current_user.id).all()
+    return jsonify([{
+        'id': p.id,
+        'name': p.name,
+        'content': p.content,
+        'visible': p.visible,
+        'created_at': p.created_at,
+    } for p in prompts])
+
+
+@provider_bp.route("/api/provider/prompts", methods=['POST'])
+@role_required('provider')
+def create_provider_prompt():
+    """Provider creates a custom system prompt."""
+    if not get_effective_setting('allow_custom_prompts', current_user.id, True):
+        return jsonify({'error': 'Custom prompts are not enabled for your account'}), 403
+
+    data = request.json or {}
+    name = data.get('name', '').strip()
+    content = data.get('content', '').strip()
+    if not name:
+        return jsonify({'error': 'Prompt name is required'}), 400
+
+    prompt = SystemPrompt(
+        name=name,
+        content=content,
+        created_by=current_user.id,
+        visible=True,
+    )
+    db.session.add(prompt)
+    _log_provider_action('prompt_created', 'system_prompt', details={'name': name})
+    db.session.commit()
+    return jsonify({'id': prompt.id, 'name': prompt.name}), 201
+
+
+@provider_bp.route("/api/provider/prompts/<int:prompt_id>", methods=['PUT'])
+@role_required('provider')
+def update_provider_prompt(prompt_id):
+    """Provider edits a prompt they created."""
+    prompt = SystemPrompt.query.get_or_404(prompt_id)
+    if prompt.created_by != current_user.id:
+        abort(403)
+
+    data = request.json or {}
+    if 'name' in data:
+        prompt.name = data['name'].strip()
+    if 'content' in data:
+        prompt.content = data['content'].strip()
+    _log_provider_action('prompt_updated', 'system_prompt', prompt_id)
+    db.session.commit()
+    return jsonify({'status': 'success'})
+
+
+@provider_bp.route("/api/provider/prompts/<int:prompt_id>", methods=['DELETE'])
+@role_required('provider')
+def delete_provider_prompt(prompt_id):
+    """Provider soft-deletes a prompt they created."""
+    prompt = SystemPrompt.query.get_or_404(prompt_id)
+    if prompt.created_by != current_user.id:
+        abort(403)
+
+    prompt.visible = False
+    _log_provider_action('prompt_deleted', 'system_prompt', prompt_id)
+    db.session.commit()
+    return jsonify({'status': 'success'})

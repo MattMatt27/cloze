@@ -556,8 +556,18 @@ def get_available_models():
 @conv_bp.route("/api/system_prompts")
 @login_required
 def get_system_prompts():
-    """Get available system prompts (domain-linked) for dropdowns."""
-    prompts = SystemPrompt.query.filter_by(visible=True).all()
+    """Get available system prompts (domain-linked) for dropdowns.
+
+    Returns admin-created prompts (visible=True) plus the current
+    provider's own prompts (if provider is logged in).
+    """
+    from sqlalchemy import or_
+    if current_user.is_provider():
+        prompts = SystemPrompt.query.filter(
+            or_(SystemPrompt.visible == True, SystemPrompt.created_by == current_user.id)
+        ).all()
+    else:
+        prompts = SystemPrompt.query.filter_by(visible=True).all()
 
     provider_custom_instructions = None
     if current_user.is_patient():

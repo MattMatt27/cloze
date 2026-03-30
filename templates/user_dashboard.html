@@ -248,6 +248,9 @@
             <div class="typing-dot h-2 w-2 rounded-full bg-stone-500"></div>
           </div>
 
+          {# Turn warning (shown above input when approaching limit) #}
+          <div id="turnWarningBar" class="hidden border-t border-amber-200 bg-amber-50 px-6 py-2 text-center text-sm text-amber-800 shrink-0"></div>
+
           {# Input area (shown/hidden by JS based on conversation state) #}
           <div id="inputArea" class="hidden border-t border-stone-200 bg-white px-6 py-3 shrink-0">
             <div class="flex items-end gap-3">
@@ -1216,6 +1219,9 @@ async function loadConversationView(convId) {
   document.getElementById('inputArea').classList.add('hidden');
   document.getElementById('statusArea').classList.add('hidden');
   document.getElementById('crisisBar').classList.add('hidden');
+  document.getElementById('turnWarningBar').classList.add('hidden');
+  var existingLockout = document.getElementById('turnLimitBanner');
+  if (existingLockout) existingLockout.remove();
 
   if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
 
@@ -1550,18 +1556,18 @@ function showError(message) {
 
 function showTurnWarning(remaining, max) {
   var s = remaining !== 1 ? 's' : '';
-  var banner = document.getElementById('errorBanner');
-  banner.textContent = remaining + ' exchange' + s + ' remaining in this conversation (out of ' + max + ')';
-  banner.classList.remove('hidden', 'bg-red-50', 'text-red-700', 'border-red-200');
-  banner.classList.add('bg-amber-50', 'text-amber-800', 'border-amber-200');
-  setTimeout(function() {
-    banner.classList.add('hidden');
-    banner.classList.remove('bg-amber-50', 'text-amber-800', 'border-amber-200');
-  }, 6000);
+  var bar = document.getElementById('turnWarningBar');
+  bar.textContent = remaining + ' exchange' + s + ' remaining in this conversation (out of ' + max + ')';
+  bar.classList.remove('hidden');
+}
+
+function hideTurnWarning() {
+  document.getElementById('turnWarningBar').classList.add('hidden');
 }
 
 function showTurnLimitReached(max) {
-  // Hide the real input and show a lockout message in its place
+  // Hide the warning and input, show the lockout
+  hideTurnWarning();
   var inputArea = document.getElementById('inputArea');
   inputArea.classList.add('hidden');
 

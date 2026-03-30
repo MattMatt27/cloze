@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block title %}Settings — Cloze{% endblock %}
+{% block page_title %}Settings{% endblock %}
+
+{% block content %}
+  <section class="mb-6">
+    <h2 class="mb-1 text-lg font-semibold text-stone-900">Provider Settings</h2>
+    <p class="text-sm text-stone-500">Configure your study's content and prompts</p>
+  </section>
+
+  {# Safety Disclaimer #}
+  <section id="disclaimerSection" class="mb-8 rounded-lg border border-stone-200 bg-white">
+    <div class="border-b border-stone-100 px-5 py-3">
+      <h3 class="text-sm font-semibold text-stone-900">Safety Disclaimer</h3>
+      <p class="mt-0.5 text-xs text-stone-500">Custom HTML shown to patients before starting conversations. Leave blank for the default.</p>
+    </div>
+    <div class="p-5">
+      <textarea id="disclaimerText" rows="8"
+                class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-mono focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo"
+                placeholder="Leave blank to use the default safety disclaimer..."></textarea>
+      <div class="mt-3 flex items-center gap-3">
+        <button onclick="saveContent()" class="rounded-lg bg-cloze-indigo px-4 py-2 text-sm font-medium text-white hover:bg-cloze-hover">Save</button>
+        <span id="contentSaveStatus" class="text-xs text-stone-400"></span>
+      </div>
+    </div>
+  </section>
+
+  {# System Context Override #}
+  <section class="mb-8 rounded-lg border border-stone-200 bg-white">
+    <div class="border-b border-stone-100 px-5 py-3">
+      <h3 class="text-sm font-semibold text-stone-900">System Context Override</h3>
+      <p class="mt-0.5 text-xs text-stone-500">Replace the default platform context prompt (e.g., "Your provider will review a report..."). Leave blank for the default.</p>
+    </div>
+    <div class="p-5">
+      <textarea id="contextOverride" rows="6"
+                class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-mono focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo"
+                placeholder="Leave blank to use the default system context..."></textarea>
+    </div>
+  </section>
+
+  {# Custom Prompts #}
+  <section id="promptsSection" class="mb-8 rounded-lg border border-stone-200 bg-white">
+    <div class="border-b border-stone-100 px-5 py-3 flex items-center justify-between">
+      <div>
+        <h3 class="text-sm font-semibold text-stone-900">Custom System Prompts</h3>
+        <p class="mt-0.5 text-xs text-stone-500">Reusable prompts that appear in the System Prompt dropdown when creating chat windows</p>
+      </div>
+      <button onclick="showCreatePromptForm()" class="inline-flex items-center gap-1.5 rounded-lg bg-cloze-indigo px-3 py-1.5 text-xs font-medium text-white transition hover:bg-cloze-hover">
+        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        New Prompt
+      </button>
+    </div>
+    <div id="promptsList" class="divide-y divide-stone-100">
+      <div class="py-6 text-center text-sm text-stone-400">Loading...</div>
+    </div>
+
+    {# Inline create/edit form #}
+    <div id="promptForm" class="hidden border-t border-stone-200 bg-violet-50/40 p-5">
+      <input type="hidden" id="editPromptId" value="">
+      <div class="mb-3">
+        <label class="mb-1 block text-sm font-medium text-stone-700">Name</label>
+        <input type="text" id="promptName" class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none" placeholder="e.g., Homework Module - Cognitive Restructuring">
+      </div>
+      <div class="mb-3">
+        <label class="mb-1 block text-sm font-medium text-stone-700">Content</label>
+        <textarea id="promptContent" rows="6" class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-mono focus:border-cloze-indigo focus:outline-none" placeholder="System prompt instructions..."></textarea>
+      </div>
+      <div class="flex gap-3">
+        <button onclick="savePrompt()" class="rounded-lg bg-cloze-indigo px-4 py-2 text-sm font-medium text-white hover:bg-cloze-hover">Save Prompt</button>
+        <button onclick="cancelPromptForm()" class="rounded-lg border border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50">Cancel</button>
+      </div>
+    </div>
+  </section>
+
+  {# Read-only settings summary #}
+  <section class="rounded-lg border border-stone-200 bg-white">
+    <div class="border-b border-stone-100 px-5 py-3">
+      <h3 class="text-sm font-semibold text-stone-900">Account Configuration</h3>
+      <p class="mt-0.5 text-xs text-stone-500">These settings are managed by your administrator</p>
+    </div>
+    <div id="flagsSummary" class="divide-y divide-stone-100">
+      <div class="py-6 text-center text-sm text-stone-400">Loading...</div>
+    </div>
+  </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  var myFlags = {};
+  var myPrompts = [];
+
+  async function loadSettings() {
+    try {
+      var [flagsResp, promptsResp] = await Promise.all([
+        fetch('/api/provider/my-flags'),
+        fetch('/api/provider/prompts'),
+      ]);
+      myFlags = await flagsResp.json();
+      myPrompts = await promptsResp.json();
+
+      // Populate content fields
+      document.getElementById('disclaimerText').value = myFlags.safety_disclaimer_text || '';
+      document.getElementById('contextOverride').value = myFlags.system_context_override || '';
+
+      // Hide sections based on flags
+      if (myFlags.require_safety_plan === false) {
+        // Disclaimer is still relevant even without safety plans — it's the consent modal
+      }
+      if (myFlags.allow_custom_prompts === false) {
+        document.getElementById('promptsSection').classList.add('hidden');
+      }
+
+      renderPrompts();
+      renderFlagsSummary();
+    } catch (e) {
+      console.error('Error loading settings:', e);
+    }
+  }
+
+  async function saveContent() {
+    var statusEl = document.getElementById('contentSaveStatus');
+    statusEl.textContent = 'Saving...';
+    try {
+      var resp = await fetch('/api/provider/my-flags', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          safety_disclaimer_text: document.getElementById('disclaimerText').value || null,
+          system_context_override: document.getElementById('contextOverride').value || null,
+        })
+      });
+      var result = await resp.json();
+      if (result.status === 'success') {
+        statusEl.textContent = 'Saved';
+        statusEl.classList.add('text-emerald-600');
+        setTimeout(function() { statusEl.textContent = ''; statusEl.classList.remove('text-emerald-600'); }, 2000);
+      }
+    } catch (e) {
+      statusEl.textContent = 'Error saving';
+      statusEl.classList.add('text-red-500');
+    }
+  }
+
+  function renderPrompts() {
+    var list = document.getElementById('promptsList');
+    var visible = myPrompts.filter(function(p) { return p.visible; });
+
+    if (!visible.length) {
+      list.innerHTML = '<div class="py-6 text-center text-sm text-stone-400">No custom prompts yet. Click "New Prompt" to create one.</div>';
+      return;
+    }
+
+    list.innerHTML = visible.map(function(p) {
+      return '<div class="flex items-center justify-between px-5 py-3 hover:bg-stone-50 transition">' +
+        '<div class="min-w-0 flex-1">' +
+          '<div class="text-sm font-medium text-stone-800">' + escapeHtml(p.name) + '</div>' +
+          '<div class="mt-0.5 text-xs text-stone-500 truncate">' + escapeHtml((p.content || '').substring(0, 120)) + '</div>' +
+        '</div>' +
+        '<div class="flex gap-2 ml-4">' +
+          '<button onclick="editPrompt(' + p.id + ')" class="rounded-md border border-stone-200 px-2 py-1 text-xs text-stone-600 hover:bg-stone-50">Edit</button>' +
+          '<button onclick="deletePrompt(' + p.id + ', \'' + escapeHtml(p.name) + '\')" class="rounded-md border border-stone-200 px-2 py-1 text-xs text-red-500 hover:bg-red-50">Delete</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function showCreatePromptForm() {
+    document.getElementById('editPromptId').value = '';
+    document.getElementById('promptName').value = '';
+    document.getElementById('promptContent').value = '';
+    document.getElementById('promptForm').classList.remove('hidden');
+  }
+
+  function editPrompt(id) {
+    var p = myPrompts.find(function(pr) { return pr.id === id; });
+    if (!p) return;
+    document.getElementById('editPromptId').value = id;
+    document.getElementById('promptName').value = p.name;
+    document.getElementById('promptContent').value = p.content || '';
+    document.getElementById('promptForm').classList.remove('hidden');
+  }
+
+  function cancelPromptForm() {
+    document.getElementById('promptForm').classList.add('hidden');
+  }
+
+  async function savePrompt() {
+    var id = document.getElementById('editPromptId').value;
+    var name = document.getElementById('promptName').value.trim();
+    var content = document.getElementById('promptContent').value.trim();
+
+    if (!name) { alert('Prompt name is required'); return; }
+
+    try {
+      if (id) {
+        await fetch('/api/provider/prompts/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name, content: content })
+        });
+      } else {
+        await fetch('/api/provider/prompts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name, content: content })
+        });
+      }
+      cancelPromptForm();
+      // Reload prompts
+      var resp = await fetch('/api/provider/prompts');
+      myPrompts = await resp.json();
+      renderPrompts();
+    } catch (e) {
+      alert('Error saving prompt');
+      console.error(e);
+    }
+  }
+
+  async function deletePrompt(id, name) {
+    if (!confirm('Delete prompt "' + name + '"? It will no longer appear in the System Prompt dropdown.')) return;
+    try {
+      await fetch('/api/provider/prompts/' + id, { method: 'DELETE' });
+      var resp = await fetch('/api/provider/prompts');
+      myPrompts = await resp.json();
+      renderPrompts();
+    } catch (e) {
+      alert('Error deleting prompt');
+    }
+  }
+
+  function renderFlagsSummary() {
+    var el = document.getElementById('flagsSummary');
+    var items = [
+      { label: 'Safety plans required', value: myFlags.require_safety_plan !== false },
+      { label: 'NLP reports enabled', value: myFlags.enable_nlp_report !== false },
+      { label: 'Custom prompts allowed', value: myFlags.allow_custom_prompts !== false },
+      { label: 'Max turns per conversation', value: myFlags.max_turns_per_conversation || 'Unlimited' },
+    ];
+    el.innerHTML = items.map(function(item) {
+      var badge;
+      if (typeof item.value === 'boolean') {
+        badge = item.value
+          ? '<span class="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">On</span>'
+          : '<span class="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-semibold text-stone-500 ring-1 ring-inset ring-stone-200">Off</span>';
+      } else {
+        badge = '<span class="text-sm font-medium text-stone-700">' + item.value + '</span>';
+      }
+      return '<div class="flex items-center justify-between px-5 py-3">' +
+        '<span class="text-sm text-stone-700">' + item.label + '</span>' + badge + '</div>';
+    }).join('');
+  }
+
+  loadSettings();
+</script>
+{% endblock %}
