@@ -562,25 +562,32 @@ def get_system_prompts():
     provider's own prompts (if provider is logged in).
     """
     from sqlalchemy import or_
+
+    def _filter_by_allowed(prompts_list, flags_row, include_own=False):
+        """Filter prompts by allowed_prompts. None/empty = no prompts (general only)."""
+        if not flags_row:
+            return prompts_list  # No flags row = no restrictions
+        if flags_row.allowed_prompts:
+            allowed_ids = set(json.loads(flags_row.allowed_prompts))
+            return [p for p in prompts_list if p.id in allowed_ids
+                    or (include_own and p.created_by == current_user.id)]
+        # Flags row exists but allowed_prompts is None = none selected = general only
+        if include_own:
+            return [p for p in prompts_list if p.created_by == current_user.id]
+        return []
+
     if current_user.is_provider():
         prompts = SystemPrompt.query.filter(
             or_(SystemPrompt.visible == True, SystemPrompt.created_by == current_user.id)
         ).all()
-        # Filter by admin-enforced allowed_prompts if set
         flags = ProviderFeatureFlags.query.filter_by(provider_id=current_user.id).first()
-        if flags and flags.allowed_prompts:
-            allowed_ids = set(json.loads(flags.allowed_prompts))
-            # Always include provider's own prompts + the allowed set
-            prompts = [p for p in prompts if p.id in allowed_ids or p.created_by == current_user.id]
+        prompts = _filter_by_allowed(prompts, flags, include_own=True)
     elif current_user.is_patient():
         prompts = SystemPrompt.query.filter_by(visible=True).all()
-        # Filter by patient's provider allowed_prompts
         provider_id = get_provider_id_for_patient(current_user.id)
         if provider_id:
             flags = ProviderFeatureFlags.query.filter_by(provider_id=provider_id).first()
-            if flags and flags.allowed_prompts:
-                allowed_ids = set(json.loads(flags.allowed_prompts))
-                prompts = [p for p in prompts if p.id in allowed_ids]
+            prompts = _filter_by_allowed(prompts, flags)
     else:
         prompts = SystemPrompt.query.filter_by(visible=True).all()
 

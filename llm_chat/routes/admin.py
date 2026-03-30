@@ -895,17 +895,29 @@ def update_provider_feature_flags(provider_id):
 @admin_bp.route("/api/admin/prompts", methods=["GET"])
 @role_required('admin')
 def get_all_prompts():
-    """Get all system prompts for management."""
+    """Get all system prompts for management, with full domain content."""
+    from prompts.registry import PromptRegistry
+    registry = PromptRegistry.instance()
+
     prompts = SystemPrompt.query.all()
-    return jsonify([{
-        'id': p.id,
-        'name': p.name,
-        'content': p.content,
-        'domain_prompt_id': p.domain_prompt_id,
-        'visible': p.visible,
-        'created_by': p.created_by,
-        'created_at': p.created_at,
-    } for p in prompts])
+    result = []
+    for p in prompts:
+        content = p.content
+        # For domain-linked prompts, show the full markdown content from the file
+        if p.domain_prompt_id:
+            domain = registry.get_domain_prompt(p.domain_prompt_id)
+            if domain:
+                content = domain.content
+        result.append({
+            'id': p.id,
+            'name': p.name,
+            'content': content,
+            'domain_prompt_id': p.domain_prompt_id,
+            'visible': p.visible,
+            'created_by': p.created_by,
+            'created_at': p.created_at,
+        })
+    return jsonify(result)
 
 
 @admin_bp.route("/api/admin/prompts", methods=["POST"])

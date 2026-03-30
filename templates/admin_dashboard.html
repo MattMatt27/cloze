@@ -260,8 +260,8 @@
       </div>
     </section>
 
-    {# System Prompts Management #}
-    <section class="rounded-lg border border-stone-200 bg-white">
+    {# System Prompts Library #}
+    <section class="mb-8 rounded-lg border border-stone-200 bg-white">
       <div class="flex items-center justify-between border-b border-stone-100 bg-violet-50/60 px-5 py-3">
         <h3 class="text-sm font-semibold text-stone-900">System Prompts</h3>
         <button onclick="showPromptModal()"
@@ -270,27 +270,49 @@
           New Prompt
         </button>
       </div>
-      <div class="max-h-[400px] divide-y divide-stone-100 overflow-y-auto" id="promptsTableBody">
-        <div class="py-6 text-center text-sm text-stone-400">Loading...</div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 lg:items-stretch" style="min-height:350px">
+        {# Left: prompt list #}
+        <div class="border-r border-stone-100 overflow-y-auto divide-y divide-stone-100" id="promptsListPanel" style="max-height:450px">
+          <div class="py-6 text-center text-sm text-stone-400">Loading...</div>
+        </div>
+        {# Right: editor #}
+        <div class="flex flex-col">
+          <div class="px-4 py-2.5 bg-stone-50 border-b border-stone-100 text-xs font-medium text-stone-500 uppercase tracking-wide shrink-0" id="promptEditorHeader">Select a prompt to edit</div>
+          <div class="flex-1 flex flex-col p-4">
+            <input type="hidden" id="promptEditorId" value="">
+            <div class="mb-3">
+              <label class="mb-1 block text-xs font-medium text-stone-500">Name</label>
+              <input type="text" id="promptEditorName" disabled class="w-full rounded border border-stone-200 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none disabled:bg-stone-50 disabled:text-stone-400" placeholder="Click a prompt on the left...">
+            </div>
+            <div class="flex-1 flex flex-col mb-3">
+              <label class="mb-1 block text-xs font-medium text-stone-500">Content</label>
+              <textarea id="promptEditorContent" disabled class="flex-1 min-h-[180px] w-full rounded border border-stone-200 px-3 py-2 text-sm font-mono leading-relaxed focus:border-cloze-indigo focus:outline-none disabled:bg-stone-50 disabled:text-stone-400" placeholder="Click a prompt on the left to edit..."></textarea>
+            </div>
+            <div class="flex items-center gap-3">
+              <button onclick="savePromptEdit()" id="promptEditorSaveBtn" disabled class="rounded-lg bg-cloze-indigo px-4 py-2 text-sm font-medium text-white hover:bg-cloze-hover disabled:opacity-50 disabled:cursor-not-allowed">Save</button>
+              <button onclick="deleteCurrentPrompt()" id="promptEditorDeleteBtn" disabled class="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-500 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed">Delete</button>
+              <span id="promptEditorStatus" class="text-xs text-stone-400"></span>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
-    {# Prompt Create/Edit Modal #}
+    {# New Prompt Modal #}
     <div class="modal fixed inset-0 z-50 hidden items-center justify-center bg-black/40" id="promptModal">
       <div class="w-full max-w-lg rounded-lg bg-white p-6 shadow-lg">
-        <h3 class="mb-4 text-base font-semibold text-stone-900" id="promptModalTitle">New System Prompt</h3>
-        <input type="hidden" id="promptModalId" value="">
+        <h3 class="mb-4 text-base font-semibold text-stone-900">New System Prompt</h3>
         <div class="mb-4">
           <label class="mb-1 block text-sm font-medium text-stone-700">Name</label>
           <input type="text" id="promptModalName" class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none" placeholder="e.g., Homework Module - Mindfulness">
         </div>
         <div class="mb-4">
           <label class="mb-1 block text-sm font-medium text-stone-700">Content</label>
-          <textarea id="promptModalContent" rows="8" class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-mono focus:border-cloze-indigo focus:outline-none" placeholder="System prompt instructions..."></textarea>
+          <textarea id="promptModalContent" rows="8" class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-mono leading-relaxed focus:border-cloze-indigo focus:outline-none" placeholder="System prompt instructions..."></textarea>
         </div>
         <div class="flex justify-end gap-3">
           <button type="button" onclick="hideModal('promptModal')" class="rounded-lg border border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50">Cancel</button>
-          <button type="button" onclick="saveAdminPrompt()" class="rounded-lg bg-cloze-indigo px-4 py-2 text-sm font-medium text-white hover:bg-cloze-hover">Save</button>
+          <button type="button" onclick="saveAdminPrompt()" class="rounded-lg bg-cloze-indigo px-4 py-2 text-sm font-medium text-white hover:bg-cloze-hover">Create</button>
         </div>
       </div>
     </div>
@@ -936,7 +958,7 @@
     { key: 'allow_custom_prompts', label: 'Allow custom prompts', desc: 'Provider can write custom system prompt text in templates', type: 'bool' },
     { key: 'max_turns_per_conversation', label: 'Max turns per conversation', desc: 'Maximum user exchanges per conversation (blank = unlimited)', type: 'int' },
     { key: 'allowed_models', label: 'Allowed models', desc: 'Restrict this provider to specific models (blank = all models)', type: 'models' },
-    { key: 'allowed_prompts', label: 'Available system prompts', desc: 'Restrict this provider to specific prompts (blank = all prompts)', type: 'prompts' },
+    { key: 'allowed_prompts', label: 'System prompts', desc: 'Select which prompts this provider can use. None selected = general prompt only.', type: 'prompts' },
     { key: 'default_system_prompt_id', label: 'Default system prompt', desc: 'Prompt used when templates don\'t specify one', type: 'prompt' },
     { key: 'system_context_override', label: 'System context override', desc: 'Replace the default platform context prompt', type: 'text' },
     { key: 'safety_disclaimer_text', label: 'Safety disclaimer override', desc: 'Custom safety disclaimer modal text (HTML allowed)', type: 'text' },
@@ -994,18 +1016,18 @@
           return;
         } else if (def.type === 'prompts') {
           html += '</div></div>';
-          html += '<div class="mt-2 flex flex-wrap gap-1.5">';
           var selectedPrompts = (!f.inherited && f.value) ? f.value : [];
+          html += '<div class="mt-2 rounded-lg border border-stone-200 bg-white divide-y divide-stone-100 overflow-y-auto" style="max-height:250px">';
+          if (visiblePrompts.length === 0) {
+            html += '<div class="px-4 py-4 text-xs text-stone-400 text-center">No prompts configured. Add prompts in the Settings tab.</div>';
+          }
           visiblePrompts.forEach(function(p) {
             var checked = selectedPrompts.includes(p.id);
-            html += '<label class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs cursor-pointer transition ' +
-              (checked ? 'bg-cloze-indigo text-white' : 'bg-white text-stone-600 border border-stone-200 hover:border-cloze-indigo') + '">';
-            html += '<input type="checkbox" class="hidden provider-prompt-check" data-prompt-id="' + p.id + '" ' + (checked ? 'checked' : '') +
-              ' onchange="toggleModelChip(this)">' + escapeHtml(p.name) + '</label>';
+            html += '<label class="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-violet-50/40 transition">';
+            html += '<input type="checkbox" class="provider-prompt-check h-4 w-4 rounded border-stone-300 text-cloze-indigo focus:ring-cloze-indigo" data-prompt-id="' + p.id + '" ' + (checked ? 'checked' : '') + '>';
+            html += '<span class="text-sm text-stone-700">' + escapeHtml(p.name) + '</span>';
+            html += '</label>';
           });
-          if (selectedPrompts.length > 0) {
-            html += '<button onclick="clearProviderPrompts()" class="text-xs text-stone-400 hover:text-red-500 ml-1">Clear (inherit all)</button>';
-          }
           html += '</div>';
           html += '</div>';
           return;
@@ -1117,7 +1139,82 @@
   }
 
   function clearProviderPrompts() {
-    document.querySelectorAll('.provider-prompt-check').forEach(function(cb) { cb.checked = false; toggleModelChip(cb); });
+    document.querySelectorAll('.provider-prompt-check').forEach(function(cb) { cb.checked = false; });
+  }
+
+  // Settings tab: prompt library editor
+  function selectPromptForEdit(promptId) {
+    var p = adminPrompts.find(function(pr) { return pr.id === promptId; });
+    if (!p) return;
+
+    // Highlight selected in list
+    document.querySelectorAll('#promptsListPanel > div').forEach(function(el) {
+      el.classList.remove('bg-violet-50', 'border-l-2', 'border-cloze-indigo');
+    });
+    var listItem = document.querySelector('#promptsListPanel [data-prompt-id="' + promptId + '"]');
+    if (listItem) listItem.classList.add('bg-violet-50', 'border-l-2', 'border-cloze-indigo');
+
+    document.getElementById('promptEditorId').value = p.id;
+    document.getElementById('promptEditorName').value = p.name;
+    document.getElementById('promptEditorName').disabled = false;
+    document.getElementById('promptEditorContent').value = p.content || '';
+    document.getElementById('promptEditorContent').disabled = false;
+    document.getElementById('promptEditorSaveBtn').disabled = false;
+    document.getElementById('promptEditorDeleteBtn').disabled = false;
+    document.getElementById('promptEditorHeader').textContent = 'Editing: ' + p.name;
+  }
+
+  async function savePromptEdit() {
+    var id = document.getElementById('promptEditorId').value;
+    var name = document.getElementById('promptEditorName').value.trim();
+    var content = document.getElementById('promptEditorContent').value.trim();
+    if (!id || !name) return;
+
+    var statusEl = document.getElementById('promptEditorStatus');
+    statusEl.textContent = 'Saving...';
+    try {
+      await fetch('/api/admin/prompts/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, content: content })
+      });
+      statusEl.textContent = 'Saved';
+      statusEl.classList.add('text-emerald-600');
+      setTimeout(function() {
+        statusEl.textContent = '';
+        statusEl.classList.remove('text-emerald-600');
+      }, 2000);
+      // Update local cache and re-render list
+      var p = adminPrompts.find(function(pr) { return pr.id == id; });
+      if (p) { p.name = name; p.content = content; }
+      renderAdminPrompts();
+      document.getElementById('promptEditorHeader').textContent = 'Editing: ' + name;
+    } catch(e) {
+      statusEl.textContent = 'Error saving';
+      statusEl.classList.add('text-red-500');
+    }
+  }
+
+  async function deleteCurrentPrompt() {
+    var id = document.getElementById('promptEditorId').value;
+    if (!id) return;
+    var p = adminPrompts.find(function(pr) { return pr.id == id; });
+    if (!confirm('Delete prompt "' + (p ? p.name : '') + '"?')) return;
+    try {
+      await fetch('/api/admin/prompts/' + id, { method: 'DELETE' });
+      await loadAdminPrompts();
+      // Clear editor
+      document.getElementById('promptEditorId').value = '';
+      document.getElementById('promptEditorName').value = '';
+      document.getElementById('promptEditorName').disabled = true;
+      document.getElementById('promptEditorContent').value = '';
+      document.getElementById('promptEditorContent').disabled = true;
+      document.getElementById('promptEditorSaveBtn').disabled = true;
+      document.getElementById('promptEditorDeleteBtn').disabled = true;
+      document.getElementById('promptEditorHeader').textContent = 'Select a prompt to edit';
+    } catch(e) {
+      alert('Error deleting prompt');
+    }
   }
 
   // ── System Prompt Management ───────────────────────────────
@@ -1135,78 +1232,46 @@
   }
 
   function renderAdminPrompts() {
-    var container = document.getElementById('promptsTableBody');
+    var container = document.getElementById('promptsListPanel');
     var visible = adminPrompts.filter(function(p) { return p.visible; });
     if (!visible.length) {
       container.innerHTML = '<div class="py-6 text-center text-sm text-stone-400">No system prompts. Click "New Prompt" to create one.</div>';
       return;
     }
     container.innerHTML = visible.map(function(p) {
-      return '<div class="flex items-center justify-between px-5 py-3 hover:bg-stone-50">' +
-        '<div class="min-w-0 flex-1">' +
-          '<div class="text-sm font-medium text-stone-800">' + escapeHtml(p.name) + '</div>' +
-          '<div class="mt-0.5 text-xs text-stone-500 truncate">' + escapeHtml((p.content || '').substring(0, 100)) + '</div>' +
-        '</div>' +
-        '<div class="flex gap-2 ml-4 shrink-0">' +
-          '<button onclick="editAdminPrompt(' + p.id + ')" class="rounded-md border border-stone-200 px-2 py-1 text-xs text-stone-600 hover:bg-stone-50">Edit</button>' +
-          '<button onclick="deleteAdminPrompt(' + p.id + ', \'' + escapeHtml(p.name).replace(/'/g, "\\'") + '\')" class="rounded-md border border-stone-200 px-2 py-1 text-xs text-red-500 hover:bg-red-50">Delete</button>' +
-        '</div>' +
+      var preview = (p.content || '').substring(0, 80).replace(/\n/g, ' ');
+      if ((p.content || '').length > 80) preview += '...';
+      var badge = p.domain_prompt_id
+        ? '<span class="ml-1.5 rounded-full bg-violet-100 px-1.5 py-0.5 text-[9px] font-semibold text-violet-700">Domain</span>'
+        : '';
+      return '<div data-prompt-id="' + p.id + '" class="px-4 py-3 cursor-pointer hover:bg-violet-50/40 transition" onclick="selectPromptForEdit(' + p.id + ')">' +
+        '<div class="flex items-center"><span class="text-sm font-medium text-stone-800">' + escapeHtml(p.name) + '</span>' + badge + '</div>' +
+        '<div class="mt-0.5 text-xs text-stone-500 truncate">' + escapeHtml(preview) + '</div>' +
       '</div>';
     }).join('');
   }
 
-  function showPromptModal(id) {
-    document.getElementById('promptModalId').value = '';
+  function showPromptModal() {
     document.getElementById('promptModalName').value = '';
     document.getElementById('promptModalContent').value = '';
-    document.getElementById('promptModalTitle').textContent = 'New System Prompt';
-    showModal('promptModal');
-  }
-
-  function editAdminPrompt(id) {
-    var p = adminPrompts.find(function(pr) { return pr.id === id; });
-    if (!p) return;
-    document.getElementById('promptModalId').value = id;
-    document.getElementById('promptModalName').value = p.name;
-    document.getElementById('promptModalContent').value = p.content || '';
-    document.getElementById('promptModalTitle').textContent = 'Edit System Prompt';
     showModal('promptModal');
   }
 
   async function saveAdminPrompt() {
-    var id = document.getElementById('promptModalId').value;
     var name = document.getElementById('promptModalName').value.trim();
     var content = document.getElementById('promptModalContent').value.trim();
     if (!name) { alert('Name is required'); return; }
 
     try {
-      if (id) {
-        await fetch('/api/admin/prompts/' + id, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: name, content: content })
-        });
-      } else {
-        await fetch('/api/admin/prompts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: name, content: content })
-        });
-      }
+      await fetch('/api/admin/prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, content: content })
+      });
       hideModal('promptModal');
       loadAdminPrompts();
     } catch(e) {
       alert('Error saving prompt');
-    }
-  }
-
-  async function deleteAdminPrompt(id, name) {
-    if (!confirm('Delete prompt "' + name + '"?')) return;
-    try {
-      await fetch('/api/admin/prompts/' + id, { method: 'DELETE' });
-      loadAdminPrompts();
-    } catch(e) {
-      alert('Error deleting prompt');
     }
   }
 
