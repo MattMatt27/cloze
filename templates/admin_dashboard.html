@@ -863,7 +863,7 @@
       html += '</div>';
 
       // Recent windows
-      html += '<div>';
+      html += '<div class="mb-6">';
       html += '<h4 class="mb-2 text-sm font-semibold text-stone-800">Chat Windows (' + data.windows.length + ')</h4>';
       if (data.windows.length === 0) {
         html += '<p class="text-sm text-stone-400">No chat windows</p>';
@@ -880,7 +880,19 @@
       }
       html += '</div>';
 
+      // Feature configuration
+      html += '<div class="border-t border-stone-200 pt-5">';
+      html += '<h4 class="mb-3 text-sm font-semibold text-stone-800">Feature Configuration</h4>';
+      html += '<p class="mb-4 text-xs text-stone-500">Override global settings for this provider. &ldquo;Inherit&rdquo; uses the global default.</p>';
+      html += '<div id="providerFlagsContainer" data-provider-id="' + providerId + '">';
+      html += '<div class="py-4 text-center text-sm text-stone-400">Loading flags...</div>';
+      html += '</div>';
+      html += '</div>';
+
       content.innerHTML = html;
+
+      // Load feature flags into the container
+      loadProviderFlags(providerId);
 
     } catch (error) {
       content.innerHTML = '<div class="py-8 text-center text-sm text-red-500">Failed to load provider details</div>';
@@ -890,6 +902,161 @@
 
   function closeProviderDrillDown() {
     document.getElementById('providerDrillDown').classList.add('hidden');
+  }
+
+  // ── Provider Feature Flags ────────────────────────────────────
+
+  var FLAG_DEFS = [
+    { key: 'require_safety_plan', label: 'Require safety plan', desc: 'Must have an active safety plan to start conversations', type: 'bool' },
+    { key: 'allow_patient_anti_patterns', label: 'Allow patient anti-patterns', desc: 'Patients can add their own anti-patterns to safety plans', type: 'bool' },
+    { key: 'enable_nlp_report', label: 'Enable NLP reports', desc: 'Generate NLP analysis reports when chat windows expire', type: 'bool' },
+    { key: 'allow_custom_prompts', label: 'Allow custom prompts', desc: 'Provider can write custom system prompt text in templates', type: 'bool' },
+    { key: 'max_turns_per_conversation', label: 'Max turns per conversation', desc: 'Maximum user exchanges per conversation (blank = unlimited)', type: 'int' },
+    { key: 'allowed_models', label: 'Allowed models', desc: 'Restrict this provider to specific models (blank = all models)', type: 'models' },
+    { key: 'default_system_prompt_id', label: 'Default system prompt', desc: 'Prompt used when templates don\'t specify one', type: 'prompt' },
+    { key: 'system_context_override', label: 'System context override', desc: 'Replace the default platform context prompt', type: 'text' },
+    { key: 'safety_disclaimer_text', label: 'Safety disclaimer override', desc: 'Custom safety disclaimer modal text (HTML allowed)', type: 'text' },
+  ];
+
+  async function loadProviderFlags(providerId) {
+    var container = document.getElementById('providerFlagsContainer');
+    try {
+      var [flagsResp, modelsResp, promptsResp] = await Promise.all([
+        fetch('/api/admin/provider/' + providerId + '/feature-flags'),
+        fetch('/api/admin/models'),
+        fetch('/api/system_prompts'),
+      ]);
+      var flagsData = await flagsResp.json();
+      var allModels = await modelsResp.json();
+      var allPrompts = await promptsResp.json();
+
+      var flags = flagsData.flags;
+      var html = '<div class="space-y-3">';
+
+      FLAG_DEFS.forEach(function(def) {
+        var f = flags[def.key] || { value: null, inherited: true, effective: null };
+        html += '<div class="rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">';
+        html += '<div class="flex items-start justify-between gap-4">';
+        html += '<div class="min-w-0"><div class="text-sm font-medium text-stone-800">' + def.label + '</div>';
+        html += '<div class="mt-0.5 text-xs text-stone-500">' + def.desc + '</div></div>';
+        html += '<div class="flex-shrink-0">';
+
+        if (def.type === 'bool') {
+          html += '<select id="flag_' + def.key + '" onchange="saveProviderFlag(' + providerId + ', \'' + def.key + '\', this.value, \'bool\')" class="rounded border border-stone-200 bg-white px-2 py-1 text-xs">';
+          html += '<option value="inherit"' + (f.inherited ? ' selected' : '') + '>Inherit (' + (f.effective !== null ? (f.effective ? 'On' : 'Off') : 'On') + ')</option>';
+          html += '<option value="true"' + (!f.inherited && f.value === true ? ' selected' : '') + '>On</option>';
+          html += '<option value="false"' + (!f.inherited && f.value === false ? ' selected' : '') + '>Off</option>';
+          html += '</select>';
+        } else if (def.type === 'int') {
+          var intVal = f.inherited ? '' : (f.value || '');
+          html += '<input type="number" min="1" id="flag_' + def.key + '" value="' + intVal + '" placeholder="Inherit" onchange="saveProviderFlag(' + providerId + ', \'' + def.key + '\', this.value, \'int\')" class="w-24 rounded border border-stone-200 bg-white px-2 py-1 text-xs">';
+        } else if (def.type === 'models') {
+          html += '</div></div>';
+          html += '<div class="mt-2 flex flex-wrap gap-1.5">';
+          var selectedModels = (!f.inherited && f.value) ? f.value : [];
+          allModels.forEach(function(m) {
+            var checked = selectedModels.includes(m.id);
+            html += '<label class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs cursor-pointer transition ' +
+              (checked ? 'bg-cloze-indigo text-white' : 'bg-white text-stone-600 border border-stone-200 hover:border-cloze-indigo') + '">';
+            html += '<input type="checkbox" class="hidden provider-model-check" data-model-id="' + m.id + '" ' + (checked ? 'checked' : '') +
+              ' onchange="saveProviderModels(' + providerId + ')">' + escapeHtml(m.name) + '</label>';
+          });
+          if (selectedModels.length > 0) {
+            html += '<button onclick="clearProviderModels(' + providerId + ')" class="text-xs text-stone-400 hover:text-red-500 ml-1">Clear (inherit all)</button>';
+          }
+          html += '</div>';
+          html += '</div>';
+          return;
+        } else if (def.type === 'prompt') {
+          html += '<select id="flag_' + def.key + '" onchange="saveProviderFlag(' + providerId + ', \'' + def.key + '\', this.value, \'int\')" class="max-w-[200px] rounded border border-stone-200 bg-white px-2 py-1 text-xs">';
+          html += '<option value="">Inherit (none)</option>';
+          allPrompts.forEach(function(p) {
+            html += '<option value="' + p.id + '"' + (!f.inherited && f.value == p.id ? ' selected' : '') + '>' + escapeHtml(p.name) + '</option>';
+          });
+          html += '</select>';
+        } else if (def.type === 'text') {
+          html += '</div></div>';
+          var textVal = f.inherited ? '' : (f.value || '');
+          html += '<div class="mt-2"><textarea id="flag_' + def.key + '" rows="3" placeholder="Leave blank to inherit default" onchange="saveProviderFlag(' + providerId + ', \'' + def.key + '\', this.value, \'text\')" class="w-full rounded border border-stone-200 bg-white px-3 py-2 text-xs">' + escapeHtml(textVal) + '</textarea></div>';
+          html += '</div>';
+          return;
+        }
+
+        html += '</div></div></div>';
+      });
+
+      html += '</div>';
+      container.innerHTML = html;
+
+    } catch (error) {
+      container.innerHTML = '<div class="py-4 text-center text-sm text-red-500">Failed to load feature flags</div>';
+      console.error('Error loading provider flags:', error);
+    }
+  }
+
+  async function saveProviderFlag(providerId, key, value, type) {
+    var payload = {};
+    if (type === 'bool') {
+      payload[key] = value === 'inherit' ? null : (value === 'true');
+    } else if (type === 'int') {
+      payload[key] = value === '' ? null : parseInt(value, 10);
+    } else if (type === 'text') {
+      payload[key] = value === '' ? null : value;
+    }
+
+    try {
+      var response = await fetch('/api/admin/provider/' + providerId + '/feature-flags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      var result = await response.json();
+      if (result.status === 'success') {
+        // Briefly flash the control green
+        var el = document.getElementById('flag_' + key);
+        if (el) {
+          el.classList.add('ring-1', 'ring-emerald-400');
+          setTimeout(function() { el.classList.remove('ring-1', 'ring-emerald-400'); }, 800);
+        }
+      }
+    } catch (error) {
+      console.error('Error saving flag:', error);
+    }
+  }
+
+  async function saveProviderModels(providerId) {
+    var checkboxes = document.querySelectorAll('.provider-model-check');
+    var selected = [];
+    checkboxes.forEach(function(cb) {
+      if (cb.checked) selected.push(parseInt(cb.dataset.modelId, 10));
+    });
+
+    var payload = { allowed_models: selected.length > 0 ? selected : null };
+    try {
+      await fetch('/api/admin/provider/' + providerId + '/feature-flags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      // Reload to reflect visual state
+      loadProviderFlags(providerId);
+    } catch (error) {
+      console.error('Error saving model allowlist:', error);
+    }
+  }
+
+  async function clearProviderModels(providerId) {
+    var payload = { allowed_models: null };
+    try {
+      await fetch('/api/admin/provider/' + providerId + '/feature-flags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      loadProviderFlags(providerId);
+    } catch (error) {
+      console.error('Error clearing model allowlist:', error);
+    }
   }
 
   function showCreateProviderModal() {
