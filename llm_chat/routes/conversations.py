@@ -114,6 +114,20 @@ def get_conversation_data(conversation_id):
             window_id = window.id
             window_status = window.compute_status()
 
+    # Turn limit info
+    turn_info = {}
+    if current_user.is_patient():
+        provider_id = get_provider_id_for_patient(conversation.user_id)
+        mt = get_effective_setting('max_turns_per_conversation', provider_id)
+        if mt:
+            used = sum(1 for m in messages if m.role == 'user')
+            turn_info = {
+                'max_turns': mt,
+                'turns_used': used,
+                'turns_remaining': max(0, mt - used),
+                'turn_limit_reached': used >= mt,
+            }
+
     return jsonify({
         'id': conversation.id,
         'title': conversation.title or 'New Conversation',
@@ -129,7 +143,8 @@ def get_conversation_data(conversation_id):
         'window_status': window_status,
         'window_id': window_id,
         'consent_provided': conversation.consent_provided,
-        'messages': [m.to_dict() for m in messages]
+        'messages': [m.to_dict() for m in messages],
+        **turn_info,
     })
 
 @conv_bp.route("/api/conversation/<int:conversation_id>/title", methods=["PUT"])
@@ -326,16 +341,22 @@ def send_message(conversation_id):
                 return jsonify({'error': 'Chat window has expired or is no longer active'}), 403
 
     # Max turns per conversation enforcement
+    max_turns = None
+    turns_used = 0
     if current_user.is_patient():
         provider_id = get_provider_id_for_patient(current_user.id)
         max_turns = get_effective_setting('max_turns_per_conversation', provider_id)
         if max_turns:
-            user_message_count = Message.query.filter_by(
+            turns_used = Message.query.filter_by(
                 conversation_id=conversation_id,
                 role='user'
             ).count()
-            if user_message_count >= max_turns:
-                return jsonify({'error': f'This conversation has reached its maximum of {max_turns} exchanges.'}), 403
+            if turns_used >= max_turns:
+                return jsonify({
+                    'error': f'This conversation has reached its maximum of {max_turns} exchanges.',
+                    'turn_limit_reached': True,
+                    'max_turns': max_turns,
+                }), 403
 
     # Time window and limits for patients
     if current_user.is_patient():
@@ -383,7 +404,34 @@ def send_message(conversation_id):
     history.append({'role': 'user', 'content': data['message']})
 
     system_prompt = conversation.system_prompt_content
-    print(f"Using system prompt for conversation {conversation_id}: {system_prompt}")
+
+    # Inject turn-count awareness when approaching the limit
+    turns_remaining = None
+    if max_turns:
+        turns_remaining = max_turns - (turns_used + 1)  # +1 for the message being sent now
+        if turns_remaining <= 5:
+            turn_notice = (
+                f"\n\n---\n\n## Turn Limit Notice\n"
+                f"This conversation has {turns_remaining} exchange{'s' if turns_remaining != 1 else ''} remaining "
+                f"(out of {max_turns} total). "
+            )
+            if turns_remaining <= 1:
+                turn_notice += (
+                    "This is the FINAL exchange. Wrap up the conversation naturally. "
+                    "Let the person know you've enjoyed the conversation and that this is "
+                    "the last exchange in this session."
+                )
+            elif turns_remaining <= 3:
+                turn_notice += (
+                    "The conversation is nearing its end. Begin naturally winding down. "
+                    "If there are key takeaways or action items, gently surface them."
+                )
+            else:
+                turn_notice += "Continue the conversation naturally but be aware of the remaining time."
+            if system_prompt:
+                system_prompt = system_prompt + turn_notice
+            else:
+                system_prompt = turn_notice
 
     # Call LLM
     response_text, response_time = LLMInterface.call_llm(conversation.model, history, system_prompt)
@@ -401,7 +449,12 @@ def send_message(conversation_id):
     conversation.updated_at = time.time()
     db.session.commit()
 
-    return jsonify({'response': response_text, 'message_id': assistant_message.id})
+    result = {'response': response_text, 'message_id': assistant_message.id}
+    if max_turns:
+        result['turns_remaining'] = max(0, turns_remaining)
+        result['max_turns'] = max_turns
+        result['turn_limit_reached'] = turns_remaining <= 0
+    return jsonify(result)
 
 @conv_bp.route("/api/save_selection", methods=["POST"])
 @login_required

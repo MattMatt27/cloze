@@ -306,7 +306,7 @@
       <div class="bg-cloze-indigo px-6 py-5 text-white">
         <h2 class="text-xl font-semibold">Important Safety Information</h2>
       </div>
-      <div class="px-6 py-5 max-h-[70vh] overflow-y-auto">
+      <div id="safetyModalBody" class="px-6 py-5 max-h-[70vh] overflow-y-auto">
         <p class="mb-4 text-sm leading-relaxed text-stone-700">
           This conversation partner is designed for general discussion and support between your regular sessions.
           It is <strong>NOT</strong> a substitute for emergency services or crisis intervention.
@@ -1241,6 +1241,13 @@ async function loadConversationView(convId) {
       document.getElementById('convTimer').classList.add('hidden');
     }
 
+    // Turn limit check
+    if (canSend && conversationData.turn_limit_reached) {
+      canSend = false;
+      document.getElementById('inputArea').classList.add('hidden');
+      showTurnLimitReached(conversationData.max_turns);
+    }
+
     // Input vs status
     if (canSend) {
       document.getElementById('inputArea').classList.remove('hidden');
@@ -1325,17 +1332,36 @@ async function sendMessage() {
     });
 
     if (!response.ok) {
-      var error = await response.json();
-      throw new Error(error.error || 'Failed to send message');
+      var errorData = await response.json();
+      if (errorData.turn_limit_reached) {
+        var err = new Error(errorData.error);
+        err.turnLimitReached = true;
+        err.maxTurns = errorData.max_turns;
+        throw err;
+      }
+      throw new Error(errorData.error || 'Failed to send message');
     }
 
     var data = await response.json();
     addMessageToUI('assistant', data.response, data.message_id);
 
+    // Turn limit awareness
+    if (data.turns_remaining !== undefined) {
+      if (data.turn_limit_reached) {
+        showTurnLimitReached(data.max_turns);
+      } else if (data.turns_remaining <= 3) {
+        showTurnWarning(data.turns_remaining, data.max_turns);
+      }
+    }
+
     // Update sidebar (conversation may have moved to "Today")
     updateSidebarConversation(activeConversationId, message);
   } catch (error) {
-    showError(error.message);
+    if (error.turnLimitReached) {
+      showTurnLimitReached(error.maxTurns);
+    } else {
+      showError(error.message);
+    }
   } finally {
     document.getElementById('typingIndicator').classList.add('hidden');
     document.getElementById('typingIndicator').classList.remove('flex');
@@ -1412,8 +1438,16 @@ async function startTemplate(templateId) {
 
 /* ── Safety modal ───────────────────────────────────────────── */
 
-function checkSafetyAcknowledgment() {
+async function checkSafetyAcknowledgment() {
   if (conversationData && !conversationData.consent_provided) {
+    // Load provider-specific disclaimer if available
+    try {
+      var resp = await fetch('/api/safety-disclaimer');
+      var data = await resp.json();
+      if (data.custom && data.text) {
+        document.getElementById('safetyModalBody').innerHTML = data.text;
+      }
+    } catch(e) { /* use default content */ }
     document.getElementById('safetyModal').classList.remove('hidden');
   }
 }
@@ -1512,6 +1546,36 @@ function showError(message) {
   banner.textContent = message;
   banner.classList.remove('hidden');
   setTimeout(function() { banner.classList.add('hidden'); }, 5000);
+}
+
+function showTurnWarning(remaining, max) {
+  var s = remaining !== 1 ? 's' : '';
+  var banner = document.getElementById('errorBanner');
+  banner.textContent = remaining + ' exchange' + s + ' remaining in this conversation (out of ' + max + ')';
+  banner.classList.remove('hidden', 'bg-red-50', 'text-red-700', 'border-red-200');
+  banner.classList.add('bg-amber-50', 'text-amber-800', 'border-amber-200');
+  setTimeout(function() {
+    banner.classList.add('hidden');
+    banner.classList.remove('bg-amber-50', 'text-amber-800', 'border-amber-200');
+  }, 6000);
+}
+
+function showTurnLimitReached(max) {
+  // Hide the real input and show a lockout message in its place
+  var inputArea = document.getElementById('inputArea');
+  inputArea.classList.add('hidden');
+
+  // Remove any existing lockout banner
+  var existing = document.getElementById('turnLimitBanner');
+  if (existing) existing.remove();
+
+  var banner = document.createElement('div');
+  banner.id = 'turnLimitBanner';
+  banner.className = 'border-t border-stone-200 bg-stone-50 px-6 py-4 text-center shrink-0';
+  banner.innerHTML =
+    '<div class="text-sm font-medium text-stone-700">This conversation has reached its limit of ' + max + ' exchanges.</div>' +
+    '<div class="mt-1 text-xs text-stone-500">You can review the conversation above, but no more messages can be sent in this session.</div>';
+  inputArea.parentNode.appendChild(banner);
 }
 
 /* ── Report modal ───────────────────────────────────────────── */
