@@ -660,7 +660,7 @@ def get_user_settings_flags():
 @conv_bp.route("/api/safety-disclaimer")
 @login_required
 def get_safety_disclaimer():
-    """Get the safety disclaimer text for the current patient's provider."""
+    """Get the safety disclaimer HTML for the current patient's provider."""
     provider_id = None
     if current_user.is_patient():
         provider_id = get_provider_id_for_patient(current_user.id)
@@ -670,9 +670,68 @@ def get_safety_disclaimer():
     if provider_id:
         flags = ProviderFeatureFlags.query.filter_by(provider_id=provider_id).first()
         if flags and flags.safety_disclaimer_text:
-            return jsonify({'text': flags.safety_disclaimer_text, 'custom': True})
+            raw = flags.safety_disclaimer_text
+            # Check if it's JSON blocks (new format) or raw HTML (legacy)
+            try:
+                blocks = json.loads(raw)
+                if isinstance(blocks, list):
+                    html = _compile_disclaimer_blocks(blocks)
+                    return jsonify({'text': html, 'custom': True})
+            except (json.JSONDecodeError, TypeError):
+                pass
+            # Legacy raw HTML
+            return jsonify({'text': raw, 'custom': True})
 
     return jsonify({'text': None, 'custom': False})
+
+
+def _compile_disclaimer_blocks(blocks):
+    """Compile disclaimer blocks to HTML (server-side rendering)."""
+    import re
+
+    def boldify(text):
+        escaped = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        return re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', escaped)
+
+    parts = []
+    for block in blocks:
+        btype = block.get('type', 'text')
+        content = block.get('content', '')
+
+        if btype == 'text':
+            parts.append(f'<p class="mb-4 text-sm leading-relaxed text-stone-700">{boldify(content)}</p>')
+        elif btype == 'warning':
+            title = block.get('title', 'Warning')
+            lines = content.split('\n')
+            list_items = [l for l in lines if l.strip().startswith('-')]
+            plain = [l for l in lines if not l.strip().startswith('-')]
+            html = f'<div class="rounded-lg border-l-4 border-amber-400 bg-amber-50 p-4 my-4">'
+            html += f'<h3 class="text-sm font-semibold text-amber-800 mb-2">{boldify(title)}</h3>'
+            if plain:
+                html += f'<p class="text-sm text-amber-900 mb-2">{boldify(" ".join(plain))}</p>'
+            if list_items:
+                html += '<ul class="list-disc pl-5 text-sm text-amber-900 space-y-1">'
+                for li in list_items:
+                    html += f'<li>{boldify(li.strip().lstrip("- "))}</li>'
+                html += '</ul>'
+            html += '</div>'
+            parts.append(html)
+        elif btype == 'alert':
+            title = block.get('title', 'Alert')
+            html = f'<div class="rounded-lg border-l-4 border-red-500 bg-red-50 p-4 my-4">'
+            html += f'<h3 class="text-sm font-semibold text-red-900 mb-2">{boldify(title)}</h3>'
+            html += f'<p class="text-sm text-red-900">{boldify(content)}</p>'
+            html += '</div>'
+            parts.append(html)
+        elif btype == 'checkbox':
+            html = '<div class="mt-5 pt-5 border-t border-stone-200">'
+            html += '<label class="flex items-start gap-2.5 cursor-pointer select-none">'
+            html += '<input type="checkbox" id="safetyAcknowledge" class="mt-0.5 h-4 w-4 cursor-pointer rounded border-stone-300 text-cloze-indigo focus:ring-cloze-indigo">'
+            html += f'<span class="text-sm text-stone-700">{boldify(content)}</span>'
+            html += '</label></div>'
+            parts.append(html)
+
+    return '\n'.join(parts)
 
 
 @conv_bp.route("/api/prompts/domains")
