@@ -9,40 +9,18 @@
     <p class="text-sm text-stone-500">Configure your study's content and prompts</p>
   </section>
 
-  {# Safety Disclaimer #}
-  <section id="disclaimerSection" class="mb-8 rounded-lg border border-stone-200 bg-white">
+  {# 1. Account Configuration (read-only) #}
+  <section class="mb-8 rounded-lg border border-stone-200 bg-white">
     <div class="border-b border-stone-100 px-5 py-3">
-      <h3 class="text-sm font-semibold text-stone-900">Safety Disclaimer</h3>
-      <p class="mt-0.5 text-xs text-stone-500">HTML shown to patients before starting conversations. Edit the default or write your own. The acknowledgment checkbox is included automatically.</p>
+      <h3 class="text-sm font-semibold text-stone-900">Account Configuration</h3>
+      <p class="mt-0.5 text-xs text-stone-500">These settings are managed by your administrator</p>
     </div>
-    <div class="p-5">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:items-stretch">
-        <div class="flex flex-col">
-          <label class="mb-1.5 block text-xs font-medium text-stone-500 uppercase tracking-wide">Editor</label>
-          <textarea id="disclaimerText" oninput="updateDisclaimerPreview()"
-                    class="flex-1 min-h-[300px] w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-mono focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo"
-                    placeholder="Loading default..."></textarea>
-          <button onclick="resetDisclaimer()" class="mt-2 text-xs text-stone-400 hover:text-cloze-indigo self-start">Reset to default</button>
-        </div>
-        <div class="flex flex-col">
-          <label class="mb-1.5 block text-xs font-medium text-stone-500 uppercase tracking-wide">Preview</label>
-          <div class="flex-1 rounded-lg border border-stone-200 bg-white overflow-hidden flex flex-col">
-            <div class="bg-cloze-indigo px-4 py-3 text-white shrink-0">
-              <h3 class="text-sm font-semibold">Important Safety Information</h3>
-            </div>
-            <div id="disclaimerPreview" class="px-4 py-4 overflow-y-auto text-sm flex-1">
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="mt-4 flex items-center gap-3">
-        <button onclick="saveContent()" class="rounded-lg bg-cloze-indigo px-4 py-2 text-sm font-medium text-white hover:bg-cloze-hover">Save</button>
-        <span id="contentSaveStatus" class="text-xs text-stone-400"></span>
-      </div>
+    <div id="flagsSummary" class="divide-y divide-stone-100">
+      <div class="py-6 text-center text-sm text-stone-400">Loading...</div>
     </div>
   </section>
 
-  {# System Context Override #}
+  {# 2. System Context Override #}
   <section class="mb-8 rounded-lg border border-stone-200 bg-white">
     <div class="border-b border-stone-100 px-5 py-3">
       <h3 class="text-sm font-semibold text-stone-900">System Context Override</h3>
@@ -56,7 +34,7 @@
     </div>
   </section>
 
-  {# Custom Prompts #}
+  {# 3. Custom System Prompts #}
   <section id="promptsSection" class="mb-8 rounded-lg border border-stone-200 bg-white">
     <div class="border-b border-stone-100 px-5 py-3 flex items-center justify-between">
       <div>
@@ -90,14 +68,36 @@
     </div>
   </section>
 
-  {# Read-only settings summary #}
-  <section class="rounded-lg border border-stone-200 bg-white">
+  {# 4. Safety Disclaimer #}
+  <section id="disclaimerSection" class="mb-8 rounded-lg border border-stone-200 bg-white">
     <div class="border-b border-stone-100 px-5 py-3">
-      <h3 class="text-sm font-semibold text-stone-900">Account Configuration</h3>
-      <p class="mt-0.5 text-xs text-stone-500">These settings are managed by your administrator</p>
+      <h3 class="text-sm font-semibold text-stone-900">Safety Disclaimer</h3>
+      <p class="mt-0.5 text-xs text-stone-500">HTML shown to patients before starting conversations. Edit the default or write your own. The acknowledgment checkbox is included automatically.</p>
     </div>
-    <div id="flagsSummary" class="divide-y divide-stone-100">
-      <div class="py-6 text-center text-sm text-stone-400">Loading...</div>
+    <div class="p-5">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:items-stretch">
+        <div class="flex flex-col">
+          <label class="mb-1.5 block text-xs font-medium text-stone-500 uppercase tracking-wide">Editor</label>
+          <textarea id="disclaimerText" oninput="updateDisclaimerPreview()"
+                    class="flex-1 min-h-[300px] w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-mono focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo"
+                    placeholder="Loading default..."></textarea>
+          <button onclick="resetDisclaimer()" class="mt-2 text-xs text-stone-400 hover:text-cloze-indigo self-start">Reset to default</button>
+        </div>
+        <div class="flex flex-col">
+          <label class="mb-1.5 block text-xs font-medium text-stone-500 uppercase tracking-wide">Preview</label>
+          <div class="flex-1 rounded-lg border border-stone-200 bg-white overflow-hidden flex flex-col">
+            <div class="bg-cloze-indigo px-4 py-3 text-white shrink-0">
+              <h3 class="text-sm font-semibold">Important Safety Information</h3>
+            </div>
+            <div id="disclaimerPreview" class="px-4 py-4 overflow-y-auto text-sm flex-1">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="mt-4 flex items-center gap-3">
+        <button onclick="saveContent()" class="rounded-lg bg-cloze-indigo px-4 py-2 text-sm font-medium text-white hover:bg-cloze-hover">Save</button>
+        <span id="contentSaveStatus" class="text-xs text-stone-400"></span>
+      </div>
     </div>
   </section>
 {% endblock %}
