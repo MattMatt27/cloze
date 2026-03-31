@@ -1454,13 +1454,23 @@ async function checkSafetyAcknowledgment() {
         document.getElementById('safetyModalBody').innerHTML = data.text;
       }
     } catch(e) { /* use default content */ }
+    // Bind checkbox listener (re-bind in case custom HTML replaced the element)
+    bindSafetyCheckbox();
     document.getElementById('safetyModal').classList.remove('hidden');
   }
 }
 
-document.getElementById('safetyAcknowledge').addEventListener('change', function() {
-  document.getElementById('safetyConfirmBtn').disabled = !this.checked;
-});
+function bindSafetyCheckbox() {
+  var cb = document.getElementById('safetyAcknowledge');
+  var btn = document.getElementById('safetyConfirmBtn');
+  if (cb && btn) {
+    btn.disabled = !cb.checked;
+    cb.addEventListener('change', function() {
+      btn.disabled = !this.checked;
+    });
+  }
+}
+bindSafetyCheckbox();
 
 async function acknowledgeSafety() {
   try {

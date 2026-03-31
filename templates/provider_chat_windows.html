@@ -4,31 +4,14 @@
 {% block page_title %}Manage Patient Chat Windows{% endblock %}
 
 {% block content %}
-<!-- Patient Selection View -->
-<section id="patientSelection" class="block">
-  <div class="mb-6 border-b border-stone-200 pb-4">
-    <h2 class="mb-1 text-xl font-semibold text-stone-900">Select a Patient</h2>
-    <p class="text-stone-600">Choose a patient to manage their chat windows and therapeutic sessions</p>
-  </div>
-
-  <div id="patientsGrid"
-       class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-    <!-- injected -->
-  </div>
-</section>
-
-<!-- Windows Management View -->
-<section id="windowsManagement" class="hidden">
-  <button class="mb-4 rounded-md bg-violet-50 px-3 py-2 text-sm font-medium text-stone-700 hover:bg-violet-100"
-          onclick="showPatientSelection()">
-    <svg class="mr-1 inline h-4 w-4 text-stone-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg>
-    Back to Patients
-  </button>
-
-  <div class="mb-6 flex items-center justify-between rounded-lg bg-white p-4 border border-stone-200">
-    <div>
-      <h2 id="selectedPatientName" class="text-lg font-semibold">Patient Name</h2>
-      <p id="selectedPatientEmail" class="text-stone-600">patient@email.com</p>
+<!-- Header with patient filter and create button -->
+<section id="windowsManagement">
+  <div class="mb-6 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <h2 class="text-lg font-semibold text-stone-900">Chat Windows</h2>
+      <select id="patientFilter" onchange="filterByPatient()" class="rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none">
+        <option value="">All Patients</option>
+      </select>
     </div>
     <button class="rounded-lg bg-cloze-indigo px-4 py-2 font-semibold text-white hover:bg-cloze-hover"
             onclick="openCreateModal()">
@@ -36,6 +19,10 @@
       Create New Window
     </button>
   </div>
+
+  {# Hidden fields for compatibility with existing code #}
+  <span id="selectedPatientName" class="hidden"></span>
+  <span id="selectedPatientEmail" class="hidden"></span>
 
   <div id="windowTabsWrapper">
     <div class="mt-4 border-b border-stone-200">
@@ -147,6 +134,12 @@
     </div>
 
     <form id="windowForm" class="space-y-5">
+      <div id="modalPatientSelect" class="hidden">
+        <label class="mb-1 block font-semibold">Patient</label>
+        <select id="modalPatientId" required class="w-full rounded-md border-2 border-stone-200 px-3 py-2 outline-none focus:border-cloze-indigo">
+          <option value="">Select a patient...</option>
+        </select>
+      </div>
       <div>
         <label class="mb-1 block font-semibold">Window Title</label>
         <input id="windowTitle" type="text" required placeholder="e.g., Week 1 - Anxiety Management"
@@ -485,23 +478,11 @@
     try {
       const res = await fetch('/api/provider/patients');
       patients = await res.json();
-      displayPatients();
+      // Populate filter dropdown
+      var filter = document.getElementById('patientFilter');
+      filter.innerHTML = '<option value="">All Patients</option>' +
+        patients.map(p => '<option value="' + p.id + '">' + escapeHtml(p.username) + '</option>').join('');
     } catch (e) { console.error('Error loading patients:', e); }
-  }
-
-  function displayPatients() {
-    const grid = document.getElementById('patientsGrid');
-    grid.innerHTML = patients.map(p => `
-      <div class="cursor-pointer rounded-lg bg-white p-4 border border-stone-200 transition transform hover:-translate-y-0.5 hover:border-cloze-indigo/40 hover:shadow-md"
-           onclick="selectPatient(${p.id})">
-        <div class="mb-1 text-base font-semibold text-stone-900">${escapeHtml(p.username)}</div>
-        <div class="mb-3 text-sm text-stone-600">${escapeHtml(p.email)}</div>
-        <div class="flex justify-between text-sm text-stone-500">
-          <span>Conversations: ${p.conversation_count}</span>
-          <span>Last Active: ${p.last_active ? formatDate(p.last_active) : 'Never'}</span>
-        </div>
-      </div>
-    `).join('');
   }
 
   async function selectPatient(patientId) {
@@ -509,21 +490,31 @@
     if (!currentPatient) return;
 
     document.getElementById('selectedPatientName').textContent = currentPatient.username;
-    document.getElementById('selectedPatientEmail').textContent = currentPatient.email;
-
-    document.getElementById('patientSelection').classList.add('hidden');
-    document.getElementById('windowsManagement').classList.remove('hidden');
+    document.getElementById('selectedPatientEmail').textContent = currentPatient.email || '';
+    document.getElementById('patientFilter').value = patientId;
 
     await Promise.all([loadWindows(patientId), loadPatientReports(patientId), loadSafetyPlan(patientId)]);
   }
 
-  function showPatientSelection() {
-    document.getElementById('patientSelection').classList.remove('hidden');
-    document.getElementById('windowsManagement').classList.add('hidden');
-    currentPatient = null;
+  function filterByPatient() {
+    var pid = document.getElementById('patientFilter').value;
+    if (pid) {
+      selectPatient(parseInt(pid));
+    } else {
+      currentPatient = null;
+      loadAllWindows();
+    }
   }
 
   // ===== Windows =====
+  async function loadAllWindows() {
+    try {
+      const res = await fetch('/api/windows/');
+      windows = await res.json();
+      displayWindows();
+    } catch (e) { console.error('Error loading windows:', e); }
+  }
+
   async function loadWindows(patientId) {
     try {
       const res = await fetch(`/api/windows?patient_id=${patientId}`);
@@ -619,6 +610,7 @@
                 </span>
               </div>
               <div class="mt-2 flex flex-wrap items-center gap-3 text-sm text-stone-500">
+                ${w.patient_name ? `<span class="font-medium text-stone-600">${escapeHtml(w.patient_name)}</span><span>&middot;</span>` : ''}
                 <span>${formatDate(w.start_date)} \u2013 ${formatDate(w.end_date)}</span>
               </div>
             </div>
@@ -707,12 +699,22 @@
 
   // ===== Modal (Create/Edit) =====
   function openCreateModal() {
-    if (!currentPatient) return alert('Please select a patient first');
     currentWindowId = null;
 
     document.getElementById('modalTitle').textContent = 'Create Chat Window';
     document.getElementById('windowForm').reset();
     document.getElementById('templatesEditor').innerHTML = '';
+
+    // Show patient selector if no patient is currently selected
+    var patientSelectDiv = document.getElementById('modalPatientSelect');
+    if (!currentPatient) {
+      var sel = document.getElementById('modalPatientId');
+      sel.innerHTML = '<option value="">Select a patient...</option>' +
+        patients.map(function(p) { return '<option value="' + p.id + '">' + escapeHtml(p.username) + '</option>'; }).join('');
+      patientSelectDiv.classList.remove('hidden');
+    } else {
+      patientSelectDiv.classList.add('hidden');
+    }
 
     // Reset report type and feature checkboxes to defaults
     setupReportTypeRadios('window', 'summary');
@@ -860,7 +862,9 @@
 
     // Only include patient_id when creating (not editing)
     if (!currentWindowId) {
-      payload.patient_id = currentPatient.id;
+      var patientId = currentPatient ? currentPatient.id : parseInt(document.getElementById('modalPatientId').value);
+      if (!patientId) { alert('Please select a patient'); return; }
+      payload.patient_id = patientId;
     }
 
     try {
@@ -870,10 +874,17 @@
         method, headers: {'Content-Type':'application/json'},
         body: JSON.stringify(payload)
       });
-      if (!res.ok) throw new Error('Failed to save window');
+      if (!res.ok) {
+        var errData = await res.json().catch(function() { return {}; });
+        throw new Error(errData.error || 'Failed to save window');
+      }
 
       closeModal();
-      loadWindows(currentPatient.id);
+      if (currentPatient) {
+        loadWindows(currentPatient.id);
+      } else {
+        loadAllWindows();
+      }
     } catch (e) {
       console.error('Error saving window:', e);
       alert('Failed to save window. Please try again.');
@@ -1512,6 +1523,9 @@
         var tabParam = params.get('tab');
         if (tabParam) setWindowTab(tabParam);
       }
+    } else {
+      // Default: show all windows across all patients
+      await loadAllWindows();
     }
   })();
 </script>
