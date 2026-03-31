@@ -15,6 +15,8 @@ class User(UserMixin, db.Model):
     visible = db.Column(db.Boolean, default=True)
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     created_at = db.Column(db.Float, default=lambda: time.time())
+    failed_login_attempts = db.Column(db.Integer, default=0)
+    locked_until = db.Column(db.Float, nullable=True)  # Unix timestamp
 
     # Relationships
     conversations = db.relationship('Conversation', backref='user', foreign_keys='Conversation.user_id', lazy='dynamic')
@@ -28,6 +30,22 @@ class User(UserMixin, db.Model):
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+
+    @property
+    def is_locked(self):
+        if self.locked_until and self.locked_until > time.time():
+            return True
+        return False
+
+    def record_failed_login(self):
+        self.failed_login_attempts = (self.failed_login_attempts or 0) + 1
+        # Lock after 5 consecutive failures: 15 min lockout
+        if self.failed_login_attempts >= 5:
+            self.locked_until = time.time() + 900  # 15 minutes
+
+    def record_successful_login(self):
+        self.failed_login_attempts = 0
+        self.locked_until = None
 
     def is_admin(self):
         return self.role == 'admin'

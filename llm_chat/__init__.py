@@ -35,6 +35,11 @@ def create_app():
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", secrets.token_hex(32))
     app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///llm_chat.db")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+    # Session cookie security
+    app.config["SESSION_COOKIE_SECURE"] = os.environ.get("FLASK_ENV") == "production"
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config.update(
         API_TITLE="My API",
         API_VERSION="v1",
@@ -44,6 +49,31 @@ def create_app():
         OPENAPI_SWAGGER_UI_URL="https://cdn.jsdelivr.net/npm/swagger-ui-dist/"
     )
     api = Api(app)
+
+    # CSRF protection for JSON API endpoints
+    # Reject state-changing requests without application/json content type.
+    # Browsers won't send cross-origin JSON without a CORS preflight,
+    # which we don't allow, so this blocks cross-site request forgery.
+    @app.before_request
+    def csrf_protect():
+        from flask import request, abort
+        if request.method in ('POST', 'PUT', 'DELETE', 'PATCH'):
+            # Skip for non-API routes (form-based pages) and logout
+            if request.path.startswith('/api/'):
+                content_type = request.content_type or ''
+                if 'application/json' not in content_type and 'multipart/form-data' not in content_type:
+                    abort(415)
+
+    # Security headers
+    @app.after_request
+    def set_security_headers(response):
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+        response.headers['X-XSS-Protection'] = '1; mode=block'
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        if os.environ.get("FLASK_ENV") == "production":
+            response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+        return response
 
     # Init extensions
     db.init_app(app)

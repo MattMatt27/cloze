@@ -1,8 +1,25 @@
 import time
+from collections import defaultdict
 from flask import Blueprint, render_template, jsonify, redirect, url_for, request
 from flask_login import login_user, logout_user, login_required, current_user
 from ..models.core import User
+from ..extensions import db
 from flask_smorest import Blueprint as SmorestBlueprint
+
+# IP-based rate limiting for login: max 10 attempts per minute per IP
+_login_attempts = defaultdict(list)  # ip -> [timestamps]
+_RATE_LIMIT_WINDOW = 60  # seconds
+_RATE_LIMIT_MAX = 10  # attempts per window
+
+
+def _is_rate_limited(ip):
+    now = time.time()
+    _login_attempts[ip] = [t for t in _login_attempts[ip] if now - t < _RATE_LIMIT_WINDOW]
+    return len(_login_attempts[ip]) >= _RATE_LIMIT_MAX
+
+
+def _record_attempt(ip):
+    _login_attempts[ip].append(time.time())
 
 auth_bp = Blueprint("auth1", __name__)
 auth_blp = SmorestBlueprint(name = "auth", import_name = "auth", description = "Authentication endpoints")
@@ -44,17 +61,38 @@ def logout():
 @auth_blp.response(401, description="Invalid credentials")
 def api_login():
     """Perform authentication (check user, password), if valid then log user in"""
+    ip = request.remote_addr or 'unknown'
+
+    # IP-based rate limiting
+    if _is_rate_limited(ip):
+        return jsonify({'status': 'error', 'message': 'Too many login attempts. Please wait a minute.'}), 429
+
+    _record_attempt(ip)
     data = request.json or {}
     user = User.query.filter_by(username=data.get('username')).first()
-    if user and user.check_password(data.get('password', '')):
-        login_user(user)
-        return jsonify({
-            'status': 'success',
-            'role': user.role,
-            'redirect': url_for('admin.admin_dashboard' if user.is_admin()
-                                else 'provider.provider_dashboard' if user.is_provider()
-                                else 'conversations.user_dashboard')
-        })
+
+    if user:
+        # Account lockout check
+        if user.is_locked:
+            remaining = int(user.locked_until - time.time())
+            mins = max(1, remaining // 60)
+            return jsonify({'status': 'error', 'message': f'Account temporarily locked. Try again in {mins} minute(s).'}), 423
+
+        if user.check_password(data.get('password', '')):
+            user.record_successful_login()
+            db.session.commit()
+            login_user(user)
+            return jsonify({
+                'status': 'success',
+                'role': user.role,
+                'redirect': url_for('admin.admin_dashboard' if user.is_admin()
+                                    else 'provider.provider_dashboard' if user.is_provider()
+                                    else 'conversations.user_dashboard')
+            })
+        else:
+            user.record_failed_login()
+            db.session.commit()
+
     return jsonify({'status': 'error', 'message': 'Invalid credentials'}), 401
 
 '''

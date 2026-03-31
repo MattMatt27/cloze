@@ -27,6 +27,18 @@ def _get_admin_setting(name, default=None):
         return row.setting_value
 
 
+def _validate_password(password):
+    """Return an error message if password is too weak, or None if acceptable."""
+    if not password or len(password) < 12:
+        return 'Password must be at least 12 characters'
+    has_upper = any(c.isupper() for c in password)
+    has_lower = any(c.islower() for c in password)
+    has_digit = any(c.isdigit() for c in password)
+    if not (has_upper and has_lower and has_digit):
+        return 'Password must contain uppercase, lowercase, and a number'
+    return None
+
+
 def _log_action(action, target_type, target_id=None, details=None):
     """Write an audit-log entry for the current admin."""
     entry = AuditLog(
@@ -137,6 +149,10 @@ def create_user():
         if not provider or provider.role != 'provider':
             return jsonify({'error': 'Invalid provider'}), 400
 
+    pwd_err = _validate_password(data.get('password'))
+    if pwd_err:
+        return jsonify({'error': pwd_err}), 400
+
     user = User(
         username=data['username'], email=data['email'], role=role,
         created_by=current_user.id,
@@ -182,8 +198,9 @@ def reset_user_password(user_id):
     user = User.query.get_or_404(user_id)
     data = request.json or {}
     new_password = data.get('password')
-    if not new_password or len(new_password) < 6:
-        return jsonify({'error': 'Password must be at least 6 characters'}), 400
+    err = _validate_password(new_password)
+    if err:
+        return jsonify({'error': err}), 400
     user.set_password(new_password)
     _log_action('password_reset', 'user', user_id)
     db.session.commit()
