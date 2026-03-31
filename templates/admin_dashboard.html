@@ -362,33 +362,6 @@
     </div>
   </div>
 
-  {# ── Assignment Modal ──────────────────────────────────────── #}
-  <div class="modal fixed inset-0 z-50 hidden items-center justify-center bg-black/40" id="assignmentModal">
-    <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
-      <h3 class="mb-5 text-base font-semibold text-stone-900">Assign Patient to Provider</h3>
-      <form onsubmit="assignProvider(event)">
-        <div class="mb-4">
-          <label for="selectProvider" class="mb-1.5 block text-sm font-medium text-stone-700">Provider</label>
-          <select id="selectProvider" required
-                  class="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo">
-          </select>
-        </div>
-        <div class="mb-6">
-          <label for="selectPatient" class="mb-1.5 block text-sm font-medium text-stone-700">Patient</label>
-          <select id="selectPatient" required
-                  class="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo">
-          </select>
-        </div>
-        <div class="flex items-center justify-end gap-3">
-          <button type="button" onclick="hideModal('assignmentModal')"
-                  class="rounded-md border border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 transition hover:bg-stone-50">Cancel</button>
-          <button type="submit"
-                  class="rounded-md bg-cloze-indigo px-4 py-2 text-sm font-medium text-white transition hover:bg-cloze-hover">Assign</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
   {# ── User Settings Modal ───────────────────────────────────── #}
   <div class="modal fixed inset-0 z-50 hidden items-center justify-center bg-black/40" id="userSettingsModal">
     <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
@@ -725,16 +698,10 @@
       // Info header
       html += '<div class="mb-6 flex flex-wrap items-center gap-4">';
       html += '<div class="text-sm"><span class="text-stone-500">Email:</span> <span class="font-medium">' + escapeHtml(data.email) + '</span></div>';
-      html += '<div class="text-sm"><span class="text-stone-500">Provider:</span> <span class="font-medium">' + (data.provider_name ? escapeHtml(data.provider_name) : 'Unassigned') + '</span>';
-      if (data.all_providers.length > 0) {
-        html += ' <select onchange="reassignPatient(' + patientId + ', this.value)" class="ml-2 rounded border border-stone-200 px-2 py-1 text-xs">';
-        html += '<option value="">Reassign...</option>';
-        data.all_providers.forEach(function(pv) {
-          html += '<option value="' + pv.id + '"' + (pv.id === data.provider_id ? ' selected disabled' : '') + '>' + escapeHtml(pv.username) + '</option>';
-        });
-        html += '</select>';
+      html += '<div class="text-sm"><span class="text-stone-500">Provider:</span> <span class="font-medium">' + (data.provider_name ? escapeHtml(data.provider_name) : 'Unassigned') + '</span></div>';
+      if (data.created_by) {
+        html += '<div class="text-sm"><span class="text-stone-500">Created by:</span> <span class="font-medium">' + escapeHtml(data.created_by) + '</span></div>';
       }
-      html += '</div>';
       html += '<div class="text-sm"><span class="text-stone-500">Status:</span> ' + (data.visible ? '<span class="font-medium text-emerald-600">Active</span>' : '<span class="font-medium text-red-500">Disabled</span>') + '</div>';
       html += '<button onclick="toggleUserVisibility(' + patientId + ', ' + !data.visible + ')" class="rounded-md border border-stone-200 px-3 py-1 text-xs text-stone-600 hover:bg-stone-50">' + (data.visible ? 'Disable Account' : 'Enable Account') + '</button>';
       html += '<button onclick="showResetPasswordModal(' + patientId + ', \'' + escapeHtml(data.username) + '\')" class="rounded-md border border-stone-200 px-3 py-1 text-xs text-stone-600 hover:bg-stone-50">Reset Password</button>';
@@ -1482,37 +1449,6 @@
     }
   }
 
-  async function reassignPatient(patientId, newProviderId) {
-    if (!newProviderId) return;
-    try {
-      await fetch('/api/admin/patient/' + patientId + '/reassign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider_id: parseInt(newProviderId) })
-      });
-      patientsData = [];
-      loadPatients();
-      openPatientDrillDown(patientId);
-    } catch (error) {
-      console.error('Error reassigning patient:', error);
-    }
-  }
-
-  async function assignPatientToProvider(providerId, patientId) {
-    try {
-      await fetch('/api/admin/assign_provider', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider_id: providerId, patient_id: parseInt(patientId) })
-      });
-      providersData = [];
-      loadProviders();
-      openProviderDrillDown(providerId);
-    } catch (error) {
-      console.error('Error assigning patient:', error);
-    }
-  }
-
   function showResetPasswordModal(userId, username) {
     document.getElementById('resetPasswordUserId').value = userId;
     document.getElementById('resetPasswordInfo').textContent = 'Reset password for ' + username;
@@ -1541,52 +1477,6 @@
     } catch (error) {
       console.error('Error resetting password:', error);
       alert('Failed to reset password');
-    }
-  }
-
-  // ── Assignments ────────────────────────────────────────────────
-
-  function showAssignmentModal() {
-    // Populate dropdowns
-    var providers = allUsers.filter(function(u) { return u.role === 'provider'; });
-    var patients = allUsers.filter(function(u) { return u.role === 'user'; });
-
-    document.getElementById('selectProvider').innerHTML =
-      '<option value="">Select a provider...</option>' +
-      providers.map(function(p) { return '<option value="' + p.id + '">' + escapeHtml(p.username) + '</option>'; }).join('');
-
-    document.getElementById('selectPatient').innerHTML =
-      '<option value="">Select a patient...</option>' +
-      patients.map(function(p) { return '<option value="' + p.id + '">' + escapeHtml(p.username) + '</option>'; }).join('');
-
-    showModal('assignmentModal');
-  }
-
-  async function assignProvider(event) {
-    event.preventDefault();
-    var assignment = {
-      provider_id: parseInt(document.getElementById('selectProvider').value),
-      patient_id:  parseInt(document.getElementById('selectPatient').value)
-    };
-
-    try {
-      var response = await fetch('/api/admin/assign_provider', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(assignment)
-      });
-
-      if (response.ok) {
-        hideModal('assignmentModal');
-        loadAssignments();
-        loadOverview();
-      } else {
-        var error = await response.json();
-        alert('Error: ' + error.error);
-      }
-    } catch (error) {
-      console.error('Error creating assignment:', error);
-      alert('Failed to create assignment');
     }
   }
 
