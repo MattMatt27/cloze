@@ -194,13 +194,38 @@ class LLMInterface:
                 else:
                     model_obj = genai.GenerativeModel(model.model_identifier)
 
+                # Set safety thresholds to BLOCK_NONE for research use.
+                # The platform handles safety at the prompt/application layer
+                # (constitutional safety prompts, crisis detection, etc.)
+                # rather than relying on Gemini's content filters, which
+                # incorrectly block legitimate clinical/crisis resource content.
+                try:
+                    from google.generativeai.types import HarmCategory, HarmBlockThreshold
+                    safety_settings = {
+                        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+                    }
+                except ImportError:
+                    safety_settings = None
+
                 response = model_obj.generate_content(
                     contents=gemini_messages,
                     generation_config={
                         'temperature': config.get('temperature', 0.7),
                         'max_output_tokens': config.get('max_tokens', 1000),
                     },
+                    safety_settings=safety_settings,
                 )
+
+                # Handle blocked responses gracefully
+                if not response.candidates or not response.candidates[0].content.parts:
+                    finish_reason = response.candidates[0].finish_reason if response.candidates else 'unknown'
+                    raise RuntimeError(
+                        f"Gemini blocked this response (finish_reason: {finish_reason}). "
+                        "This may occur with sensitive clinical content. Try rephrasing."
+                    )
                 result = response.text
 
             elif model.provider == 'local':
