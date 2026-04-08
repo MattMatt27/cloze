@@ -194,21 +194,26 @@ class LLMInterface:
                 else:
                     model_obj = genai.GenerativeModel(model.model_identifier)
 
-                # Set safety thresholds to BLOCK_NONE for research use.
-                # The platform handles safety at the prompt/application layer
-                # (constitutional safety prompts, crisis detection, etc.)
-                # rather than relying on Gemini's content filters, which
-                # incorrectly block legitimate clinical/crisis resource content.
+                # Reduce Gemini safety filters for research use.
+                # BLOCK_NONE requires special API key permissions and may be
+                # silently ignored. BLOCK_ONLY_HIGH is available to all keys
+                # and permissive enough for clinical/crisis content.
+                safety_settings = None
                 try:
                     from google.generativeai.types import HarmCategory, HarmBlockThreshold
                     safety_settings = {
-                        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-                        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-                        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
-                        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+                        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+                        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+                        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+                        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
                     }
-                except ImportError:
-                    safety_settings = None
+                except (ImportError, AttributeError):
+                    safety_settings = [
+                        {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH"},
+                        {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH"},
+                        {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH"},
+                        {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH"},
+                    ]
 
                 response = model_obj.generate_content(
                     contents=gemini_messages,
