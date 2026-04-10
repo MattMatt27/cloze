@@ -142,16 +142,16 @@
         {# Action cards #}
         <div id="actionCards" class="space-y-4 mb-8">
 
-          {# Available conversations #}
-          <div id="availableSection" class="hidden">
-            <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-stone-400">Available Now</h3>
-            <div id="availableCards" class="space-y-2"></div>
-          </div>
-
           {# Continue conversations #}
           <div id="continueSection" class="hidden">
             <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-stone-400">Continue</h3>
             <div id="continueCards" class="space-y-2"></div>
+          </div>
+
+          {# Unstarted conversations #}
+          <div id="availableSection" class="hidden">
+            <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-stone-400">Not Started</h3>
+            <div id="availableCards" class="space-y-2"></div>
           </div>
 
           {# Reports ready #}
@@ -1090,7 +1090,34 @@ function renderHomeView() {
   }
   actionCards.classList.remove('hidden');
 
-  // 1. Available conversations (unstarted templates from active windows)
+  // 1. Continue conversations (in-progress, active window or no window)
+  var continueSection = document.getElementById('continueSection');
+  var continueCards = document.getElementById('continueCards');
+  var inProgress = allConversations.filter(function(c) {
+    if (!c.id || c.is_placeholder || c.message_count <= 0) return false;
+    return !c.window_status || c.window_status === 'active';
+  });
+
+  if (inProgress.length) {
+    hasContent = true;
+    continueSection.classList.remove('hidden');
+    continueCards.innerHTML = inProgress.map(function(c) {
+      return '<button onclick="showConversation(' + c.id + ')" ' +
+        'class="flex w-full items-center gap-3 rounded-lg border border-stone-200 bg-white p-3 text-left transition hover:border-stone-300 hover:bg-violet-50">' +
+        '<div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">' +
+        '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">' +
+        '<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>' +
+        '<div class="min-w-0 flex-1">' +
+        '<div class="text-sm font-medium text-stone-900">' + escapeHtml(c.title || 'Untitled') + '</div>' +
+        '<div class="text-xs text-stone-500">' + c.message_count + ' messages &middot; ' + formatRelativeTime(c.updated_at) + '</div></div>' +
+        '<svg class="h-4 w-4 shrink-0 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>' +
+        '</button>';
+    }).join('');
+  } else {
+    continueSection.classList.add('hidden');
+  }
+
+  // 2. Not started conversations (unstarted templates from active windows)
   var availableSection = document.getElementById('availableSection');
   var availableCards = document.getElementById('availableCards');
   var availableItems = [];
@@ -1123,32 +1150,6 @@ function renderHomeView() {
     }).join('');
   } else {
     availableSection.classList.add('hidden');
-  }
-
-  // 2. Continue conversations (in-progress with active windows)
-  var continueSection = document.getElementById('continueSection');
-  var continueCards = document.getElementById('continueCards');
-  var inProgress = allConversations.filter(function(c) {
-    return c.id && !c.is_placeholder && c.window_status === 'active' && c.message_count > 0;
-  });
-
-  if (inProgress.length) {
-    hasContent = true;
-    continueSection.classList.remove('hidden');
-    continueCards.innerHTML = inProgress.map(function(c) {
-      return '<button onclick="showConversation(' + c.id + ')" ' +
-        'class="flex w-full items-center gap-3 rounded-lg border border-stone-200 bg-white p-3 text-left transition hover:border-stone-300 hover:bg-violet-50">' +
-        '<div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">' +
-        '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">' +
-        '<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>' +
-        '<div class="min-w-0 flex-1">' +
-        '<div class="text-sm font-medium text-stone-900">' + escapeHtml(c.title || 'Untitled') + '</div>' +
-        '<div class="text-xs text-stone-500">' + c.message_count + ' messages &middot; ' + formatRelativeTime(c.updated_at) + '</div></div>' +
-        '<svg class="h-4 w-4 shrink-0 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>' +
-        '</button>';
-    }).join('');
-  } else {
-    continueSection.classList.add('hidden');
   }
 
   // 3. Reports ready
