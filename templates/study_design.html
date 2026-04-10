@@ -379,7 +379,7 @@
 
   async function deleteCurrentFlow() {
     if (!confirm('Delete flow "' + currentFlow.name + '"?')) return;
-    var resp = await fetch('/api/provider/flows/' + currentFlow.id, { method: 'DELETE' });
+    var resp = await fetch('/api/provider/flows/' + currentFlow.id, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
     var result = await resp.json();
     if (result.error) { alert(result.error); return; }
     flows = flows.filter(function(f) { return f.id !== currentFlow.id; });
@@ -436,7 +436,7 @@
 
   async function deletePhase(phaseId) {
     if (!confirm('Delete this phase and all its chats?')) return;
-    await fetch('/api/provider/phases/' + phaseId, { method: 'DELETE' });
+    await fetch('/api/provider/phases/' + phaseId, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
     currentFlow.phases = currentFlow.phases.filter(function(p) { return p.id !== phaseId; });
     renderWorkspace();
   }
@@ -521,7 +521,7 @@
     });
     if (!confirm('Delete chat "' + chatName + '"?')) return;
 
-    await fetch('/api/provider/chats/' + chatId, { method: 'DELETE' });
+    await fetch('/api/provider/chats/' + chatId, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
     currentFlow.phases.forEach(function(p) {
       p.chats = p.chats.filter(function(c) { return c.id !== chatId; });
     });
