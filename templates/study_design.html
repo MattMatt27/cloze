@@ -262,9 +262,9 @@
       // Chats
       if (phase.chats.length) {
         html += phase.chats.map(function(chat) {
-          return '<div class="chat-row rounded-lg px-3 py-2.5 mb-1 group" id="chat-' + chat.id + '">' +
+          return '<div class="chat-row rounded-lg px-3 py-2.5 mb-1 group cursor-pointer" id="chat-' + chat.id + '" onclick="toggleChatDetails(' + chat.id + ')">' +
             '<div class="flex items-center justify-between">' +
-              '<span class="text-sm text-stone-800 cursor-pointer" onclick="toggleChatDetails(' + chat.id + ')">' + escapeHtml(chat.title) + '</span>' +
+              '<span class="text-sm text-stone-800">' + escapeHtml(chat.title) + '</span>' +
               '<div class="flex items-center gap-3">' +
                 '<span class="text-xs text-stone-400 opacity-0 group-hover:opacity-100 transition-opacity">' +
                   (chat.model_name || '') + (chat.max_messages ? ' · ' + chat.max_messages + ' turns' : '') +
@@ -274,7 +274,7 @@
                 '</button>' +
               '</div>' +
             '</div>' +
-            '<div class="chat-details" id="chat-details-' + chat.id + '">' +
+            '<div class="chat-details" id="chat-details-' + chat.id + '" onclick="event.stopPropagation()">' +
               renderChatEditForm(chat, phase.id) +
             '</div>' +
           '</div>';
@@ -510,7 +510,8 @@
     setTimeout(function() {
       statusEl.textContent = '';
       statusEl.classList.remove('text-emerald-600');
-    }, 1500);
+      toggleChatDetails(chatId);
+    }, 800);
   }
 
   async function deleteChat(chatId) {
