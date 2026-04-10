@@ -269,7 +269,7 @@
                 '<span class="text-xs text-stone-400 opacity-0 group-hover:opacity-100 transition-opacity">' +
                   (chat.model_name || '') + (chat.max_messages ? ' · ' + chat.max_messages + ' turns' : '') +
                 '</span>' +
-                '<button onclick="deleteChat(' + chat.id + ')" class="opacity-0 group-hover:opacity-100 rounded p-0.5 text-stone-300 hover:text-red-500 transition-opacity">' +
+                '<button onclick="event.stopPropagation(); deleteChat(' + chat.id + ')" class="opacity-0 group-hover:opacity-100 rounded p-0.5 text-stone-300 hover:text-red-500 transition-opacity" title="Delete chat">' +
                   '<svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M6 18L18 6"/></svg>' +
                 '</button>' +
               '</div>' +
@@ -291,26 +291,31 @@
   }
 
   function renderChatEditForm(chat, phaseId) {
-    return '<div class="mt-3 space-y-3 pb-2">' +
+    var formId = 'chat-form-' + chat.id;
+    return '<div class="mt-3 space-y-3 pb-2" id="' + formId + '">' +
       '<div class="grid grid-cols-2 gap-3">' +
         '<div><label class="block text-xs text-stone-500 mb-1">Title</label>' +
-        '<input type="text" value="' + escapeHtml(chat.title) + '" onchange="updateChat(' + chat.id + ', \'title\', this.value)" class="w-full rounded border border-stone-200 px-2 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none"></div>' +
+        '<input type="text" data-field="title" value="' + escapeHtml(chat.title) + '" class="w-full rounded border border-stone-200 px-2 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none"></div>' +
         '<div><label class="block text-xs text-stone-500 mb-1">Model</label>' +
-        '<select onchange="updateChat(' + chat.id + ', \'model_id\', parseInt(this.value))" class="w-full rounded border border-stone-200 px-2 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none">' +
+        '<select data-field="model_id" class="w-full rounded border border-stone-200 px-2 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none">' +
           models.map(function(m) { return '<option value="' + m.id + '"' + (m.id === chat.model_id ? ' selected' : '') + '>' + escapeHtml(m.name) + '</option>'; }).join('') +
         '</select></div>' +
       '</div>' +
       '<div class="grid grid-cols-2 gap-3">' +
         '<div><label class="block text-xs text-stone-500 mb-1">System Prompt</label>' +
-        '<select onchange="updateChat(' + chat.id + ', \'system_prompt_id\', this.value ? parseInt(this.value) : null)" class="w-full rounded border border-stone-200 px-2 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none">' +
+        '<select data-field="system_prompt_id" class="w-full rounded border border-stone-200 px-2 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none">' +
           '<option value="">General (default)</option>' +
           systemPrompts.map(function(p) { return '<option value="' + p.id + '"' + (p.id === chat.system_prompt_id ? ' selected' : '') + '>' + escapeHtml(p.name) + '</option>'; }).join('') +
         '</select></div>' +
         '<div><label class="block text-xs text-stone-500 mb-1">Max Turns</label>' +
-        '<input type="number" min="1" value="' + (chat.max_messages || '') + '" placeholder="No limit" onchange="updateChat(' + chat.id + ', \'max_messages\', this.value ? parseInt(this.value) : null)" class="w-full rounded border border-stone-200 px-2 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none"></div>' +
+        '<input type="number" min="1" data-field="max_messages" value="' + (chat.max_messages || '') + '" placeholder="No limit" class="w-full rounded border border-stone-200 px-2 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none"></div>' +
       '</div>' +
       '<div><label class="block text-xs text-stone-500 mb-1">Purpose</label>' +
-      '<input type="text" value="' + escapeHtml(chat.purpose || '') + '" placeholder="Brief description..." onchange="updateChat(' + chat.id + ', \'purpose\', this.value)" class="w-full rounded border border-stone-200 px-2 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none"></div>' +
+      '<input type="text" data-field="purpose" value="' + escapeHtml(chat.purpose || '') + '" placeholder="Brief description..." class="w-full rounded border border-stone-200 px-2 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none"></div>' +
+      '<div class="flex items-center gap-3">' +
+        '<button onclick="saveChat(' + chat.id + ')" class="rounded bg-cloze-indigo px-3 py-1.5 text-xs font-medium text-white hover:bg-cloze-hover">Save</button>' +
+        '<span id="chat-save-status-' + chat.id + '" class="text-xs text-stone-400"></span>' +
+      '</div>' +
     '</div>';
   }
 
@@ -451,29 +456,70 @@
     setTimeout(function() { toggleChatDetails(chat.id); }, 50);
   }
 
-  async function updateChat(chatId, field, value) {
+  async function saveChat(chatId) {
+    var form = document.getElementById('chat-form-' + chatId);
+    if (!form) return;
+
     var payload = {};
-    payload[field] = value;
+    form.querySelectorAll('[data-field]').forEach(function(el) {
+      var field = el.dataset.field;
+      var val = el.value;
+      if (field === 'model_id') {
+        payload[field] = parseInt(val);
+      } else if (field === 'system_prompt_id') {
+        payload[field] = val ? parseInt(val) : null;
+      } else if (field === 'max_messages') {
+        payload[field] = val ? parseInt(val) : null;
+      } else {
+        payload[field] = val;
+      }
+    });
+
+    var statusEl = document.getElementById('chat-save-status-' + chatId);
+    statusEl.textContent = 'Saving...';
+
     await fetch('/api/provider/chats/' + chatId, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
+
     // Update local state
     currentFlow.phases.forEach(function(p) {
       p.chats.forEach(function(c) {
         if (c.id === chatId) {
-          c[field] = value;
-          if (field === 'model_id') {
-            var m = models.find(function(mo) { return mo.id === value; });
+          Object.assign(c, payload);
+          if (payload.model_id) {
+            var m = models.find(function(mo) { return mo.id === payload.model_id; });
             c.model_name = m ? m.name : '';
+          }
+          if (payload.title) {
+            // Update the title in the row above the form
+            var row = document.getElementById('chat-' + chatId);
+            if (row) {
+              var titleSpan = row.querySelector('.text-stone-800');
+              if (titleSpan) titleSpan.textContent = payload.title;
+            }
           }
         }
       });
     });
+
+    statusEl.textContent = 'Saved';
+    statusEl.classList.add('text-emerald-600');
+    setTimeout(function() {
+      statusEl.textContent = '';
+      statusEl.classList.remove('text-emerald-600');
+    }, 1500);
   }
 
   async function deleteChat(chatId) {
+    var chatName = '';
+    currentFlow.phases.forEach(function(p) {
+      p.chats.forEach(function(c) { if (c.id === chatId) chatName = c.title; });
+    });
+    if (!confirm('Delete chat "' + chatName + '"?')) return;
+
     await fetch('/api/provider/chats/' + chatId, { method: 'DELETE' });
     currentFlow.phases.forEach(function(p) {
       p.chats = p.chats.filter(function(c) { return c.id !== chatId; });

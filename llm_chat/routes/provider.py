@@ -393,8 +393,21 @@ def study_design_page():
 @provider_bp.route("/api/provider/flows", methods=['GET'])
 @role_required('provider')
 def get_flows():
-    """Get all flows for the current provider."""
+    """Get all flows for the current provider. Auto-creates 'Always Available' if none exist."""
     flows = StudyFlow.query.filter_by(provider_id=current_user.id).all()
+    if not flows:
+        default_flow = StudyFlow(
+            provider_id=current_user.id,
+            name='Always Available',
+            flow_type='always',
+        )
+        db.session.add(default_flow)
+        db.session.flush()
+        phase = FlowPhase(flow_id=default_flow.id, name='Always Available',
+                          start_day=0, end_day=None, order_index=0)
+        db.session.add(phase)
+        db.session.commit()
+        flows = [default_flow]
     return jsonify([f.to_dict() for f in flows])
 
 
