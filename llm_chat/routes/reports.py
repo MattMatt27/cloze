@@ -5,6 +5,7 @@ from flask import Blueprint, jsonify, render_template, abort, request, send_file
 from flask_login import login_required, current_user
 from ..models import Report, ChatWindow, User
 from ..services.report_utils import generate_report_for_window, finalize_expired_windows
+from ..utils.settings_resolution import get_effective_setting
 from report.generator import UnifiedReportGenerator
 
 reports_bp = Blueprint("reports", __name__, url_prefix="/api/reports")
@@ -114,6 +115,9 @@ def generate_window_report(window_id):
     if current_user.is_provider() and window.provider_id != current_user.id:
         abort(403)
 
+    if not get_effective_setting('enable_nlp_report', window.provider_id, True):
+        return jsonify({'error': 'NLP reports are disabled for this provider'}), 403
+
     try:
         data = request.json or {}
         report_type = data.get('report_type', None)
@@ -221,6 +225,9 @@ def generate_unified_window_report(window_id):
     # Verify provider owns this window
     if current_user.is_provider() and window.provider_id != current_user.id:
         abort(403)
+
+    if not get_effective_setting('enable_nlp_report', window.provider_id, True):
+        return jsonify({'error': 'NLP reports are disabled for this provider'}), 403
 
     try:
         report = generate_report_for_window(window_id)

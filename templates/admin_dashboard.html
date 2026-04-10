@@ -260,15 +260,68 @@
       </div>
     </section>
 
-    {# Provider Assignments #}
-    <section class="rounded-lg border border-stone-200 bg-white">
+    {# System Prompts Library #}
+    <section class="mb-8 rounded-lg border border-stone-200 bg-white">
       <div class="flex items-center justify-between border-b border-stone-100 bg-violet-50/60 px-5 py-3">
-        <h3 class="text-sm font-semibold text-stone-900">Provider Assignments</h3>
-        <button onclick="showAssignmentModal()"
+        <h3 class="text-sm font-semibold text-stone-900">System Prompts</h3>
+        <button onclick="showPromptModal()"
                 class="inline-flex items-center gap-1 rounded-md bg-cloze-indigo px-3 py-1.5 text-xs font-medium text-white transition hover:bg-cloze-hover">
           <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-          Assign
+          New Prompt
         </button>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 lg:items-stretch" style="min-height:350px">
+        {# Left: prompt list #}
+        <div class="border-r border-stone-100 overflow-y-auto divide-y divide-stone-100" id="promptsListPanel" style="max-height:450px">
+          <div class="py-6 text-center text-sm text-stone-400">Loading...</div>
+        </div>
+        {# Right: editor #}
+        <div class="flex flex-col">
+          <div class="px-4 py-2.5 bg-stone-50 border-b border-stone-100 text-xs font-medium text-stone-500 uppercase tracking-wide shrink-0" id="promptEditorHeader">Select a prompt to edit</div>
+          <div class="flex-1 flex flex-col p-4">
+            <input type="hidden" id="promptEditorId" value="">
+            <div class="mb-3">
+              <label class="mb-1 block text-xs font-medium text-stone-500">Name</label>
+              <input type="text" id="promptEditorName" disabled class="w-full rounded border border-stone-200 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none disabled:bg-stone-50 disabled:text-stone-400" placeholder="Click a prompt on the left...">
+            </div>
+            <div class="flex-1 flex flex-col mb-3">
+              <label class="mb-1 block text-xs font-medium text-stone-500">Content</label>
+              <textarea id="promptEditorContent" disabled class="flex-1 min-h-[180px] w-full rounded border border-stone-200 px-3 py-2 text-sm font-mono leading-relaxed focus:border-cloze-indigo focus:outline-none disabled:bg-stone-50 disabled:text-stone-400" placeholder="Click a prompt on the left to edit..."></textarea>
+            </div>
+            <div class="flex items-center gap-3">
+              <button onclick="savePromptEdit()" id="promptEditorSaveBtn" disabled class="rounded-lg bg-cloze-indigo px-4 py-2 text-sm font-medium text-white hover:bg-cloze-hover disabled:opacity-50 disabled:cursor-not-allowed">Save</button>
+              <button onclick="deleteCurrentPrompt()" id="promptEditorDeleteBtn" disabled class="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-500 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed">Delete</button>
+              <span id="promptEditorStatus" class="text-xs text-stone-400"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {# New Prompt Modal #}
+    <div class="modal fixed inset-0 z-50 hidden items-center justify-center bg-black/40" id="promptModal">
+      <div class="w-full max-w-lg rounded-lg bg-white p-6 shadow-lg">
+        <h3 class="mb-4 text-base font-semibold text-stone-900">New System Prompt</h3>
+        <div class="mb-4">
+          <label class="mb-1 block text-sm font-medium text-stone-700">Name</label>
+          <input type="text" id="promptModalName" class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none" placeholder="e.g., Homework Module - Mindfulness">
+        </div>
+        <div class="mb-4">
+          <label class="mb-1 block text-sm font-medium text-stone-700">Content</label>
+          <textarea id="promptModalContent" rows="8" class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-mono leading-relaxed focus:border-cloze-indigo focus:outline-none" placeholder="System prompt instructions..."></textarea>
+        </div>
+        <div class="flex justify-end gap-3">
+          <button type="button" onclick="hideModal('promptModal')" class="rounded-lg border border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50">Cancel</button>
+          <button type="button" onclick="saveAdminPrompt()" class="rounded-lg bg-cloze-indigo px-4 py-2 text-sm font-medium text-white hover:bg-cloze-hover">Create</button>
+        </div>
+      </div>
+    </div>
+
+    {# Provider Assignments (read-only) #}
+    <section class="rounded-lg border border-stone-200 bg-white">
+      <div class="border-b border-stone-100 bg-violet-50/60 px-5 py-3">
+        <h3 class="text-sm font-semibold text-stone-900">Provider Assignments</h3>
+        <p class="mt-0.5 text-xs text-stone-500">Patients are created by their provider. Use provider drill-down to view details.</p>
       </div>
       <div class="max-h-[400px] divide-y divide-stone-100 overflow-y-auto" id="assignmentsList">
         <div class="py-6 text-center text-sm text-stone-400">Loading...</div>
@@ -304,33 +357,6 @@
                   class="rounded-md border border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 transition hover:bg-stone-50">Cancel</button>
           <button type="submit"
                   class="rounded-md bg-cloze-indigo px-4 py-2 text-sm font-medium text-white transition hover:bg-cloze-hover">Create</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  {# ── Assignment Modal ──────────────────────────────────────── #}
-  <div class="modal fixed inset-0 z-50 hidden items-center justify-center bg-black/40" id="assignmentModal">
-    <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
-      <h3 class="mb-5 text-base font-semibold text-stone-900">Assign Patient to Provider</h3>
-      <form onsubmit="assignProvider(event)">
-        <div class="mb-4">
-          <label for="selectProvider" class="mb-1.5 block text-sm font-medium text-stone-700">Provider</label>
-          <select id="selectProvider" required
-                  class="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo">
-          </select>
-        </div>
-        <div class="mb-6">
-          <label for="selectPatient" class="mb-1.5 block text-sm font-medium text-stone-700">Patient</label>
-          <select id="selectPatient" required
-                  class="w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo">
-          </select>
-        </div>
-        <div class="flex items-center justify-end gap-3">
-          <button type="button" onclick="hideModal('assignmentModal')"
-                  class="rounded-md border border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 transition hover:bg-stone-50">Cancel</button>
-          <button type="submit"
-                  class="rounded-md bg-cloze-indigo px-4 py-2 text-sm font-medium text-white transition hover:bg-cloze-hover">Assign</button>
         </div>
       </form>
     </div>
@@ -499,7 +525,7 @@
     // Lazy load tab data
     if (tabId === 'patients' && patientsData.length === 0) loadPatients();
     if (tabId === 'providers' && providersData.length === 0) loadProviders();
-    if (tabId === 'settings') { loadSettings(); loadModels(); loadAssignments(); }
+    if (tabId === 'settings') { loadSettings(); loadModels(); loadAdminPrompts(); loadAssignments(); }
   }
 
   // Listen for hash changes (sidebar clicks)
@@ -672,16 +698,10 @@
       // Info header
       html += '<div class="mb-6 flex flex-wrap items-center gap-4">';
       html += '<div class="text-sm"><span class="text-stone-500">Email:</span> <span class="font-medium">' + escapeHtml(data.email) + '</span></div>';
-      html += '<div class="text-sm"><span class="text-stone-500">Provider:</span> <span class="font-medium">' + (data.provider_name ? escapeHtml(data.provider_name) : 'Unassigned') + '</span>';
-      if (data.all_providers.length > 0) {
-        html += ' <select onchange="reassignPatient(' + patientId + ', this.value)" class="ml-2 rounded border border-stone-200 px-2 py-1 text-xs">';
-        html += '<option value="">Reassign...</option>';
-        data.all_providers.forEach(function(pv) {
-          html += '<option value="' + pv.id + '"' + (pv.id === data.provider_id ? ' selected disabled' : '') + '>' + escapeHtml(pv.username) + '</option>';
-        });
-        html += '</select>';
+      html += '<div class="text-sm"><span class="text-stone-500">Provider:</span> <span class="font-medium">' + (data.provider_name ? escapeHtml(data.provider_name) : 'Unassigned') + '</span></div>';
+      if (data.created_by) {
+        html += '<div class="text-sm"><span class="text-stone-500">Created by:</span> <span class="font-medium">' + escapeHtml(data.created_by) + '</span></div>';
       }
-      html += '</div>';
       html += '<div class="text-sm"><span class="text-stone-500">Status:</span> ' + (data.visible ? '<span class="font-medium text-emerald-600">Active</span>' : '<span class="font-medium text-red-500">Disabled</span>') + '</div>';
       html += '<button onclick="toggleUserVisibility(' + patientId + ', ' + !data.visible + ')" class="rounded-md border border-stone-200 px-3 py-1 text-xs text-stone-600 hover:bg-stone-50">' + (data.visible ? 'Disable Account' : 'Enable Account') + '</button>';
       html += '<button onclick="showResetPasswordModal(' + patientId + ', \'' + escapeHtml(data.username) + '\')" class="rounded-md border border-stone-200 px-3 py-1 text-xs text-stone-600 hover:bg-stone-50">Reset Password</button>';
@@ -837,15 +857,7 @@
       // Assigned patients
       html += '<div class="mb-6">';
       html += '<div class="flex items-center justify-between mb-2">';
-      html += '<h4 class="text-sm font-semibold text-stone-800">Assigned Patients (' + data.patients.length + ')</h4>';
-      if (data.unassigned_patients.length > 0) {
-        html += '<select onchange="if(this.value) assignPatientToProvider(' + providerId + ', this.value); this.value=\'\';" class="rounded border border-stone-200 px-2 py-1 text-xs">';
-        html += '<option value="">Assign patient...</option>';
-        data.unassigned_patients.forEach(function(u) {
-          html += '<option value="' + u.id + '">' + escapeHtml(u.username) + '</option>';
-        });
-        html += '</select>';
-      }
+      html += '<h4 class="text-sm font-semibold text-stone-800">Patients (' + data.patients.length + ')</h4>';
       html += '</div>';
       if (data.patients.length === 0) {
         html += '<p class="text-sm text-stone-400">No assigned patients</p>';
@@ -863,7 +875,7 @@
       html += '</div>';
 
       // Recent windows
-      html += '<div>';
+      html += '<div class="mb-6">';
       html += '<h4 class="mb-2 text-sm font-semibold text-stone-800">Chat Windows (' + data.windows.length + ')</h4>';
       if (data.windows.length === 0) {
         html += '<p class="text-sm text-stone-400">No chat windows</p>';
@@ -880,7 +892,19 @@
       }
       html += '</div>';
 
+      // Feature configuration
+      html += '<div class="border-t border-stone-200 pt-5">';
+      html += '<h4 class="mb-3 text-sm font-semibold text-stone-800">Feature Configuration</h4>';
+      html += '<p class="mb-4 text-xs text-stone-500">Override global settings for this provider. &ldquo;Inherit&rdquo; uses the global default.</p>';
+      html += '<div id="providerFlagsContainer" data-provider-id="' + providerId + '">';
+      html += '<div class="py-4 text-center text-sm text-stone-400">Loading flags...</div>';
+      html += '</div>';
+      html += '</div>';
+
       content.innerHTML = html;
+
+      // Load feature flags into the container
+      loadProviderFlags(providerId);
 
     } catch (error) {
       content.innerHTML = '<div class="py-8 text-center text-sm text-red-500">Failed to load provider details</div>';
@@ -890,6 +914,332 @@
 
   function closeProviderDrillDown() {
     document.getElementById('providerDrillDown').classList.add('hidden');
+  }
+
+  // ── Provider Feature Flags ────────────────────────────────────
+
+  var FLAG_DEFS = [
+    { key: 'require_safety_plan', label: 'Require safety plan', desc: 'Must have an active safety plan to start conversations', type: 'bool' },
+    { key: 'allow_patient_anti_patterns', label: 'Allow patient anti-patterns', desc: 'Patients can add their own anti-patterns to safety plans', type: 'bool' },
+    { key: 'enable_nlp_report', label: 'Enable NLP reports', desc: 'Generate NLP analysis reports when chat windows expire', type: 'bool' },
+    { key: 'allow_custom_prompts', label: 'Allow custom prompts', desc: 'Provider can write custom system prompt text in templates', type: 'bool' },
+    { key: 'max_turns_per_conversation', label: 'Max turns per conversation', desc: 'Maximum user exchanges per conversation (blank = unlimited)', type: 'int' },
+    { key: 'allowed_models', label: 'Allowed models', desc: 'Restrict this provider to specific models (blank = all models)', type: 'models' },
+    { key: 'allowed_prompts', label: 'System prompts', desc: 'Select which prompts this provider can use. None selected = general prompt only.', type: 'prompts' },
+    { key: 'default_system_prompt_id', label: 'Default system prompt', desc: 'Prompt used when templates don\'t specify one', type: 'prompt' },
+    { key: 'system_context_override', label: 'System context override', desc: 'Replace the default platform context prompt', type: 'text' },
+    { key: 'safety_disclaimer_text', label: 'Safety disclaimer override', desc: 'Custom safety disclaimer modal text (HTML allowed)', type: 'text' },
+  ];
+
+  async function loadProviderFlags(providerId) {
+    var container = document.getElementById('providerFlagsContainer');
+    try {
+      var [flagsResp, modelsResp, promptsResp] = await Promise.all([
+        fetch('/api/admin/provider/' + providerId + '/feature-flags'),
+        fetch('/api/admin/models'),
+        fetch('/api/admin/prompts'),
+      ]);
+      var flagsData = await flagsResp.json();
+      var allModels = await modelsResp.json();
+      var allPrompts = await promptsResp.json();
+      var visiblePrompts = allPrompts.filter(function(p) { return p.visible; });
+
+      var flags = flagsData.flags;
+      var html = '<div class="space-y-3">';
+
+      FLAG_DEFS.forEach(function(def) {
+        var f = flags[def.key] || { value: null, inherited: true, effective: null };
+        html += '<div class="rounded-lg border border-stone-200 bg-stone-50 px-4 py-3">';
+        html += '<div class="flex items-start justify-between gap-4">';
+        html += '<div class="min-w-0"><div class="text-sm font-medium text-stone-800">' + def.label + '</div>';
+        html += '<div class="mt-0.5 text-xs text-stone-500">' + def.desc + '</div></div>';
+        html += '<div class="flex-shrink-0">';
+
+        if (def.type === 'bool') {
+          html += '<select id="flag_' + def.key + '" class="rounded border border-stone-200 bg-white px-2 py-1 text-xs">';
+          html += '<option value="inherit"' + (f.inherited ? ' selected' : '') + '>Inherit (' + (f.effective !== null ? (f.effective ? 'On' : 'Off') : 'On') + ')</option>';
+          html += '<option value="true"' + (!f.inherited && f.value === true ? ' selected' : '') + '>On</option>';
+          html += '<option value="false"' + (!f.inherited && f.value === false ? ' selected' : '') + '>Off</option>';
+          html += '</select>';
+        } else if (def.type === 'int') {
+          var intVal = f.inherited ? '' : (f.value || '');
+          html += '<input type="number" min="1" id="flag_' + def.key + '" value="' + intVal + '" placeholder="Inherit" class="w-24 rounded border border-stone-200 bg-white px-2 py-1 text-xs">';
+        } else if (def.type === 'models') {
+          html += '</div></div>';
+          html += '<div class="mt-2 flex flex-wrap gap-1.5">';
+          var selectedModels = (!f.inherited && f.value) ? f.value : [];
+          allModels.forEach(function(m) {
+            var checked = selectedModels.includes(m.id);
+            html += '<label class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs cursor-pointer transition ' +
+              (checked ? 'bg-cloze-indigo text-white' : 'bg-white text-stone-600 border border-stone-200 hover:border-cloze-indigo') + '">';
+            html += '<input type="checkbox" class="hidden provider-model-check" data-model-id="' + m.id + '" ' + (checked ? 'checked' : '') +
+              ' onchange="toggleModelChip(this)">' + escapeHtml(m.name) + '</label>';
+          });
+          if (selectedModels.length > 0) {
+            html += '<button onclick="clearProviderModels(' + providerId + ')" class="text-xs text-stone-400 hover:text-red-500 ml-1">Clear (inherit all)</button>';
+          }
+          html += '</div>';
+          html += '</div>';
+          return;
+        } else if (def.type === 'prompts') {
+          html += '</div></div>';
+          var selectedPrompts = (!f.inherited && f.value) ? f.value : [];
+          html += '<div class="mt-2 rounded-lg border border-stone-200 bg-white divide-y divide-stone-100 overflow-y-auto" style="max-height:250px">';
+          if (visiblePrompts.length === 0) {
+            html += '<div class="px-4 py-4 text-xs text-stone-400 text-center">No prompts configured. Add prompts in the Settings tab.</div>';
+          }
+          visiblePrompts.forEach(function(p) {
+            var checked = selectedPrompts.includes(p.id);
+            html += '<label class="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-violet-50/40 transition">';
+            html += '<input type="checkbox" class="provider-prompt-check h-4 w-4 rounded border-stone-300 text-cloze-indigo focus:ring-cloze-indigo" data-prompt-id="' + p.id + '" ' + (checked ? 'checked' : '') + '>';
+            html += '<span class="text-sm text-stone-700">' + escapeHtml(p.name) + '</span>';
+            html += '</label>';
+          });
+          html += '</div>';
+          html += '</div>';
+          return;
+        } else if (def.type === 'prompt') {
+          html += '<select id="flag_' + def.key + '" class="max-w-[200px] rounded border border-stone-200 bg-white px-2 py-1 text-xs">';
+          html += '<option value="">Inherit (none)</option>';
+          visiblePrompts.forEach(function(p) {
+            html += '<option value="' + p.id + '"' + (!f.inherited && f.value == p.id ? ' selected' : '') + '>' + escapeHtml(p.name) + '</option>';
+          });
+          html += '</select>';
+        } else if (def.type === 'text') {
+          html += '</div></div>';
+          var textVal = f.inherited ? '' : (f.value || '');
+          html += '<div class="mt-2"><textarea id="flag_' + def.key + '" rows="3" placeholder="Leave blank to inherit default" class="w-full rounded border border-stone-200 bg-white px-3 py-2 text-xs">' + escapeHtml(textVal) + '</textarea></div>';
+          html += '</div>';
+          return;
+        }
+
+        html += '</div></div></div>';
+      });
+
+      html += '</div>';
+      html += '<div class="mt-4 flex items-center gap-3">';
+      html += '<button onclick="saveAllProviderFlags(' + providerId + ')" class="rounded-lg bg-cloze-indigo px-4 py-2 text-sm font-medium text-white hover:bg-cloze-hover">Save Settings</button>';
+      html += '<span id="flagsSaveStatus" class="text-xs text-stone-400"></span>';
+      html += '</div>';
+      container.innerHTML = html;
+
+    } catch (error) {
+      container.innerHTML = '<div class="py-4 text-center text-sm text-red-500">Failed to load feature flags</div>';
+      console.error('Error loading provider flags:', error);
+    }
+  }
+
+  function toggleModelChip(cb) {
+    var label = cb.parentElement;
+    if (cb.checked) {
+      label.className = label.className.replace('bg-white text-stone-600 border border-stone-200 hover:border-cloze-indigo', 'bg-cloze-indigo text-white');
+    } else {
+      label.className = label.className.replace('bg-cloze-indigo text-white', 'bg-white text-stone-600 border border-stone-200 hover:border-cloze-indigo');
+    }
+  }
+
+  async function saveAllProviderFlags(providerId) {
+    var payload = {};
+
+    FLAG_DEFS.forEach(function(def) {
+      if (def.type === 'bool') {
+        var el = document.getElementById('flag_' + def.key);
+        if (el) payload[def.key] = el.value === 'inherit' ? null : (el.value === 'true');
+      } else if (def.type === 'int') {
+        var el = document.getElementById('flag_' + def.key);
+        if (el) payload[def.key] = el.value === '' ? null : parseInt(el.value, 10);
+      } else if (def.type === 'prompt') {
+        var el = document.getElementById('flag_' + def.key);
+        if (el) payload[def.key] = el.value === '' ? null : parseInt(el.value, 10);
+      } else if (def.type === 'text') {
+        var el = document.getElementById('flag_' + def.key);
+        if (el) payload[def.key] = el.value === '' ? null : el.value;
+      } else if (def.type === 'models') {
+        var checkboxes = document.querySelectorAll('.provider-model-check');
+        var selected = [];
+        checkboxes.forEach(function(cb) {
+          if (cb.checked) selected.push(parseInt(cb.dataset.modelId, 10));
+        });
+        payload.allowed_models = selected.length > 0 ? selected : null;
+      } else if (def.type === 'prompts') {
+        var checkboxes = document.querySelectorAll('.provider-prompt-check');
+        var selected = [];
+        checkboxes.forEach(function(cb) {
+          if (cb.checked) selected.push(parseInt(cb.dataset.promptId, 10));
+        });
+        payload.allowed_prompts = selected.length > 0 ? selected : null;
+      }
+    });
+
+    var statusEl = document.getElementById('flagsSaveStatus');
+    statusEl.textContent = 'Saving...';
+
+    try {
+      var response = await fetch('/api/admin/provider/' + providerId + '/feature-flags', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      var result = await response.json();
+      if (result.status === 'success') {
+        statusEl.textContent = 'Saved';
+        statusEl.classList.add('text-emerald-600');
+        statusEl.classList.remove('text-stone-400');
+        setTimeout(function() {
+          statusEl.textContent = '';
+          statusEl.classList.remove('text-emerald-600');
+          statusEl.classList.add('text-stone-400');
+        }, 2000);
+      } else {
+        statusEl.textContent = 'Error: ' + (result.error || 'Save failed');
+        statusEl.classList.add('text-red-500');
+      }
+    } catch (error) {
+      statusEl.textContent = 'Error saving';
+      statusEl.classList.add('text-red-500');
+      console.error('Error saving flags:', error);
+    }
+  }
+
+  async function clearProviderModels(providerId) {
+    document.querySelectorAll('.provider-model-check').forEach(function(cb) { cb.checked = false; toggleModelChip(cb); });
+  }
+
+  function clearProviderPrompts() {
+    document.querySelectorAll('.provider-prompt-check').forEach(function(cb) { cb.checked = false; });
+  }
+
+  // Settings tab: prompt library editor
+  function selectPromptForEdit(promptId) {
+    var p = adminPrompts.find(function(pr) { return pr.id === promptId; });
+    if (!p) return;
+
+    // Highlight selected in list
+    document.querySelectorAll('#promptsListPanel > div').forEach(function(el) {
+      el.classList.remove('bg-violet-50', 'border-l-2', 'border-cloze-indigo');
+    });
+    var listItem = document.querySelector('#promptsListPanel [data-prompt-id="' + promptId + '"]');
+    if (listItem) listItem.classList.add('bg-violet-50', 'border-l-2', 'border-cloze-indigo');
+
+    document.getElementById('promptEditorId').value = p.id;
+    document.getElementById('promptEditorName').value = p.name;
+    document.getElementById('promptEditorName').disabled = false;
+    document.getElementById('promptEditorContent').value = p.content || '';
+    document.getElementById('promptEditorContent').disabled = false;
+    document.getElementById('promptEditorSaveBtn').disabled = false;
+    document.getElementById('promptEditorDeleteBtn').disabled = false;
+    document.getElementById('promptEditorHeader').textContent = 'Editing: ' + p.name;
+  }
+
+  async function savePromptEdit() {
+    var id = document.getElementById('promptEditorId').value;
+    var name = document.getElementById('promptEditorName').value.trim();
+    var content = document.getElementById('promptEditorContent').value.trim();
+    if (!id || !name) return;
+
+    var statusEl = document.getElementById('promptEditorStatus');
+    statusEl.textContent = 'Saving...';
+    try {
+      await fetch('/api/admin/prompts/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, content: content })
+      });
+      statusEl.textContent = 'Saved';
+      statusEl.classList.add('text-emerald-600');
+      setTimeout(function() {
+        statusEl.textContent = '';
+        statusEl.classList.remove('text-emerald-600');
+      }, 2000);
+      // Update local cache and re-render list
+      var p = adminPrompts.find(function(pr) { return pr.id == id; });
+      if (p) { p.name = name; p.content = content; }
+      renderAdminPrompts();
+      document.getElementById('promptEditorHeader').textContent = 'Editing: ' + name;
+    } catch(e) {
+      statusEl.textContent = 'Error saving';
+      statusEl.classList.add('text-red-500');
+    }
+  }
+
+  async function deleteCurrentPrompt() {
+    var id = document.getElementById('promptEditorId').value;
+    if (!id) return;
+    var p = adminPrompts.find(function(pr) { return pr.id == id; });
+    if (!confirm('Delete prompt "' + (p ? p.name : '') + '"?')) return;
+    try {
+      await fetch('/api/admin/prompts/' + id, { method: 'DELETE' });
+      await loadAdminPrompts();
+      // Clear editor
+      document.getElementById('promptEditorId').value = '';
+      document.getElementById('promptEditorName').value = '';
+      document.getElementById('promptEditorName').disabled = true;
+      document.getElementById('promptEditorContent').value = '';
+      document.getElementById('promptEditorContent').disabled = true;
+      document.getElementById('promptEditorSaveBtn').disabled = true;
+      document.getElementById('promptEditorDeleteBtn').disabled = true;
+      document.getElementById('promptEditorHeader').textContent = 'Select a prompt to edit';
+    } catch(e) {
+      alert('Error deleting prompt');
+    }
+  }
+
+  // ── System Prompt Management ───────────────────────────────
+
+  var adminPrompts = [];
+
+  async function loadAdminPrompts() {
+    try {
+      var resp = await fetch('/api/admin/prompts');
+      adminPrompts = await resp.json();
+      renderAdminPrompts();
+    } catch(e) {
+      console.error('Error loading prompts:', e);
+    }
+  }
+
+  function renderAdminPrompts() {
+    var container = document.getElementById('promptsListPanel');
+    var visible = adminPrompts.filter(function(p) { return p.visible; });
+    if (!visible.length) {
+      container.innerHTML = '<div class="py-6 text-center text-sm text-stone-400">No system prompts. Click "New Prompt" to create one.</div>';
+      return;
+    }
+    container.innerHTML = visible.map(function(p) {
+      var preview = (p.content || '').substring(0, 80).replace(/\n/g, ' ');
+      if ((p.content || '').length > 80) preview += '...';
+      var badge = p.domain_prompt_id
+        ? '<span class="ml-1.5 rounded-full bg-violet-100 px-1.5 py-0.5 text-[9px] font-semibold text-violet-700">Domain</span>'
+        : '';
+      return '<div data-prompt-id="' + p.id + '" class="px-4 py-3 cursor-pointer hover:bg-violet-50/40 transition" onclick="selectPromptForEdit(' + p.id + ')">' +
+        '<div class="flex items-center"><span class="text-sm font-medium text-stone-800">' + escapeHtml(p.name) + '</span>' + badge + '</div>' +
+        '<div class="mt-0.5 text-xs text-stone-500 truncate">' + escapeHtml(preview) + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function showPromptModal() {
+    document.getElementById('promptModalName').value = '';
+    document.getElementById('promptModalContent').value = '';
+    showModal('promptModal');
+  }
+
+  async function saveAdminPrompt() {
+    var name = document.getElementById('promptModalName').value.trim();
+    var content = document.getElementById('promptModalContent').value.trim();
+    if (!name) { alert('Name is required'); return; }
+
+    try {
+      await fetch('/api/admin/prompts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, content: content })
+      });
+      hideModal('promptModal');
+      loadAdminPrompts();
+    } catch(e) {
+      alert('Error saving prompt');
+    }
   }
 
   function showCreateProviderModal() {
@@ -1099,37 +1449,6 @@
     }
   }
 
-  async function reassignPatient(patientId, newProviderId) {
-    if (!newProviderId) return;
-    try {
-      await fetch('/api/admin/patient/' + patientId + '/reassign', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider_id: parseInt(newProviderId) })
-      });
-      patientsData = [];
-      loadPatients();
-      openPatientDrillDown(patientId);
-    } catch (error) {
-      console.error('Error reassigning patient:', error);
-    }
-  }
-
-  async function assignPatientToProvider(providerId, patientId) {
-    try {
-      await fetch('/api/admin/assign_provider', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider_id: providerId, patient_id: parseInt(patientId) })
-      });
-      providersData = [];
-      loadProviders();
-      openProviderDrillDown(providerId);
-    } catch (error) {
-      console.error('Error assigning patient:', error);
-    }
-  }
-
   function showResetPasswordModal(userId, username) {
     document.getElementById('resetPasswordUserId').value = userId;
     document.getElementById('resetPasswordInfo').textContent = 'Reset password for ' + username;
@@ -1158,52 +1477,6 @@
     } catch (error) {
       console.error('Error resetting password:', error);
       alert('Failed to reset password');
-    }
-  }
-
-  // ── Assignments ────────────────────────────────────────────────
-
-  function showAssignmentModal() {
-    // Populate dropdowns
-    var providers = allUsers.filter(function(u) { return u.role === 'provider'; });
-    var patients = allUsers.filter(function(u) { return u.role === 'user'; });
-
-    document.getElementById('selectProvider').innerHTML =
-      '<option value="">Select a provider...</option>' +
-      providers.map(function(p) { return '<option value="' + p.id + '">' + escapeHtml(p.username) + '</option>'; }).join('');
-
-    document.getElementById('selectPatient').innerHTML =
-      '<option value="">Select a patient...</option>' +
-      patients.map(function(p) { return '<option value="' + p.id + '">' + escapeHtml(p.username) + '</option>'; }).join('');
-
-    showModal('assignmentModal');
-  }
-
-  async function assignProvider(event) {
-    event.preventDefault();
-    var assignment = {
-      provider_id: parseInt(document.getElementById('selectProvider').value),
-      patient_id:  parseInt(document.getElementById('selectPatient').value)
-    };
-
-    try {
-      var response = await fetch('/api/admin/assign_provider', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(assignment)
-      });
-
-      if (response.ok) {
-        hideModal('assignmentModal');
-        loadAssignments();
-        loadOverview();
-      } else {
-        var error = await response.json();
-        alert('Error: ' + error.error);
-      }
-    } catch (error) {
-      console.error('Error creating assignment:', error);
-      alert('Failed to create assignment');
     }
   }
 

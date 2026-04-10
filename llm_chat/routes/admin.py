@@ -8,7 +8,7 @@ from ..models import (
     User, ProviderPatient, Conversation, Message,
     AdminSettings, UserSettings, ChatWindow, ChatTemplate,
     Report, SafetyPlan, Model, SystemPrompt,
-    AuditLog, EscalationEvent,
+    AuditLog, EscalationEvent, ProviderFeatureFlags,
 )
 
 admin_bp = Blueprint("admin", __name__, url_prefix="")
@@ -25,6 +25,18 @@ def _get_admin_setting(name, default=None):
         return json.loads(row.setting_value)
     except Exception:
         return row.setting_value
+
+
+def _validate_password(password):
+    """Return an error message if password is too weak, or None if acceptable."""
+    if not password or len(password) < 12:
+        return 'Password must be at least 12 characters'
+    has_upper = any(c.isupper() for c in password)
+    has_lower = any(c.islower() for c in password)
+    has_digit = any(c.isdigit() for c in password)
+    if not (has_upper and has_lower and has_digit):
+        return 'Password must contain uppercase, lowercase, and a number'
+    return None
 
 
 def _log_action(action, target_type, target_id=None, details=None):
@@ -126,11 +138,40 @@ def create_user():
     data = request.json or {}
     if User.query.filter_by(username=data['username']).first():
         return jsonify({'error': 'Username already exists'}), 400
-    user = User(username=data['username'], email=data['email'], role=data['role'])
+
+    role = data['role']
+    # Patients must be assigned to a provider
+    provider_id = data.get('provider_id')
+    if role == 'user' and not provider_id:
+        return jsonify({'error': 'Patients must be assigned to a provider'}), 400
+    if provider_id:
+        provider = User.query.get(provider_id)
+        if not provider or provider.role != 'provider':
+            return jsonify({'error': 'Invalid provider'}), 400
+
+    pwd_err = _validate_password(data.get('password'))
+    if pwd_err:
+        return jsonify({'error': pwd_err}), 400
+
+    user = User(
+        username=data['username'], email=data['email'], role=role,
+        created_by=current_user.id,
+    )
     user.set_password(data['password'])
     db.session.add(user)
-    _log_action('user_created', 'user', details={
-        'username': data['username'], 'role': data['role'],
+    db.session.flush()
+
+    # Auto-create provider assignment for patients
+    if role == 'user' and provider_id:
+        db.session.add(ProviderPatient(
+            provider_id=provider_id,
+            patient_id=user.id,
+            assigned_by=current_user.id,
+        ))
+
+    _log_action('user_created', 'user', user.id, {
+        'username': data['username'], 'role': role,
+        'provider_id': provider_id,
     })
     db.session.commit()
     return jsonify({'id': user.id})
@@ -157,8 +198,9 @@ def reset_user_password(user_id):
     user = User.query.get_or_404(user_id)
     data = request.json or {}
     new_password = data.get('password')
-    if not new_password or len(new_password) < 6:
-        return jsonify({'error': 'Password must be at least 6 characters'}), 400
+    err = _validate_password(new_password)
+    if err:
+        return jsonify({'error': err}), 400
     user.set_password(new_password)
     _log_action('password_reset', 'user', user_id)
     db.session.commit()
@@ -253,8 +295,8 @@ def get_patient_details(patient_id):
             } for r in reports],
         })
 
-    # All providers for reassignment dropdown
-    all_providers = User.query.filter_by(role='provider').all()
+    # Created by info
+    created_by_user = User.query.get(patient.created_by) if patient.created_by else None
 
     return jsonify({
         'id': patient.id,
@@ -262,6 +304,7 @@ def get_patient_details(patient_id):
         'email': patient.email,
         'visible': patient.visible,
         'created_at': patient.created_at,
+        'created_by': created_by_user.username if created_by_user else None,
         'provider_id': provider.id if provider else None,
         'provider_name': provider.username if provider else None,
         'assignment_id': assignment.id if assignment else None,
@@ -274,41 +317,7 @@ def get_patient_details(patient_id):
                         for p in all_plans],
         },
         'windows': window_data,
-        'all_providers': [{'id': pv.id, 'username': pv.username} for pv in all_providers],
     })
-
-
-@admin_bp.route("/api/admin/patient/<int:patient_id>/reassign", methods=['POST'])
-@role_required('admin')
-def reassign_patient(patient_id):
-    """Reassign a patient to a different provider."""
-    data = request.json or {}
-    new_provider_id = data.get('provider_id')
-    if not new_provider_id:
-        return jsonify({'error': 'provider_id is required'}), 400
-
-    new_provider = User.query.get(new_provider_id)
-    if not new_provider or new_provider.role != 'provider':
-        return jsonify({'error': 'Invalid provider'}), 400
-
-    # Remove existing assignment
-    old_assignment = ProviderPatient.query.filter_by(patient_id=patient_id).first()
-    old_provider_id = old_assignment.provider_id if old_assignment else None
-    if old_assignment:
-        db.session.delete(old_assignment)
-
-    # Create new assignment
-    assignment = ProviderPatient(
-        provider_id=new_provider_id,
-        patient_id=patient_id,
-        assigned_by=current_user.id,
-    )
-    db.session.add(assignment)
-    _log_action('assignment_changed', 'assignment', patient_id, {
-        'old_provider_id': old_provider_id, 'new_provider_id': new_provider_id,
-    })
-    db.session.commit()
-    return jsonify({'status': 'success'})
 
 
 # ── Provider management ────────────────────────────────────────
@@ -386,13 +395,6 @@ def get_provider_details(provider_id):
             'report_count': len(reports),
         })
 
-    # Unassigned patients for assignment dropdown
-    assigned_ids = {a.patient_id for a in assignments}
-    unassigned = User.query.filter(
-        User.role == 'user',
-        ~User.id.in_(assigned_ids) if assigned_ids else True,
-    ).all()
-
     return jsonify({
         'id': provider.id,
         'username': provider.username,
@@ -400,7 +402,6 @@ def get_provider_details(provider_id):
         'visible': provider.visible,
         'patients': patients,
         'windows': window_data,
-        'unassigned_patients': [{'id': u.id, 'username': u.username} for u in unassigned],
     })
 
 
@@ -448,28 +449,6 @@ def get_provider_assignments():
             'created_at': assignment.assigned_at,
         })
     return jsonify(assignment_data)
-
-
-@admin_bp.route("/api/admin/assign_provider", methods=['POST'])
-@role_required('admin')
-def assign_provider():
-    data = request.json or {}
-    existing = ProviderPatient.query.filter_by(
-        provider_id=data['provider_id'], patient_id=data['patient_id']
-    ).first()
-    if existing:
-        return jsonify({'error': 'Assignment already exists'}), 400
-    assignment = ProviderPatient(
-        provider_id=data['provider_id'],
-        patient_id=data['patient_id'],
-        assigned_by=current_user.id,
-    )
-    db.session.add(assignment)
-    _log_action('assignment_created', 'assignment', details={
-        'provider_id': data['provider_id'], 'patient_id': data['patient_id'],
-    })
-    db.session.commit()
-    return jsonify({'status': 'success'})
 
 
 @admin_bp.route("/api/admin/assignment/<int:assignment_id>", methods=['DELETE'])
@@ -816,3 +795,195 @@ def get_settings_flags():
         'require_safety_plan': _get_admin_setting('require_safety_plan', True),
         'allow_patient_anti_patterns': _get_admin_setting('allow_patient_anti_patterns', True),
     })
+
+
+# ── Provider Feature Flags API ─────────────────────────────────
+
+# Columns that are editable via the API
+_FLAG_COLUMNS = [
+    'require_safety_plan', 'allow_patient_anti_patterns',
+    'enable_nlp_report', 'report_config',
+    'default_system_prompt_id', 'allow_custom_prompts',
+    'allowed_models', 'allowed_prompts', 'max_turns_per_conversation',
+    'safety_disclaimer_text', 'system_context_override',
+]
+
+_BOOL_FLAGS = {
+    'require_safety_plan', 'allow_patient_anti_patterns',
+    'enable_nlp_report', 'allow_custom_prompts',
+}
+
+_JSON_FLAGS = {'allowed_models', 'allowed_prompts', 'report_config'}
+_INT_FLAGS = {'max_turns_per_conversation', 'default_system_prompt_id'}
+_TEXT_FLAGS = {'safety_disclaimer_text', 'system_context_override'}
+
+
+@admin_bp.route("/api/admin/provider/<int:provider_id>/feature-flags", methods=["GET"])
+@role_required('admin')
+def get_provider_feature_flags(provider_id):
+    """Get feature flags for a provider. Returns explicit values + inherited globals."""
+    provider = User.query.get_or_404(provider_id)
+    if provider.role != 'provider':
+        return jsonify({'error': 'User is not a provider'}), 400
+
+    flags = ProviderFeatureFlags.query.filter_by(provider_id=provider_id).first()
+
+    result = {'provider_id': provider_id, 'flags': {}}
+    for col in _FLAG_COLUMNS:
+        explicit = getattr(flags, col, None) if flags else None
+        # For JSON columns stored as text, parse them
+        if col in _JSON_FLAGS and explicit is not None:
+            try:
+                explicit = json.loads(explicit)
+            except Exception:
+                pass
+        result['flags'][col] = {
+            'value': explicit,
+            'inherited': explicit is None,
+            'effective': _resolve_effective(col, explicit),
+        }
+
+    return jsonify(result)
+
+
+def _resolve_effective(col, explicit):
+    """Compute effective value: explicit if set, else global default."""
+    if explicit is not None:
+        return explicit
+    # Map column names to AdminSettings keys
+    admin_key_map = {
+        'require_safety_plan': 'require_safety_plan',
+        'allow_patient_anti_patterns': 'allow_patient_anti_patterns',
+        'allow_custom_prompts': 'providers_can_set_custom_prompts',
+    }
+    admin_key = admin_key_map.get(col)
+    if admin_key:
+        return _get_admin_setting(admin_key, True)
+    # No global equivalent — return None to indicate "not set"
+    return None
+
+
+@admin_bp.route("/api/admin/provider/<int:provider_id>/feature-flags", methods=["POST"])
+@role_required('admin')
+def update_provider_feature_flags(provider_id):
+    """Create or update feature flags for a provider."""
+    provider = User.query.get_or_404(provider_id)
+    if provider.role != 'provider':
+        return jsonify({'error': 'User is not a provider'}), 400
+
+    data = request.json or {}
+    flags = ProviderFeatureFlags.query.filter_by(provider_id=provider_id).first()
+    if not flags:
+        flags = ProviderFeatureFlags(provider_id=provider_id)
+        db.session.add(flags)
+
+    changes = {}
+    for col in _FLAG_COLUMNS:
+        if col not in data:
+            continue
+        val = data[col]
+        old_val = getattr(flags, col)
+
+        # None means "reset to inherit global"
+        if val is None:
+            setattr(flags, col, None)
+        elif col in _BOOL_FLAGS:
+            setattr(flags, col, bool(val))
+        elif col in _INT_FLAGS:
+            setattr(flags, col, int(val) if val is not None else None)
+        elif col in _JSON_FLAGS:
+            setattr(flags, col, json.dumps(val) if val is not None else None)
+        elif col in _TEXT_FLAGS:
+            setattr(flags, col, str(val) if val else None)
+
+        new_val = getattr(flags, col)
+        if str(old_val) != str(new_val):
+            changes[col] = {'from': old_val, 'to': new_val}
+
+    if changes:
+        _log_action('update_provider_feature_flags', 'provider_feature_flags', provider_id, changes)
+
+    db.session.commit()
+    return jsonify({'status': 'success', 'changes': changes})
+
+
+# ── System Prompt Management ────────────────────────────────────
+
+@admin_bp.route("/api/admin/prompts", methods=["GET"])
+@role_required('admin')
+def get_all_prompts():
+    """Get all system prompts for management, with full domain content."""
+    from prompts.registry import PromptRegistry
+    registry = PromptRegistry.instance()
+
+    prompts = SystemPrompt.query.all()
+    result = []
+    for p in prompts:
+        content = p.content
+        # For domain-linked prompts, show the full markdown content from the file
+        if p.domain_prompt_id:
+            domain = registry.get_domain_prompt(p.domain_prompt_id)
+            if domain:
+                content = domain.content
+        result.append({
+            'id': p.id,
+            'name': p.name,
+            'content': content,
+            'domain_prompt_id': p.domain_prompt_id,
+            'visible': p.visible,
+            'created_by': p.created_by,
+            'created_at': p.created_at,
+        })
+    return jsonify(result)
+
+
+@admin_bp.route("/api/admin/prompts", methods=["POST"])
+@role_required('admin')
+def create_prompt():
+    """Admin creates a system prompt."""
+    data = request.json or {}
+    name = data.get('name', '').strip()
+    content = data.get('content', '').strip()
+    if not name:
+        return jsonify({'error': 'Name is required'}), 400
+
+    prompt = SystemPrompt(
+        name=name,
+        content=content,
+        created_by=current_user.id,
+        visible=True,
+    )
+    db.session.add(prompt)
+    _log_action('prompt_created', 'system_prompt', details={'name': name})
+    db.session.commit()
+    return jsonify({'id': prompt.id, 'name': prompt.name}), 201
+
+
+@admin_bp.route("/api/admin/prompts/<int:prompt_id>", methods=["PUT"])
+@role_required('admin')
+def update_prompt(prompt_id):
+    """Admin edits a system prompt."""
+    prompt = SystemPrompt.query.get_or_404(prompt_id)
+    data = request.json or {}
+    if 'name' in data:
+        prompt.name = data['name'].strip()
+    if 'content' in data:
+        prompt.content = data['content'].strip()
+    if 'visible' in data:
+        prompt.visible = bool(data['visible'])
+    _log_action('prompt_updated', 'system_prompt', prompt_id, {
+        k: data[k] for k in ('name', 'visible') if k in data
+    })
+    db.session.commit()
+    return jsonify({'status': 'success'})
+
+
+@admin_bp.route("/api/admin/prompts/<int:prompt_id>", methods=["DELETE"])
+@role_required('admin')
+def delete_prompt(prompt_id):
+    """Admin soft-deletes a system prompt."""
+    prompt = SystemPrompt.query.get_or_404(prompt_id)
+    prompt.visible = False
+    _log_action('prompt_deleted', 'system_prompt', prompt_id, {'name': prompt.name})
+    db.session.commit()
+    return jsonify({'status': 'success'})

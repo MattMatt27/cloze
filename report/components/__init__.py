@@ -3,14 +3,14 @@ Report Components Package
 
 Components are self-contained features that generate data for reports.
 Each component loads data, performs analysis, and returns structured results.
+
+NLP-heavy components are imported lazily to keep startup fast.
 """
 
 from typing import Dict
 from .ai_summary import AISummaryComponent
 from .saved_messages import SavedMessagesComponent
 from .descriptive_stats import DescriptiveStatsComponent
-from .nlp_analysis import NLPAnalysisComponent
-from .cooccurrence_analysis import CooccurrenceAnalysisComponent
 
 __all__ = [
     'AISummaryComponent',
@@ -21,14 +21,18 @@ __all__ = [
     'get_all_components',
 ]
 
-# Component registry for dynamic loading
-COMPONENT_REGISTRY = {
-    'ai_summary': AISummaryComponent,
-    'saved_messages': SavedMessagesComponent,
-    'descriptive_stats': DescriptiveStatsComponent,
-    'nlp_analysis': NLPAnalysisComponent,
-    'cooccurrence_analysis': CooccurrenceAnalysisComponent,
-}
+
+def _get_component_registry():
+    """Build registry with lazy imports for NLP-heavy components."""
+    from .nlp_analysis import NLPAnalysisComponent
+    from .cooccurrence_analysis import CooccurrenceAnalysisComponent
+    return {
+        'ai_summary': AISummaryComponent,
+        'saved_messages': SavedMessagesComponent,
+        'descriptive_stats': DescriptiveStatsComponent,
+        'nlp_analysis': NLPAnalysisComponent,
+        'cooccurrence_analysis': CooccurrenceAnalysisComponent,
+    }
 
 
 def get_all_components(window, config: Dict = None):
@@ -53,8 +57,9 @@ def get_all_components(window, config: Dict = None):
     config = config or {}
 
     # Instantiate all components
+    registry = _get_component_registry()
     components = {}
-    for name, component_class in COMPONENT_REGISTRY.items():
+    for name, component_class in registry.items():
         components[name] = component_class(window_id, config)
 
     return components

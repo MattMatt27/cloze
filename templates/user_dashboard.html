@@ -248,6 +248,9 @@
             <div class="typing-dot h-2 w-2 rounded-full bg-stone-500"></div>
           </div>
 
+          {# Turn warning (shown above input when approaching limit) #}
+          <div id="turnWarningBar" class="hidden border-t border-amber-200 bg-amber-50 px-6 py-2 text-center text-sm text-amber-800 shrink-0"></div>
+
           {# Input area (shown/hidden by JS based on conversation state) #}
           <div id="inputArea" class="hidden border-t border-stone-200 bg-white px-6 py-3 shrink-0">
             <div class="flex items-end gap-3">
@@ -306,7 +309,7 @@
       <div class="bg-cloze-indigo px-6 py-5 text-white">
         <h2 class="text-xl font-semibold">Important Safety Information</h2>
       </div>
-      <div class="px-6 py-5 max-h-[70vh] overflow-y-auto">
+      <div id="safetyModalBody" class="px-6 py-5 max-h-[70vh] overflow-y-auto">
         <p class="mb-4 text-sm leading-relaxed text-stone-700">
           This conversation partner is designed for general discussion and support between your regular sessions.
           It is <strong>NOT</strong> a substitute for emergency services or crisis intervention.
@@ -403,6 +406,7 @@ var currentWindows = [];
 var allReports = [];
 var safetyPlanData = null;
 var hasActivePlan = false;
+var featureFlags = {};
 var activeConversationId = null;
 var conversationData = null;
 var countdownInterval = null;
@@ -513,12 +517,14 @@ async function loadAllData() {
       fetch('/api/conversations').then(function(r) { return r.ok ? r.json() : []; }),
       fetch('/api/windows/current').then(function(r) { return r.ok ? r.json() : []; }),
       fetch('/api/reports/').then(function(r) { return r.ok ? r.json() : []; }),
-      fetch('/api/safety-plan/').then(function(r) { return r.ok ? r.json() : null; })
+      fetch('/api/safety-plan/').then(function(r) { return r.ok ? r.json() : null; }),
+      fetch('/api/user/settings-flags').then(function(r) { return r.ok ? r.json() : {}; })
     ]);
     allConversations = results[0];
     currentWindows = results[1];
     allReports = results[2];
     safetyPlanData = results[3];
+    featureFlags = results[4];
     hasActivePlan = !!(safetyPlanData && safetyPlanData.active);
 
     renderSidebar();
@@ -557,6 +563,14 @@ function renderSafetyPlan() {
   var section = document.getElementById('safetyPlanSection');
   var content = document.getElementById('safetyPlanContent');
   var gating = document.getElementById('safetyPlanGating');
+
+  // If safety plans are disabled for this provider, hide everything
+  if (featureFlags.require_safety_plan === false) {
+    section.classList.add('hidden');
+    gating.classList.add('hidden');
+    hasActivePlan = true;  // Bypass gating in renderHomeView
+    return;
+  }
 
   if (!safetyPlanData) {
     section.classList.add('hidden');
@@ -1205,6 +1219,9 @@ async function loadConversationView(convId) {
   document.getElementById('inputArea').classList.add('hidden');
   document.getElementById('statusArea').classList.add('hidden');
   document.getElementById('crisisBar').classList.add('hidden');
+  document.getElementById('turnWarningBar').classList.add('hidden');
+  var existingLockout = document.getElementById('turnLimitBanner');
+  if (existingLockout) existingLockout.remove();
 
   if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
 
@@ -1228,6 +1245,13 @@ async function loadConversationView(convId) {
       startCountdown(conversationData.window_end_date, windowStatus);
     } else {
       document.getElementById('convTimer').classList.add('hidden');
+    }
+
+    // Turn limit check
+    if (canSend && conversationData.turn_limit_reached) {
+      canSend = false;
+      document.getElementById('inputArea').classList.add('hidden');
+      showTurnLimitReached(conversationData.max_turns);
     }
 
     // Input vs status
@@ -1314,17 +1338,36 @@ async function sendMessage() {
     });
 
     if (!response.ok) {
-      var error = await response.json();
-      throw new Error(error.error || 'Failed to send message');
+      var errorData = await response.json();
+      if (errorData.turn_limit_reached) {
+        var err = new Error(errorData.error);
+        err.turnLimitReached = true;
+        err.maxTurns = errorData.max_turns;
+        throw err;
+      }
+      throw new Error(errorData.error || 'Failed to send message');
     }
 
     var data = await response.json();
     addMessageToUI('assistant', data.response, data.message_id);
 
+    // Turn limit awareness
+    if (data.turns_remaining !== undefined) {
+      if (data.turn_limit_reached) {
+        showTurnLimitReached(data.max_turns);
+      } else if (data.turns_remaining <= 3) {
+        showTurnWarning(data.turns_remaining, data.max_turns);
+      }
+    }
+
     // Update sidebar (conversation may have moved to "Today")
     updateSidebarConversation(activeConversationId, message);
   } catch (error) {
-    showError(error.message);
+    if (error.turnLimitReached) {
+      showTurnLimitReached(error.maxTurns);
+    } else {
+      showError(error.message);
+    }
   } finally {
     document.getElementById('typingIndicator').classList.add('hidden');
     document.getElementById('typingIndicator').classList.remove('flex');
@@ -1401,15 +1444,33 @@ async function startTemplate(templateId) {
 
 /* ── Safety modal ───────────────────────────────────────────── */
 
-function checkSafetyAcknowledgment() {
+async function checkSafetyAcknowledgment() {
   if (conversationData && !conversationData.consent_provided) {
+    // Load provider-specific disclaimer if available
+    try {
+      var resp = await fetch('/api/safety-disclaimer');
+      var data = await resp.json();
+      if (data.custom && data.text) {
+        document.getElementById('safetyModalBody').innerHTML = data.text;
+      }
+    } catch(e) { /* use default content */ }
+    // Bind checkbox listener (re-bind in case custom HTML replaced the element)
+    bindSafetyCheckbox();
     document.getElementById('safetyModal').classList.remove('hidden');
   }
 }
 
-document.getElementById('safetyAcknowledge').addEventListener('change', function() {
-  document.getElementById('safetyConfirmBtn').disabled = !this.checked;
-});
+function bindSafetyCheckbox() {
+  var cb = document.getElementById('safetyAcknowledge');
+  var btn = document.getElementById('safetyConfirmBtn');
+  if (cb && btn) {
+    btn.disabled = !cb.checked;
+    cb.addEventListener('change', function() {
+      btn.disabled = !this.checked;
+    });
+  }
+}
+bindSafetyCheckbox();
 
 async function acknowledgeSafety() {
   try {
@@ -1501,6 +1562,36 @@ function showError(message) {
   banner.textContent = message;
   banner.classList.remove('hidden');
   setTimeout(function() { banner.classList.add('hidden'); }, 5000);
+}
+
+function showTurnWarning(remaining, max) {
+  var s = remaining !== 1 ? 's' : '';
+  var bar = document.getElementById('turnWarningBar');
+  bar.textContent = remaining + ' exchange' + s + ' remaining in this conversation (out of ' + max + ')';
+  bar.classList.remove('hidden');
+}
+
+function hideTurnWarning() {
+  document.getElementById('turnWarningBar').classList.add('hidden');
+}
+
+function showTurnLimitReached(max) {
+  // Hide the warning and input, show the lockout
+  hideTurnWarning();
+  var inputArea = document.getElementById('inputArea');
+  inputArea.classList.add('hidden');
+
+  // Remove any existing lockout banner
+  var existing = document.getElementById('turnLimitBanner');
+  if (existing) existing.remove();
+
+  var banner = document.createElement('div');
+  banner.id = 'turnLimitBanner';
+  banner.className = 'border-t border-stone-200 bg-stone-50 px-6 py-4 text-center shrink-0';
+  banner.innerHTML =
+    '<div class="text-sm font-medium text-stone-700">This conversation has reached its limit of ' + max + ' exchanges.</div>' +
+    '<div class="mt-1 text-xs text-stone-500">You can review the conversation above, but no more messages can be sent in this session.</div>';
+  inputArea.parentNode.appendChild(banner);
 }
 
 /* ── Report modal ───────────────────────────────────────────── */

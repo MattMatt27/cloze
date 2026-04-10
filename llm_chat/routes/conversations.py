@@ -9,7 +9,8 @@ from ..models import (
     Conversation, Model, Message, SavedSelection, ChatWindow, ChatTemplate
 )
 from ..services.llm_interface import LLMInterface
-from ..models import AdminSettings
+from ..models import AdminSettings, ProviderFeatureFlags
+from ..utils.settings_resolution import get_effective_setting, get_provider_id_for_patient
 
 conv_bp = Blueprint("conversations", __name__, url_prefix="")
 
@@ -113,6 +114,20 @@ def get_conversation_data(conversation_id):
             window_id = window.id
             window_status = window.compute_status()
 
+    # Turn limit info
+    turn_info = {}
+    if current_user.is_patient():
+        provider_id = get_provider_id_for_patient(conversation.user_id)
+        mt = get_effective_setting('max_turns_per_conversation', provider_id)
+        if mt:
+            used = sum(1 for m in messages if m.role == 'user')
+            turn_info = {
+                'max_turns': mt,
+                'turns_used': used,
+                'turns_remaining': max(0, mt - used),
+                'turn_limit_reached': used >= mt,
+            }
+
     return jsonify({
         'id': conversation.id,
         'title': conversation.title or 'New Conversation',
@@ -128,7 +143,8 @@ def get_conversation_data(conversation_id):
         'window_status': window_status,
         'window_id': window_id,
         'consent_provided': conversation.consent_provided,
-        'messages': [m.to_dict() for m in messages]
+        'messages': [m.to_dict() for m in messages],
+        **turn_info,
     })
 
 @conv_bp.route("/api/conversation/<int:conversation_id>/title", methods=["PUT"])
@@ -271,6 +287,7 @@ def create_conversation():
     if current_user.is_patient():
         provider_assignment = ProviderPatient.query.filter_by(patient_id=current_user.id).first()
         if provider_assignment:
+            # Provider-set per-patient model restrictions
             settings = ProviderSettings.query.filter_by(
                 provider_id=provider_assignment.provider_id,
                 patient_id=current_user.id
@@ -279,6 +296,12 @@ def create_conversation():
                 allowed = json.loads(settings.allowed_models)
                 if model_id not in allowed:
                     return jsonify({'error': 'Model not allowed by provider'}), 403
+            # Admin-enforced provider-level model allowlist
+            flags = ProviderFeatureFlags.query.filter_by(provider_id=provider_assignment.provider_id).first()
+            if flags and flags.allowed_models:
+                admin_allowed = json.loads(flags.allowed_models)
+                if model_id not in admin_allowed:
+                    return jsonify({'error': 'Model not permitted for this study'}), 403
 
     # Get system prompt content (with custom instructions applied)
     system_prompt_content = None
@@ -316,6 +339,24 @@ def send_message(conversation_id):
             status = window.compute_status()
             if not window.visible or status != 'active':
                 return jsonify({'error': 'Chat window has expired or is no longer active'}), 403
+
+    # Max turns per conversation enforcement
+    max_turns = None
+    turns_used = 0
+    if current_user.is_patient():
+        provider_id = get_provider_id_for_patient(current_user.id)
+        max_turns = get_effective_setting('max_turns_per_conversation', provider_id)
+        if max_turns:
+            turns_used = Message.query.filter_by(
+                conversation_id=conversation_id,
+                role='user'
+            ).count()
+            if turns_used >= max_turns:
+                return jsonify({
+                    'error': f'This conversation has reached its maximum of {max_turns} exchanges.',
+                    'turn_limit_reached': True,
+                    'max_turns': max_turns,
+                }), 403
 
     # Time window and limits for patients
     if current_user.is_patient():
@@ -363,7 +404,34 @@ def send_message(conversation_id):
     history.append({'role': 'user', 'content': data['message']})
 
     system_prompt = conversation.system_prompt_content
-    print(f"Using system prompt for conversation {conversation_id}: {system_prompt}")
+
+    # Inject turn-count awareness when approaching the limit
+    turns_remaining = None
+    if max_turns:
+        turns_remaining = max_turns - (turns_used + 1)  # +1 for the message being sent now
+        if turns_remaining <= 5:
+            turn_notice = (
+                f"\n\n---\n\n## Turn Limit Notice\n"
+                f"This conversation has {turns_remaining} exchange{'s' if turns_remaining != 1 else ''} remaining "
+                f"(out of {max_turns} total). "
+            )
+            if turns_remaining <= 1:
+                turn_notice += (
+                    "This is the FINAL exchange. Wrap up the conversation naturally. "
+                    "Let the person know you've enjoyed the conversation and that this is "
+                    "the last exchange in this session."
+                )
+            elif turns_remaining <= 3:
+                turn_notice += (
+                    "The conversation is nearing its end. Begin naturally winding down. "
+                    "If there are key takeaways or action items, gently surface them."
+                )
+            else:
+                turn_notice += "Continue the conversation naturally but be aware of the remaining time."
+            if system_prompt:
+                system_prompt = system_prompt + turn_notice
+            else:
+                system_prompt = turn_notice
 
     # Call LLM
     response_text, response_time = LLMInterface.call_llm(conversation.model, history, system_prompt)
@@ -381,7 +449,12 @@ def send_message(conversation_id):
     conversation.updated_at = time.time()
     db.session.commit()
 
-    return jsonify({'response': response_text, 'message_id': assistant_message.id})
+    result = {'response': response_text, 'message_id': assistant_message.id}
+    if max_turns:
+        result['turns_remaining'] = max(0, turns_remaining)
+        result['max_turns'] = max_turns
+        result['turn_limit_reached'] = turns_remaining <= 0
+    return jsonify(result)
 
 @conv_bp.route("/api/save_selection", methods=["POST"])
 @login_required
@@ -445,10 +518,13 @@ def get_available_models():
         if not model.is_available:
             continue
 
-        # Provider restrictions for patients
+        # Admin-enforced provider-level model allowlist
+        check_provider_id = None
         if current_user.is_patient():
             provider_assignment = ProviderPatient.query.filter_by(patient_id=current_user.id).first()
             if provider_assignment:
+                check_provider_id = provider_assignment.provider_id
+                # Provider-set per-patient restrictions
                 settings = ProviderSettings.query.filter_by(
                     provider_id=provider_assignment.provider_id,
                     patient_id=current_user.id
@@ -457,6 +533,15 @@ def get_available_models():
                     allowed = json.loads(settings.allowed_models)
                     if model.id not in allowed:
                         continue
+        elif current_user.is_provider():
+            check_provider_id = current_user.id
+
+        if check_provider_id:
+            flags = ProviderFeatureFlags.query.filter_by(provider_id=check_provider_id).first()
+            if flags and flags.allowed_models:
+                admin_allowed = json.loads(flags.allowed_models)
+                if model.id not in admin_allowed:
+                    continue
 
         available.append({'id': model.id, 'name': model.name, 'provider': model.provider})
 
@@ -471,8 +556,40 @@ def get_available_models():
 @conv_bp.route("/api/system_prompts")
 @login_required
 def get_system_prompts():
-    """Get available system prompts (domain-linked) for dropdowns."""
-    prompts = SystemPrompt.query.filter_by(visible=True).all()
+    """Get available system prompts (domain-linked) for dropdowns.
+
+    Returns admin-created prompts (visible=True) plus the current
+    provider's own prompts (if provider is logged in).
+    """
+    from sqlalchemy import or_
+
+    def _filter_by_allowed(prompts_list, flags_row, include_own=False):
+        """Filter prompts by allowed_prompts. None/empty = no prompts (general only)."""
+        if not flags_row:
+            return prompts_list  # No flags row = no restrictions
+        if flags_row.allowed_prompts:
+            allowed_ids = set(json.loads(flags_row.allowed_prompts))
+            return [p for p in prompts_list if p.id in allowed_ids
+                    or (include_own and p.created_by == current_user.id)]
+        # Flags row exists but allowed_prompts is None = none selected = general only
+        if include_own:
+            return [p for p in prompts_list if p.created_by == current_user.id]
+        return []
+
+    if current_user.is_provider():
+        prompts = SystemPrompt.query.filter(
+            or_(SystemPrompt.visible == True, SystemPrompt.created_by == current_user.id)
+        ).all()
+        flags = ProviderFeatureFlags.query.filter_by(provider_id=current_user.id).first()
+        prompts = _filter_by_allowed(prompts, flags, include_own=True)
+    elif current_user.is_patient():
+        prompts = SystemPrompt.query.filter_by(visible=True).all()
+        provider_id = get_provider_id_for_patient(current_user.id)
+        if provider_id:
+            flags = ProviderFeatureFlags.query.filter_by(provider_id=provider_id).first()
+            prompts = _filter_by_allowed(prompts, flags)
+    else:
+        prompts = SystemPrompt.query.filter_by(visible=True).all()
 
     provider_custom_instructions = None
     if current_user.is_patient():
@@ -520,28 +637,101 @@ def get_system_prompts():
     return jsonify(result)
 
 
-def _get_admin_setting(name, default=None):
-    """Read a single admin setting value."""
-    row = AdminSettings.query.filter_by(setting_name=name).first()
-    if not row or not row.setting_value:
-        return default
-    try:
-        import json as _json
-        return _json.loads(row.setting_value)
-    except Exception:
-        return row.setting_value
-
-
 @conv_bp.route("/api/user/settings-flags")
 @login_required
 def get_user_settings_flags():
     """Feature flags relevant to the current user's role."""
+    provider_id = None
+    if current_user.is_patient():
+        provider_id = get_provider_id_for_patient(current_user.id)
+    elif current_user.is_provider():
+        provider_id = current_user.id
+
     flags = {
-        'users_can_save_selections': _get_admin_setting('users_can_save_selections', True),
+        'users_can_save_selections': get_effective_setting('users_can_save_selections', provider_id, True),
+        'require_safety_plan': get_effective_setting('require_safety_plan', provider_id, True),
+        'enable_nlp_report': get_effective_setting('enable_nlp_report', provider_id, True),
     }
     if current_user.is_provider():
-        flags['providers_can_set_custom_prompts'] = _get_admin_setting('providers_can_set_custom_prompts', True)
+        flags['providers_can_set_custom_prompts'] = get_effective_setting('allow_custom_prompts', current_user.id, True)
     return jsonify(flags)
+
+
+@conv_bp.route("/api/safety-disclaimer")
+@login_required
+def get_safety_disclaimer():
+    """Get the safety disclaimer HTML for the current patient's provider."""
+    provider_id = None
+    if current_user.is_patient():
+        provider_id = get_provider_id_for_patient(current_user.id)
+    elif current_user.is_provider():
+        provider_id = current_user.id
+
+    if provider_id:
+        flags = ProviderFeatureFlags.query.filter_by(provider_id=provider_id).first()
+        if flags and flags.safety_disclaimer_text:
+            raw = flags.safety_disclaimer_text
+            # Check if it's JSON blocks (new format) or raw HTML (legacy)
+            try:
+                blocks = json.loads(raw)
+                if isinstance(blocks, list):
+                    html = _compile_disclaimer_blocks(blocks)
+                    return jsonify({'text': html, 'custom': True})
+            except (json.JSONDecodeError, TypeError):
+                pass
+            # Legacy raw HTML
+            return jsonify({'text': raw, 'custom': True})
+
+    return jsonify({'text': None, 'custom': False})
+
+
+def _compile_disclaimer_blocks(blocks):
+    """Compile disclaimer blocks to HTML (server-side rendering)."""
+    import re
+
+    def boldify(text):
+        escaped = text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        return re.sub(r'\*\*(.+?)\*\*', r'<strong>\1</strong>', escaped)
+
+    parts = []
+    for block in blocks:
+        btype = block.get('type', 'text')
+        content = block.get('content', '')
+
+        if btype == 'text':
+            parts.append(f'<p class="mb-4 text-sm leading-relaxed text-stone-700">{boldify(content)}</p>')
+        elif btype == 'warning':
+            title = block.get('title', 'Warning')
+            lines = content.split('\n')
+            list_items = [l for l in lines if l.strip().startswith('-')]
+            plain = [l for l in lines if not l.strip().startswith('-')]
+            html = f'<div class="rounded-lg border-l-4 border-amber-400 bg-amber-50 p-4 my-4">'
+            html += f'<h3 class="text-sm font-semibold text-amber-800 mb-2">{boldify(title)}</h3>'
+            if plain:
+                html += f'<p class="text-sm text-amber-900 mb-2">{boldify(" ".join(plain))}</p>'
+            if list_items:
+                html += '<ul class="list-disc pl-5 text-sm text-amber-900 space-y-1">'
+                for li in list_items:
+                    html += f'<li>{boldify(li.strip().lstrip("- "))}</li>'
+                html += '</ul>'
+            html += '</div>'
+            parts.append(html)
+        elif btype == 'alert':
+            title = block.get('title', 'Alert')
+            html = f'<div class="rounded-lg border-l-4 border-red-500 bg-red-50 p-4 my-4">'
+            html += f'<h3 class="text-sm font-semibold text-red-900 mb-2">{boldify(title)}</h3>'
+            html += f'<p class="text-sm text-red-900">{boldify(content)}</p>'
+            html += '</div>'
+            parts.append(html)
+        elif btype == 'checkbox':
+            html = '<div class="mt-5 pt-5 border-t border-stone-200">'
+            html += '<label class="flex items-start gap-2.5 cursor-pointer select-none">'
+            html += '<input type="checkbox" id="safetyAcknowledge" class="mt-0.5 h-4 w-4 cursor-pointer rounded border-stone-300 text-cloze-indigo focus:ring-cloze-indigo">'
+            html += f'<span class="text-sm text-stone-700">{boldify(content)}</span>'
+            html += '</label></div>'
+            parts.append(html)
+
+    return '\n'.join(parts)
 
 
 @conv_bp.route("/api/prompts/domains")

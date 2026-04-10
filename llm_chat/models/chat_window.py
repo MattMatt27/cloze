@@ -128,6 +128,7 @@ class ChatTemplate(db.Model):
         SystemPrompt has no domain_prompt_id.
         """
         from prompts.composer import compose_system_prompt
+        from .settings import ProviderFeatureFlags
 
         domain_id = None
         if self.system_prompt and self.system_prompt.domain_prompt_id:
@@ -143,6 +144,15 @@ class ChatTemplate(db.Model):
             if active_plan:
                 safety_plan_data = active_plan.to_prompt_dict()
 
+        # Check for provider-level system_context override
+        system_context_override = None
+        if self.window and self.window.provider_id:
+            flags = ProviderFeatureFlags.query.filter_by(
+                provider_id=self.window.provider_id
+            ).first()
+            if flags and flags.system_context_override:
+                system_context_override = flags.system_context_override
+
         # If we have a domain_id (new-style) or no system_prompt at all,
         # use the composer which always injects constitutional prompts.
         if domain_id or not self.system_prompt:
@@ -150,6 +160,7 @@ class ChatTemplate(db.Model):
                 domain_id=domain_id,
                 custom_instructions=self.custom_system_prompt,
                 safety_plan=safety_plan_data,
+                system_context_override=system_context_override,
             )
 
         # Legacy fallback: system_prompt exists but has no domain_prompt_id

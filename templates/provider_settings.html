@@ -1,0 +1,456 @@
+{% extends "base.html" %}
+
+{% block title %}Settings — Cloze{% endblock %}
+{% block page_title %}Settings{% endblock %}
+
+{% block content %}
+  <section class="mb-6">
+    <h2 class="mb-1 text-lg font-semibold text-stone-900">Provider Settings</h2>
+    <p class="text-sm text-stone-500">Configure your study's content and prompts</p>
+  </section>
+
+  {# 1. Account Configuration (read-only) #}
+  <section class="mb-8 rounded-lg border border-stone-200 bg-white">
+    <div class="border-b border-stone-100 px-5 py-3">
+      <h3 class="text-sm font-semibold text-stone-900">Account Configuration</h3>
+      <p class="mt-0.5 text-xs text-stone-500">These settings are managed by your administrator</p>
+    </div>
+    <div id="flagsSummary" class="divide-y divide-stone-100">
+      <div class="py-6 text-center text-sm text-stone-400">Loading...</div>
+    </div>
+  </section>
+
+  {# 2. System Context Override #}
+  <section class="mb-8 rounded-lg border border-stone-200 bg-white">
+    <div class="border-b border-stone-100 px-5 py-3">
+      <h3 class="text-sm font-semibold text-stone-900">System Context Override</h3>
+      <p class="mt-0.5 text-xs text-stone-500">The system context is injected into every AI prompt. It tells the AI about the platform and how conversations work. Edit the default or write your own.</p>
+    </div>
+    <div class="p-5">
+      <textarea id="contextOverride" rows="10"
+                class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-mono focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo"
+                placeholder="Loading default..."></textarea>
+      <button onclick="resetContext()" class="mt-2 text-xs text-stone-400 hover:text-cloze-indigo">Reset to default</button>
+    </div>
+  </section>
+
+  {# 3. Custom System Prompts #}
+  <section id="promptsSection" class="mb-8 rounded-lg border border-stone-200 bg-white">
+    <div class="border-b border-stone-100 px-5 py-3 flex items-center justify-between">
+      <div>
+        <h3 class="text-sm font-semibold text-stone-900">Custom System Prompts</h3>
+        <p class="mt-0.5 text-xs text-stone-500">Reusable prompts that appear in the System Prompt dropdown when creating chat windows</p>
+      </div>
+      <button onclick="showCreatePromptForm()" class="inline-flex items-center gap-1.5 rounded-lg bg-cloze-indigo px-3 py-1.5 text-xs font-medium text-white transition hover:bg-cloze-hover">
+        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        New Prompt
+      </button>
+    </div>
+    <div id="promptsList" class="divide-y divide-stone-100">
+      <div class="py-6 text-center text-sm text-stone-400">Loading...</div>
+    </div>
+
+    {# Inline create/edit form #}
+    <div id="promptForm" class="hidden border-t border-stone-200 bg-violet-50/40 p-5">
+      <input type="hidden" id="editPromptId" value="">
+      <div class="mb-3">
+        <label class="mb-1 block text-sm font-medium text-stone-700">Name</label>
+        <input type="text" id="promptName" class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none" placeholder="e.g., Homework Module - Cognitive Restructuring">
+      </div>
+      <div class="mb-3">
+        <label class="mb-1 block text-sm font-medium text-stone-700">Content</label>
+        <textarea id="promptContent" rows="6" class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-mono focus:border-cloze-indigo focus:outline-none" placeholder="System prompt instructions..."></textarea>
+      </div>
+      <div class="flex gap-3">
+        <button onclick="savePrompt()" class="rounded-lg bg-cloze-indigo px-4 py-2 text-sm font-medium text-white hover:bg-cloze-hover">Save Prompt</button>
+        <button onclick="cancelPromptForm()" class="rounded-lg border border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50">Cancel</button>
+      </div>
+    </div>
+  </section>
+
+  {# 4. Safety Disclaimer #}
+  <section id="disclaimerSection" class="mb-8 rounded-lg border border-stone-200 bg-white">
+    <div class="border-b border-stone-100 px-5 py-3">
+      <h3 class="text-sm font-semibold text-stone-900">Safety Disclaimer</h3>
+      <p class="mt-0.5 text-xs text-stone-500">Build the safety modal that patients see before starting conversations. Drag blocks to reorder, click to edit.</p>
+    </div>
+    <div class="p-5">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:items-stretch">
+        {# Left: block editor #}
+        <div class="flex flex-col">
+          <label class="mb-1.5 block text-xs font-medium text-stone-500 uppercase tracking-wide">Blocks</label>
+          <div id="disclaimerBlocks" class="flex-1 min-h-[300px] space-y-2 rounded-lg border border-stone-200 bg-stone-50 p-3 overflow-y-auto">
+          </div>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <button onclick="addBlock('text')" class="rounded-md border border-stone-200 bg-white px-2.5 py-1.5 text-xs text-stone-600 hover:bg-stone-50">+ Text</button>
+            <button onclick="addBlock('warning')" class="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-xs text-amber-700 hover:bg-amber-100">+ Warning Box</button>
+            <button onclick="addBlock('alert')" class="rounded-md border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs text-red-600 hover:bg-red-100">+ Alert Box</button>
+            <button onclick="addBlock('checkbox')" class="rounded-md border border-stone-200 bg-white px-2.5 py-1.5 text-xs text-stone-600 hover:bg-stone-50">+ Acknowledgment</button>
+            <span class="border-l border-stone-200 mx-1"></span>
+            <button onclick="resetDisclaimer()" class="rounded-md border border-stone-200 bg-white px-2.5 py-1.5 text-xs text-stone-400 hover:text-cloze-indigo">Reset to default</button>
+          </div>
+        </div>
+        {# Right: live preview #}
+        <div class="flex flex-col">
+          <label class="mb-1.5 block text-xs font-medium text-stone-500 uppercase tracking-wide">Preview</label>
+          <div class="flex-1 rounded-lg border border-stone-200 bg-white overflow-hidden flex flex-col">
+            <div class="bg-cloze-indigo px-4 py-3 text-white shrink-0">
+              <h3 class="text-sm font-semibold">Important Safety Information</h3>
+            </div>
+            <div id="disclaimerPreview" class="px-4 py-4 overflow-y-auto text-sm flex-1">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="mt-4 flex items-center gap-3">
+        <button onclick="saveContent()" class="rounded-lg bg-cloze-indigo px-4 py-2 text-sm font-medium text-white hover:bg-cloze-hover">Save</button>
+        <span id="contentSaveStatus" class="text-xs text-stone-400"></span>
+      </div>
+    </div>
+  </section>
+
+  {# Hidden textarea for the compiled HTML #}
+  <textarea id="disclaimerText" class="hidden"></textarea>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  var myFlags = {};
+  var myPrompts = [];
+  var defaults = {};
+  var disclaimerBlocks = [];
+
+  // ── Default blocks (matches the hardcoded safety modal) ──
+  var DEFAULT_BLOCKS = [
+    { type: 'text', content: 'This conversation partner is designed for general discussion and support between your regular sessions. It is **NOT** a substitute for emergency services or crisis intervention.' },
+    { type: 'warning', title: 'Crisis Support', content: 'If you are experiencing a mental health crisis, please:\n- Call **988** (Suicide & Crisis Lifeline)\n- Call **911** for immediate emergency assistance\n- Contact your provider directly' },
+    { type: 'alert', title: 'Required Reporting', content: 'For your safety, if you express active suicidal or homicidal thoughts with specific means or plans, we are required to notify your provider and may contact local authorities.' },
+    { type: 'text', content: 'This conversation partner is here to support you between sessions, but it cannot provide clinical treatment or emergency intervention.' },
+    { type: 'checkbox', content: 'I understand this information and agree to use this conversation partner for general discussion only, not for clinical treatment or emergencies.' },
+  ];
+
+  async function loadSettings() {
+    try {
+      var [flagsResp, promptsResp, defaultsResp] = await Promise.all([
+        fetch('/api/provider/my-flags'),
+        fetch('/api/provider/prompts'),
+        fetch('/api/provider/content-defaults'),
+      ]);
+      myFlags = await flagsResp.json();
+      myPrompts = await promptsResp.json();
+      defaults = await defaultsResp.json();
+
+      // Load disclaimer blocks
+      if (myFlags.safety_disclaimer_text) {
+        try {
+          var parsed = JSON.parse(myFlags.safety_disclaimer_text);
+          if (Array.isArray(parsed)) {
+            disclaimerBlocks = parsed;
+          } else {
+            // Legacy raw HTML — wrap in a single text block
+            disclaimerBlocks = [{ type: 'text', content: 'Custom HTML (edit blocks below)' }];
+          }
+        } catch(e) {
+          disclaimerBlocks = JSON.parse(JSON.stringify(DEFAULT_BLOCKS));
+        }
+      } else {
+        disclaimerBlocks = JSON.parse(JSON.stringify(DEFAULT_BLOCKS));
+      }
+      renderBlockEditor();
+      renderDisclaimerPreview();
+
+      var contextEl = document.getElementById('contextOverride');
+      contextEl.value = myFlags.system_context_override || defaults.system_context_default || '';
+
+      if (myFlags.allow_custom_prompts === false) {
+        document.getElementById('promptsSection').classList.add('hidden');
+      }
+
+      renderPrompts();
+      renderFlagsSummary();
+    } catch (e) {
+      console.error('Error loading settings:', e);
+    }
+  }
+
+  // ── Block editor ──────────────────────────────────────────
+
+  var dragSrcIndex = null;
+
+  function renderBlockEditor() {
+    var container = document.getElementById('disclaimerBlocks');
+    if (!disclaimerBlocks.length) {
+      container.innerHTML = '<div class="py-8 text-center text-xs text-stone-400">No blocks. Use the buttons below to add content.</div>';
+      return;
+    }
+    container.innerHTML = disclaimerBlocks.map(function(block, i) {
+      var borderClass = { warning: 'border-amber-300 bg-amber-50/50', alert: 'border-red-300 bg-red-50/50', checkbox: 'border-violet-300 bg-violet-50/50' }[block.type] || 'border-stone-200 bg-white';
+      var typeLabel = { text: 'Text', warning: 'Warning Box', alert: 'Alert Box', checkbox: 'Acknowledgment' }[block.type];
+      var typeBadge = { text: 'bg-stone-100 text-stone-600', warning: 'bg-amber-100 text-amber-700', alert: 'bg-red-100 text-red-600', checkbox: 'bg-violet-100 text-violet-700' }[block.type];
+
+      var html = '<div class="rounded-lg border ' + borderClass + ' p-3 transition-opacity" draggable="true" data-block-index="' + i + '" ondragstart="onBlockDragStart(event, ' + i + ')" ondragover="onBlockDragOver(event)" ondrop="onBlockDrop(event, ' + i + ')" ondragend="onBlockDragEnd(event)">';
+      html += '<div class="flex items-center justify-between mb-2">';
+      html += '<div class="flex items-center gap-2">';
+      html += '<span class="cursor-grab text-stone-300 hover:text-stone-500" title="Drag to reorder"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></span>';
+      html += '<span class="rounded-full px-2 py-0.5 text-[10px] font-semibold ' + typeBadge + '">' + typeLabel + '</span>';
+      html += '</div>';
+      html += '<button onclick="removeBlock(' + i + ')" class="rounded p-0.5 text-stone-400 hover:text-red-500" title="Remove"><svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M6 18L18 6"/></svg></button>';
+      html += '</div>';
+
+      if (block.type === 'warning' || block.type === 'alert') {
+        html += '<input type="text" value="' + escapeHtml(block.title || '') + '" onchange="updateBlockField(' + i + ', \'title\', this.value)" placeholder="Box title" class="mb-1.5 w-full rounded border border-stone-200 px-2 py-1 text-xs font-semibold focus:border-cloze-indigo focus:outline-none">';
+      }
+      html += '<textarea onchange="updateBlockField(' + i + ', \'content\', this.value)" rows="' + (block.type === 'checkbox' ? '2' : '3') + '" class="w-full rounded border border-stone-200 px-2 py-1.5 text-xs focus:border-cloze-indigo focus:outline-none">' + escapeHtml(block.content || '') + '</textarea>';
+      html += '</div>';
+      return html;
+    }).join('');
+  }
+
+  function onBlockDragStart(e, index) {
+    dragSrcIndex = index;
+    e.dataTransfer.effectAllowed = 'move';
+    e.target.style.opacity = '0.4';
+  }
+
+  function onBlockDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  }
+
+  function onBlockDrop(e, targetIndex) {
+    e.preventDefault();
+    if (dragSrcIndex === null || dragSrcIndex === targetIndex) return;
+    var moved = disclaimerBlocks.splice(dragSrcIndex, 1)[0];
+    disclaimerBlocks.splice(targetIndex, 0, moved);
+    dragSrcIndex = null;
+    renderBlockEditor();
+    renderDisclaimerPreview();
+  }
+
+  function onBlockDragEnd(e) {
+    e.target.style.opacity = '1';
+    dragSrcIndex = null;
+  }
+
+  function addBlock(type) {
+    var block = { type: type, content: '' };
+    if (type === 'warning') { block.title = 'Warning'; block.content = ''; }
+    else if (type === 'alert') { block.title = 'Alert'; block.content = ''; }
+    else if (type === 'checkbox') { block.content = 'I understand and agree to these terms.'; }
+    disclaimerBlocks.push(block);
+    renderBlockEditor();
+    renderDisclaimerPreview();
+  }
+
+  function removeBlock(index) {
+    disclaimerBlocks.splice(index, 1);
+    renderBlockEditor();
+    renderDisclaimerPreview();
+  }
+
+  function updateBlockField(index, field, value) {
+    disclaimerBlocks[index][field] = value;
+    renderDisclaimerPreview();
+  }
+
+  // ── Compile blocks to HTML for preview and storage ──
+
+  function boldify(text) {
+    return escapeHtml(text).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  }
+
+  function compileBlocksToHtml() {
+    return disclaimerBlocks.map(function(block) {
+      if (block.type === 'text') {
+        return '<p class="mb-4 text-sm leading-relaxed text-stone-700">' + boldify(block.content) + '</p>';
+      } else if (block.type === 'warning') {
+        var lines = (block.content || '').split('\n');
+        var listItems = lines.filter(function(l) { return l.trim().startsWith('-'); });
+        var plainLines = lines.filter(function(l) { return !l.trim().startsWith('-'); });
+        var html = '<div class="rounded-lg border-l-4 border-amber-400 bg-amber-50 p-4 my-4">';
+        html += '<h3 class="text-sm font-semibold text-amber-800 mb-2">' + escapeHtml(block.title || 'Warning') + '</h3>';
+        if (plainLines.length) html += '<p class="text-sm text-amber-900 mb-2">' + boldify(plainLines.join(' ')) + '</p>';
+        if (listItems.length) {
+          html += '<ul class="list-disc pl-5 text-sm text-amber-900 space-y-1">';
+          listItems.forEach(function(li) { html += '<li>' + boldify(li.replace(/^\s*-\s*/, '')) + '</li>'; });
+          html += '</ul>';
+        }
+        html += '</div>';
+        return html;
+      } else if (block.type === 'alert') {
+        var html = '<div class="rounded-lg border-l-4 border-red-500 bg-red-50 p-4 my-4">';
+        html += '<h3 class="text-sm font-semibold text-red-900 mb-2">' + escapeHtml(block.title || 'Alert') + '</h3>';
+        html += '<p class="text-sm text-red-900">' + boldify(block.content) + '</p>';
+        html += '</div>';
+        return html;
+      } else if (block.type === 'checkbox') {
+        return '<div class="mt-5 pt-5 border-t border-stone-200">' +
+          '<label class="flex items-start gap-2.5 cursor-pointer select-none">' +
+          '<input type="checkbox" class="mt-0.5 h-4 w-4 cursor-pointer rounded border-stone-300 text-cloze-indigo focus:ring-cloze-indigo" disabled>' +
+          '<span class="text-sm text-stone-700">' + boldify(block.content) + '</span>' +
+          '</label></div>';
+      }
+      return '';
+    }).join('\n');
+  }
+
+  function renderDisclaimerPreview() {
+    var html = compileBlocksToHtml();
+    document.getElementById('disclaimerPreview').innerHTML = html || '<p class="text-stone-400 italic">No blocks added yet.</p>';
+    // Also update hidden textarea for saving
+    document.getElementById('disclaimerText').value = JSON.stringify(disclaimerBlocks);
+  }
+
+  function resetDisclaimer() {
+    disclaimerBlocks = JSON.parse(JSON.stringify(DEFAULT_BLOCKS));
+    renderBlockEditor();
+    renderDisclaimerPreview();
+  }
+
+  function resetContext() {
+    document.getElementById('contextOverride').value = defaults.system_context_default || '';
+  }
+
+  async function saveContent() {
+    var statusEl = document.getElementById('contentSaveStatus');
+    statusEl.textContent = 'Saving...';
+
+    // If the value matches the default, save null (inherit) to avoid storing a copy
+    var disclaimerVal = document.getElementById('disclaimerText').value;
+    var contextVal = document.getElementById('contextOverride').value;
+    if (disclaimerVal.trim() === (defaults.disclaimer_default || '').trim()) disclaimerVal = null;
+    if (contextVal.trim() === (defaults.system_context_default || '').trim()) contextVal = null;
+
+    try {
+      var resp = await fetch('/api/provider/my-flags', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          safety_disclaimer_text: disclaimerVal || null,
+          system_context_override: contextVal || null,
+        })
+      });
+      var result = await resp.json();
+      if (result.status === 'success') {
+        statusEl.textContent = 'Saved';
+        statusEl.classList.add('text-emerald-600');
+        setTimeout(function() { statusEl.textContent = ''; statusEl.classList.remove('text-emerald-600'); }, 2000);
+      }
+    } catch (e) {
+      statusEl.textContent = 'Error saving';
+      statusEl.classList.add('text-red-500');
+    }
+  }
+
+  function renderPrompts() {
+    var list = document.getElementById('promptsList');
+    var visible = myPrompts.filter(function(p) { return p.visible; });
+
+    if (!visible.length) {
+      list.innerHTML = '<div class="py-6 text-center text-sm text-stone-400">No custom prompts yet. Click "New Prompt" to create one.</div>';
+      return;
+    }
+
+    list.innerHTML = visible.map(function(p) {
+      return '<div class="flex items-center justify-between px-5 py-3 hover:bg-stone-50 transition">' +
+        '<div class="min-w-0 flex-1">' +
+          '<div class="text-sm font-medium text-stone-800">' + escapeHtml(p.name) + '</div>' +
+          '<div class="mt-0.5 text-xs text-stone-500 truncate">' + escapeHtml((p.content || '').substring(0, 120)) + '</div>' +
+        '</div>' +
+        '<div class="flex gap-2 ml-4">' +
+          '<button onclick="editPrompt(' + p.id + ')" class="rounded-md border border-stone-200 px-2 py-1 text-xs text-stone-600 hover:bg-stone-50">Edit</button>' +
+          '<button onclick="deletePrompt(' + p.id + ', \'' + escapeHtml(p.name) + '\')" class="rounded-md border border-stone-200 px-2 py-1 text-xs text-red-500 hover:bg-red-50">Delete</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function showCreatePromptForm() {
+    document.getElementById('editPromptId').value = '';
+    document.getElementById('promptName').value = '';
+    document.getElementById('promptContent').value = '';
+    document.getElementById('promptForm').classList.remove('hidden');
+  }
+
+  function editPrompt(id) {
+    var p = myPrompts.find(function(pr) { return pr.id === id; });
+    if (!p) return;
+    document.getElementById('editPromptId').value = id;
+    document.getElementById('promptName').value = p.name;
+    document.getElementById('promptContent').value = p.content || '';
+    document.getElementById('promptForm').classList.remove('hidden');
+  }
+
+  function cancelPromptForm() {
+    document.getElementById('promptForm').classList.add('hidden');
+  }
+
+  async function savePrompt() {
+    var id = document.getElementById('editPromptId').value;
+    var name = document.getElementById('promptName').value.trim();
+    var content = document.getElementById('promptContent').value.trim();
+
+    if (!name) { alert('Prompt name is required'); return; }
+
+    try {
+      if (id) {
+        await fetch('/api/provider/prompts/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name, content: content })
+        });
+      } else {
+        await fetch('/api/provider/prompts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name, content: content })
+        });
+      }
+      cancelPromptForm();
+      // Reload prompts
+      var resp = await fetch('/api/provider/prompts');
+      myPrompts = await resp.json();
+      renderPrompts();
+    } catch (e) {
+      alert('Error saving prompt');
+      console.error(e);
+    }
+  }
+
+  async function deletePrompt(id, name) {
+    if (!confirm('Delete prompt "' + name + '"? It will no longer appear in the System Prompt dropdown.')) return;
+    try {
+      await fetch('/api/provider/prompts/' + id, { method: 'DELETE' });
+      var resp = await fetch('/api/provider/prompts');
+      myPrompts = await resp.json();
+      renderPrompts();
+    } catch (e) {
+      alert('Error deleting prompt');
+    }
+  }
+
+  function renderFlagsSummary() {
+    var el = document.getElementById('flagsSummary');
+    var items = [
+      { label: 'Safety plans required', value: myFlags.require_safety_plan !== false },
+      { label: 'NLP reports enabled', value: myFlags.enable_nlp_report !== false },
+      { label: 'Custom prompts allowed', value: myFlags.allow_custom_prompts !== false },
+      { label: 'Max turns per conversation', value: myFlags.max_turns_per_conversation || 'Unlimited' },
+    ];
+    el.innerHTML = items.map(function(item) {
+      var badge;
+      if (typeof item.value === 'boolean') {
+        badge = item.value
+          ? '<span class="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">On</span>'
+          : '<span class="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-semibold text-stone-500 ring-1 ring-inset ring-stone-200">Off</span>';
+      } else {
+        badge = '<span class="text-sm font-medium text-stone-700">' + item.value + '</span>';
+      }
+      return '<div class="flex items-center justify-between px-5 py-3">' +
+        '<span class="text-sm text-stone-700">' + item.label + '</span>' + badge + '</div>';
+    }).join('');
+  }
+
+  loadSettings();
+</script>
+{% endblock %}

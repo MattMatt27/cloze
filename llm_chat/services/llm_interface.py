@@ -194,13 +194,45 @@ class LLMInterface:
                 else:
                     model_obj = genai.GenerativeModel(model.model_identifier)
 
+                # Reduce Gemini safety filters for research use.
+                # BLOCK_NONE requires special API key permissions and may be
+                # silently ignored. BLOCK_ONLY_HIGH is available to all keys
+                # and permissive enough for clinical/crisis content.
+                safety_settings = None
+                try:
+                    from google.generativeai.types import HarmCategory, HarmBlockThreshold
+                    safety_settings = {
+                        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+                        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+                        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+                        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
+                    }
+                except (ImportError, AttributeError):
+                    safety_settings = [
+                        {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH"},
+                        {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH"},
+                        {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH"},
+                        {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH"},
+                    ]
+
                 response = model_obj.generate_content(
                     contents=gemini_messages,
                     generation_config={
                         'temperature': config.get('temperature', 0.7),
                         'max_output_tokens': config.get('max_tokens', 1000),
                     },
+                    safety_settings=safety_settings,
                 )
+
+                # Handle blocked responses gracefully
+                if not response.candidates or not response.candidates[0].content.parts:
+                    finish_reason = response.candidates[0].finish_reason if response.candidates else 'unknown'
+                    # Dump detailed safety info before raising
+                    cls._dump_gemini_safety_block(model, formatted_messages, response, config)
+                    raise RuntimeError(
+                        f"Gemini blocked this response (finish_reason: {finish_reason}). "
+                        "This may occur with sensitive clinical content. Try rephrasing."
+                    )
                 result = response.text
 
             elif model.provider == 'local':
@@ -223,6 +255,143 @@ class LLMInterface:
 
         except Exception as e:
             result = f"Error calling {model.provider}: {str(e)}"
+            cls._dump_error_debug(model, formatted_messages, e, config)
 
         response_time = time.time() - start_time
         return result, response_time
+
+    @classmethod
+    def _dump_gemini_safety_block(cls, model, messages, response, config):
+        """Write detailed Gemini safety block info to debug file."""
+        from pathlib import Path
+
+        error_dir = Path(__file__).parent.parent.parent / 'instance' / 'llm_errors'
+        error_dir.mkdir(parents=True, exist_ok=True)
+
+        timestamp = time.strftime('%Y%m%d_%H%M%S')
+        filepath = error_dir / f"{timestamp}_gemini_safety_block.txt"
+
+        lines = [
+            f"Gemini Safety Block Debug Dump",
+            f"{'=' * 60}",
+            f"Timestamp:  {time.strftime('%Y-%m-%d %H:%M:%S')}",
+            f"Model:      {model.model_identifier}",
+            f"Config:     {json.dumps(config, indent=2)}",
+            f"",
+        ]
+
+        # Response details
+        try:
+            lines.append(f"Candidates: {len(response.candidates) if response.candidates else 0}")
+            if response.candidates:
+                for j, candidate in enumerate(response.candidates):
+                    lines.append(f"  Candidate {j}:")
+                    lines.append(f"    finish_reason: {candidate.finish_reason}")
+                    if hasattr(candidate, 'safety_ratings') and candidate.safety_ratings:
+                        lines.append(f"    safety_ratings:")
+                        for rating in candidate.safety_ratings:
+                            lines.append(f"      {rating.category}: {rating.probability}")
+            if hasattr(response, 'prompt_feedback'):
+                lines.append(f"")
+                lines.append(f"Prompt Feedback: {response.prompt_feedback}")
+        except Exception as e:
+            lines.append(f"Error reading response: {e}")
+
+        # Full messages
+        lines.append(f"")
+        lines.append(f"{'=' * 60}")
+        lines.append(f"MESSAGES ({len(messages)} total)")
+        lines.append(f"{'=' * 60}")
+        for i, msg in enumerate(messages):
+            role = msg.get('role', 'unknown')
+            content = msg.get('content', '')
+            lines.append(f"")
+            lines.append(f"--- Message {i + 1} [{role}] ({len(content)} chars) ---")
+            lines.append(content)
+
+        try:
+            filepath.write_text('\n'.join(lines), encoding='utf-8')
+            print(f"Gemini safety block dump written to: {filepath}")
+        except Exception as e:
+            print(f"Failed to write safety block dump: {e}")
+
+    @classmethod
+    def _dump_error_debug(cls, model, messages, error, config):
+        """Write a debug dump to instance/llm_errors/ when an LLM call fails."""
+        import traceback
+        from pathlib import Path
+
+        error_dir = Path(__file__).parent.parent.parent / 'instance' / 'llm_errors'
+        error_dir.mkdir(parents=True, exist_ok=True)
+
+        timestamp = time.strftime('%Y%m%d_%H%M%S')
+        filename = f"{timestamp}_{model.provider}_{model.model_identifier.replace('/', '_')}.txt"
+        filepath = error_dir / filename
+
+        lines = [
+            f"LLM Error Debug Dump",
+            f"{'=' * 60}",
+            f"Timestamp:  {time.strftime('%Y-%m-%d %H:%M:%S')}",
+            f"Provider:   {model.provider}",
+            f"Model:      {model.model_identifier}",
+            f"Model Name: {model.name}",
+            f"Config:     {json.dumps(config, indent=2)}",
+            f"",
+            f"Error Type: {type(error).__name__}",
+            f"Error:      {str(error)}",
+            f"",
+            f"Traceback:",
+            traceback.format_exc(),
+            f"",
+            f"{'=' * 60}",
+            f"MESSAGES ({len(messages)} total)",
+            f"{'=' * 60}",
+        ]
+
+        for i, msg in enumerate(messages):
+            role = msg.get('role', 'unknown')
+            content = msg.get('content', '')
+            lines.append(f"")
+            lines.append(f"--- Message {i + 1} [{role}] ({len(content)} chars) ---")
+            lines.append(content)
+
+        # If it's a Gemini safety block, try to extract safety ratings
+        try:
+            if hasattr(error, '__cause__') and error.__cause__:
+                lines.append(f"")
+                lines.append(f"{'=' * 60}")
+                lines.append(f"UNDERLYING CAUSE")
+                lines.append(str(error.__cause__))
+        except Exception:
+            pass
+
+        # Try to get the raw response object for Gemini
+        try:
+            import inspect
+            frame = inspect.currentframe()
+            # Walk up to find 'response' variable
+            caller_locals = frame.f_back.f_back.f_locals if frame else {}
+            raw_response = caller_locals.get('response')
+            if raw_response and hasattr(raw_response, 'candidates'):
+                lines.append(f"")
+                lines.append(f"{'=' * 60}")
+                lines.append(f"RAW RESPONSE")
+                lines.append(f"Candidates: {len(raw_response.candidates) if raw_response.candidates else 0}")
+                if raw_response.candidates:
+                    for j, candidate in enumerate(raw_response.candidates):
+                        lines.append(f"  Candidate {j}:")
+                        lines.append(f"    finish_reason: {candidate.finish_reason}")
+                        if hasattr(candidate, 'safety_ratings') and candidate.safety_ratings:
+                            lines.append(f"    safety_ratings:")
+                            for rating in candidate.safety_ratings:
+                                lines.append(f"      {rating.category}: {rating.probability}")
+                if hasattr(raw_response, 'prompt_feedback'):
+                    lines.append(f"  prompt_feedback: {raw_response.prompt_feedback}")
+        except Exception:
+            pass
+
+        try:
+            filepath.write_text('\n'.join(lines), encoding='utf-8')
+            print(f"LLM error debug dump written to: {filepath}")
+        except Exception as write_err:
+            print(f"Failed to write error dump: {write_err}")

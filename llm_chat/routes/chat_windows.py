@@ -4,19 +4,10 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request, abort
 from flask_login import login_required, current_user
 from ..extensions import db
-from ..models import ChatWindow, ChatTemplate, User, Conversation, Model, SystemPrompt, SafetyPlan, AdminSettings
+from ..models import ChatWindow, ChatTemplate, User, Conversation, Model, SystemPrompt, SafetyPlan, ProviderFeatureFlags
+from ..utils.settings_resolution import get_effective_setting
 
 window_bp = Blueprint("chat_windows", __name__, url_prefix="/api/windows")
-
-
-def _get_admin_setting(name, default=None):
-    row = AdminSettings.query.filter_by(setting_name=name).first()
-    if not row or not row.setting_value:
-        return default
-    try:
-        return json.loads(row.setting_value)
-    except Exception:
-        return row.setting_value
 
 @window_bp.route("/", methods=["GET"])
 @login_required
@@ -44,16 +35,20 @@ def get_chat_windows():
         window_data = window.to_dict()
         window_data['templates'] = [t.to_dict() for t in window.templates.filter_by(visible=True).order_by(ChatTemplate.order_index).all()]
 
-        # For patients, check if conversations exist for each template
-        if current_user.is_patient():
-            for template in window_data['templates']:
-                existing_conv = Conversation.query.filter_by(
-                    user_id=current_user.id,
-                    window_id=window.id,
-                    template_id=template['id']
-                ).first()
-                template['has_conversation'] = existing_conv is not None
-                template['conversation_id'] = existing_conv.id if existing_conv else None
+        # Add patient name for provider view
+        if current_user.is_provider() or current_user.is_admin():
+            patient = User.query.get(window.patient_id)
+            window_data['patient_name'] = patient.username if patient else 'Unknown'
+
+        # Check if conversations exist for each template
+        for template in window_data['templates']:
+            existing_conv = Conversation.query.filter_by(
+                user_id=window.patient_id,
+                window_id=window.id,
+                template_id=template['id']
+            ).first()
+            template['has_conversation'] = existing_conv is not None
+            template['conversation_id'] = existing_conv.id if existing_conv else None
 
         result.append(window_data)
 
@@ -162,18 +157,34 @@ def create_chat_window():
         print(f"Report config for window {window.id}: {report_config}")
 
     # Create templates
-    can_set_custom_prompts = _get_admin_setting('providers_can_set_custom_prompts', True)
+    can_set_custom_prompts = get_effective_setting('allow_custom_prompts', current_user.id, True)
+
+    # Admin-enforced model allowlist for this provider
+    flags = ProviderFeatureFlags.query.filter_by(provider_id=current_user.id).first()
+    admin_allowed_models = json.loads(flags.allowed_models) if flags and flags.allowed_models else None
+
     templates = data.get('templates', [])
     for idx, template_data in enumerate(templates):
         custom_prompt = template_data.get('custom_system_prompt')
         if not can_set_custom_prompts:
             custom_prompt = None
+
+        # Validate model against admin allowlist
+        tmpl_model_id = template_data.get('model_id')
+        if admin_allowed_models and tmpl_model_id not in admin_allowed_models:
+            return jsonify({'error': f'Model {tmpl_model_id} is not permitted for this study'}), 403
+
+        # Fall back to provider default prompt if none specified
+        prompt_id = template_data.get('system_prompt_id')
+        if not prompt_id and flags and flags.default_system_prompt_id:
+            prompt_id = flags.default_system_prompt_id
+
         template = ChatTemplate(
             window_id=window.id,
             title=template_data.get('title'),
             purpose=template_data.get('purpose'),
-            model_id=template_data.get('model_id'),
-            system_prompt_id=template_data.get('system_prompt_id'),
+            model_id=tmpl_model_id,
+            system_prompt_id=prompt_id,
             custom_system_prompt=custom_prompt,
             max_messages=template_data.get('max_messages'),
             order_index=idx
@@ -217,7 +228,12 @@ def update_chat_window(window_id):
 
     # Update templates if provided
     if 'templates' in data:
-        can_set_custom_prompts = _get_admin_setting('providers_can_set_custom_prompts', True)
+        can_set_custom_prompts = get_effective_setting('allow_custom_prompts', current_user.id, True)
+
+        # Admin-enforced model allowlist for this provider
+        flags = ProviderFeatureFlags.query.filter_by(provider_id=current_user.id).first()
+        admin_allowed_models = json.loads(flags.allowed_models) if flags and flags.allowed_models else None
+
         # Remove existing templates
         ChatTemplate.query.filter_by(window_id=window_id).delete()
 
@@ -226,12 +242,23 @@ def update_chat_window(window_id):
             custom_prompt = template_data.get('custom_system_prompt')
             if not can_set_custom_prompts:
                 custom_prompt = None
+
+            # Validate model against admin allowlist
+            tmpl_model_id = template_data.get('model_id')
+            if admin_allowed_models and tmpl_model_id not in admin_allowed_models:
+                return jsonify({'error': f'Model {tmpl_model_id} is not permitted for this study'}), 403
+
+            # Fall back to provider default prompt if none specified
+            prompt_id = template_data.get('system_prompt_id')
+            if not prompt_id and flags and flags.default_system_prompt_id:
+                prompt_id = flags.default_system_prompt_id
+
             template = ChatTemplate(
                 window_id=window_id,
                 title=template_data.get('title'),
                 purpose=template_data.get('purpose'),
-                model_id=template_data.get('model_id'),
-                system_prompt_id=template_data.get('system_prompt_id'),
+                model_id=tmpl_model_id,
+                system_prompt_id=prompt_id,
                 custom_system_prompt=custom_prompt,
                 max_messages=template_data.get('max_messages'),
                 order_index=idx
@@ -290,7 +317,7 @@ def start_conversation_from_template():
         abort(403)
 
     # Safety plan gating: patient must have an active (approved) safety plan
-    if _get_admin_setting('require_safety_plan', True):
+    if get_effective_setting('require_safety_plan', window.provider_id, True):
         active_plan = SafetyPlan.get_active_plan(current_user.id)
         if not active_plan:
             return jsonify({

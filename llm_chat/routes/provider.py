@@ -1,9 +1,11 @@
 import json
+import secrets
 from flask import Blueprint, render_template, jsonify, request, abort, redirect
 from flask_login import current_user
 from ..utils.decorators import role_required
 from ..extensions import db
-from ..models import User, Conversation, ProviderPatient, ProviderSettings, ChatWindow
+from ..models import User, Conversation, ProviderPatient, ProviderSettings, ChatWindow, AuditLog, ProviderFeatureFlags, SystemPrompt
+from ..utils.settings_resolution import get_effective_setting
 
 provider_bp = Blueprint("provider", __name__, url_prefix="")
 
@@ -110,3 +112,268 @@ def provider_settings():
             'custom_instructions': settings.custom_instructions
         })
     return jsonify({})
+
+
+# ── Patient creation & credential management ──────────────────
+
+def _log_provider_action(action, target_type, target_id=None, details=None):
+    entry = AuditLog(
+        actor_id=current_user.id,
+        action=action,
+        target_type=target_type,
+        target_id=target_id,
+        details=json.dumps(details) if details else None,
+    )
+    db.session.add(entry)
+
+
+def _next_patient_username(provider):
+    """Generate the next sequential de-identified username for this provider."""
+    prefix = provider.username + 'User'
+    existing = User.query.filter(
+        User.username.like(prefix + '%'),
+        User.role == 'user',
+    ).all()
+    max_num = 0
+    for u in existing:
+        suffix = u.username[len(prefix):]
+        if suffix.isdigit():
+            max_num = max(max_num, int(suffix))
+    return f'{prefix}{max_num + 1:02d}'
+
+
+@provider_bp.route("/api/provider/patients", methods=['POST'])
+@role_required('provider')
+def create_patient():
+    """Provider creates a new de-identified patient."""
+    data = request.json or {}
+    count = min(int(data.get('count', 1)), 50)  # Cap at 50 per request
+
+    created = []
+    for _ in range(count):
+        username = _next_patient_username(current_user)
+        password = secrets.token_hex(16)
+        email = f'{username}@study.cloze.uk'
+
+        user = User(
+            username=username,
+            email=email,
+            role='user',
+            created_by=current_user.id,
+        )
+        user.set_password(password)
+        db.session.add(user)
+        db.session.flush()  # Get the user ID
+
+        assignment = ProviderPatient(
+            provider_id=current_user.id,
+            patient_id=user.id,
+            assigned_by=current_user.id,
+        )
+        db.session.add(assignment)
+
+        _log_provider_action('patient_created', 'user', user.id, {
+            'username': username,
+        })
+
+        created.append({
+            'id': user.id,
+            'username': username,
+            'password': password,
+        })
+
+    db.session.commit()
+    return jsonify({'status': 'success', 'patients': created}), 201
+
+
+@provider_bp.route("/api/provider/patients/<int:patient_id>/reset-password", methods=['POST'])
+@role_required('provider')
+def reset_patient_password(patient_id):
+    """Provider resets a patient's password. Returns the new password once."""
+    if not current_user.can_access_patient(patient_id):
+        abort(403)
+
+    patient = User.query.get_or_404(patient_id)
+    if not patient.is_patient():
+        return jsonify({'error': 'User is not a patient'}), 400
+
+    password = secrets.token_hex(16)
+    patient.set_password(password)
+
+    _log_provider_action('password_reset', 'user', patient_id)
+    db.session.commit()
+
+    return jsonify({
+        'status': 'success',
+        'username': patient.username,
+        'password': password,
+    })
+
+
+# ── Provider settings page ────────────────────────────────────
+
+@provider_bp.route("/provider/settings")
+@role_required('provider')
+def provider_settings_page():
+    return render_template("provider_settings.html")
+
+
+@provider_bp.route("/api/provider/my-flags", methods=['GET'])
+@role_required('provider')
+def get_my_flags():
+    """Provider reads their own feature flags (admin-set + editable content)."""
+    flags = ProviderFeatureFlags.query.filter_by(provider_id=current_user.id).first()
+    return jsonify({
+        'require_safety_plan': get_effective_setting('require_safety_plan', current_user.id, True),
+        'enable_nlp_report': get_effective_setting('enable_nlp_report', current_user.id, True),
+        'allow_custom_prompts': get_effective_setting('allow_custom_prompts', current_user.id, True),
+        'max_turns_per_conversation': get_effective_setting('max_turns_per_conversation', current_user.id, None),
+        'safety_disclaimer_text': flags.safety_disclaimer_text if flags else None,
+        'system_context_override': flags.system_context_override if flags else None,
+    })
+
+
+@provider_bp.route("/api/provider/content-defaults", methods=['GET'])
+@role_required('provider')
+def get_content_defaults():
+    """Returns the default safety disclaimer HTML and system context markdown."""
+    from prompts.registry import PromptRegistry
+    registry = PromptRegistry.instance()
+
+    # Get system_context constitutional prompt content
+    system_context_default = ''
+    for prompt in registry.get_constitutional_prompts():
+        if prompt.id == 'system_context':
+            system_context_default = prompt.content
+            break
+
+    # Default disclaimer HTML (the hardcoded modal body content)
+    disclaimer_default = """<p class="mb-4 text-sm leading-relaxed text-stone-700">
+  This conversation partner is designed for general discussion and support between your regular sessions.
+  It is <strong>NOT</strong> a substitute for emergency services or crisis intervention.
+</p>
+<div class="rounded-lg border-l-4 border-amber-400 bg-amber-50 p-4 my-5">
+  <h3 class="flex items-center gap-1.5 text-sm font-semibold text-amber-800 mb-2">Crisis Support</h3>
+  <p class="text-sm text-amber-900 mb-2">If you are experiencing a mental health crisis, please:</p>
+  <ul class="list-disc pl-5 text-sm text-amber-900 space-y-1">
+    <li>Call <strong>988</strong> (Suicide &amp; Crisis Lifeline)</li>
+    <li>Call <strong>911</strong> for immediate emergency assistance</li>
+    <li>Contact your provider directly</li>
+  </ul>
+</div>
+<div class="rounded-lg border-l-4 border-red-500 bg-red-50 p-4 my-5">
+  <h3 class="flex items-center gap-1.5 text-sm font-semibold text-red-900 mb-2">Required Reporting</h3>
+  <p class="text-sm text-red-900">
+    For your safety, if you express active suicidal or homicidal thoughts with specific means or plans,
+    we are required to notify your provider and may contact local authorities.
+  </p>
+</div>
+<p class="text-sm text-stone-500 leading-relaxed mt-5">
+  This conversation partner is here to support you between sessions, but it cannot provide clinical
+  treatment or emergency intervention.
+</p>
+<div class="mt-5 pt-5 border-t border-stone-200">
+  <label class="flex items-start gap-2.5 cursor-pointer select-none">
+    <input type="checkbox" id="safetyAcknowledge" class="mt-0.5 h-4 w-4 cursor-pointer rounded border-stone-300 text-cloze-indigo focus:ring-cloze-indigo">
+    <span class="text-sm text-stone-700">I understand this information and agree to use this conversation partner for general discussion only, not for clinical treatment or emergencies.</span>
+  </label>
+</div>"""
+
+    return jsonify({
+        'disclaimer_default': disclaimer_default,
+        'system_context_default': system_context_default,
+    })
+
+
+@provider_bp.route("/api/provider/my-flags", methods=['PUT'])
+@role_required('provider')
+def update_my_flags():
+    """Provider updates their editable content fields."""
+    data = request.json or {}
+    flags = ProviderFeatureFlags.query.filter_by(provider_id=current_user.id).first()
+    if not flags:
+        flags = ProviderFeatureFlags(provider_id=current_user.id)
+        db.session.add(flags)
+
+    editable = ['safety_disclaimer_text', 'system_context_override']
+    for key in editable:
+        if key in data:
+            setattr(flags, key, data[key] or None)
+
+    _log_provider_action('update_provider_content', 'provider_feature_flags', current_user.id,
+                         {k: data[k] for k in editable if k in data})
+    db.session.commit()
+    return jsonify({'status': 'success'})
+
+
+# ── Provider prompt management ────────────────────────────────
+
+@provider_bp.route("/api/provider/prompts", methods=['GET'])
+@role_required('provider')
+def get_provider_prompts():
+    """Get prompts created by this provider."""
+    prompts = SystemPrompt.query.filter_by(created_by=current_user.id).all()
+    return jsonify([{
+        'id': p.id,
+        'name': p.name,
+        'content': p.content,
+        'visible': p.visible,
+        'created_at': p.created_at,
+    } for p in prompts])
+
+
+@provider_bp.route("/api/provider/prompts", methods=['POST'])
+@role_required('provider')
+def create_provider_prompt():
+    """Provider creates a custom system prompt."""
+    if not get_effective_setting('allow_custom_prompts', current_user.id, True):
+        return jsonify({'error': 'Custom prompts are not enabled for your account'}), 403
+
+    data = request.json or {}
+    name = data.get('name', '').strip()
+    content = data.get('content', '').strip()
+    if not name:
+        return jsonify({'error': 'Prompt name is required'}), 400
+
+    prompt = SystemPrompt(
+        name=name,
+        content=content,
+        created_by=current_user.id,
+        visible=True,
+    )
+    db.session.add(prompt)
+    _log_provider_action('prompt_created', 'system_prompt', details={'name': name})
+    db.session.commit()
+    return jsonify({'id': prompt.id, 'name': prompt.name}), 201
+
+
+@provider_bp.route("/api/provider/prompts/<int:prompt_id>", methods=['PUT'])
+@role_required('provider')
+def update_provider_prompt(prompt_id):
+    """Provider edits a prompt they created."""
+    prompt = SystemPrompt.query.get_or_404(prompt_id)
+    if prompt.created_by != current_user.id:
+        abort(403)
+
+    data = request.json or {}
+    if 'name' in data:
+        prompt.name = data['name'].strip()
+    if 'content' in data:
+        prompt.content = data['content'].strip()
+    _log_provider_action('prompt_updated', 'system_prompt', prompt_id)
+    db.session.commit()
+    return jsonify({'status': 'success'})
+
+
+@provider_bp.route("/api/provider/prompts/<int:prompt_id>", methods=['DELETE'])
+@role_required('provider')
+def delete_provider_prompt(prompt_id):
+    """Provider soft-deletes a prompt they created."""
+    prompt = SystemPrompt.query.get_or_404(prompt_id)
+    if prompt.created_by != current_user.id:
+        abort(403)
+
+    prompt.visible = False
+    _log_provider_action('prompt_deleted', 'system_prompt', prompt_id)
+    db.session.commit()
+    return jsonify({'status': 'success'})

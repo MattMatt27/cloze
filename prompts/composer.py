@@ -17,6 +17,7 @@ def compose_system_prompt(
     domain_id: Optional[str] = None,
     custom_instructions: Optional[str] = None,
     safety_plan: Optional[dict] = None,
+    system_context_override: Optional[str] = None,
 ) -> str:
     """
     Assemble full system prompt from layers.
@@ -25,6 +26,7 @@ def compose_system_prompt(
         domain_id: ID of the domain prompt to include (e.g. "anxiety")
         custom_instructions: Provider's custom instructions text
         safety_plan: Future — per-patient safety plan context
+        system_context_override: If set, replaces the system_context constitutional prompt
 
     Returns:
         The fully composed system prompt string.
@@ -35,7 +37,10 @@ def compose_system_prompt(
 
     # Layer 1: Constitutional (always included)
     for prompt in registry.get_constitutional_prompts():
-        sections.append(prompt.content)
+        if prompt.id == 'system_context' and system_context_override:
+            sections.append(system_context_override)
+        else:
+            sections.append(prompt.content)
 
     # Layer 2: Domain
     if domain_id:
