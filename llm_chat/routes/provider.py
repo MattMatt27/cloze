@@ -22,13 +22,18 @@ def provider_dashboard():
 def provider_chat_windows():
     return render_template("provider_chat_windows.html")
 
+@provider_bp.route("/provider/chats")
+@role_required('provider')
+def provider_chats_page():
+    return render_template("provider_chats.html")
+
 @provider_bp.route("/provider/patient-progress")
 @role_required('provider', 'admin')
 def provider_patient_progress():
     patient_id = request.args.get('patient_id')
     if patient_id:
-        return redirect('/provider/chat-windows?patient_id=' + str(patient_id))
-    return redirect('/provider/chat-windows')
+        return redirect('/provider/chats?patient_id=' + str(patient_id))
+    return redirect('/provider/chats')
 
 @provider_bp.route("/api/provider/patients")
 @role_required('provider', 'admin')
@@ -56,6 +61,79 @@ def get_provider_patients():
         'conversation_count': visible_conversation_count(p),
         'last_active': last_active_for(p)
     } for p in patients])
+
+@provider_bp.route("/api/provider/all-conversations")
+@role_required('provider')
+def get_all_provider_conversations():
+    """Get all conversations AND unstarted templates across all patients."""
+    from ..models import Message, Model
+    patient_ids = [pp.patient_id for pp in current_user.patients]
+    if not patient_ids:
+        return jsonify([])
+
+    # Build lookup maps
+    patient_map = {p.id: p.username for p in User.query.filter(User.id.in_(patient_ids)).all()}
+
+    # Get all windows for this provider
+    windows = ChatWindow.query.filter_by(provider_id=current_user.id).all()
+    window_map = {}
+    for w in windows:
+        window_map[w.id] = {'title': w.title, 'status': w.compute_status(), 'patient_id': w.patient_id}
+
+    # Get all started conversations
+    conversations = Conversation.query.filter(
+        Conversation.user_id.in_(patient_ids)
+    ).order_by(Conversation.updated_at.desc()).all()
+
+    # Track which template+patient combos have conversations
+    started = set()
+    result = []
+    for c in conversations:
+        if c.template_id:
+            started.add((c.template_id, c.user_id))
+        window = window_map.get(c.window_id, {})
+        result.append({
+            'id': c.id,
+            'title': c.title or 'Untitled',
+            'patient_id': c.user_id,
+            'patient_name': patient_map.get(c.user_id, 'Unknown'),
+            'model': c.model.name if c.model else None,
+            'message_count': c.messages.count(),
+            'created_at': c.created_at,
+            'updated_at': c.updated_at,
+            'window_title': window.get('title'),
+            'window_status': window.get('status'),
+            'is_started': True,
+        })
+
+    # Add unstarted templates as placeholder rows
+    for w in windows:
+        if not w.visible:
+            continue
+        templates = w.templates.filter_by(visible=True).all()
+        for t in templates:
+            if (t.id, w.patient_id) in started:
+                continue
+            ws = window_map.get(w.id, {})
+            result.append({
+                'id': None,
+                'template_id': t.id,
+                'title': t.title + ' (Not Started)',
+                'patient_id': w.patient_id,
+                'patient_name': patient_map.get(w.patient_id, 'Unknown'),
+                'model': t.model.name if t.model else None,
+                'message_count': 0,
+                'created_at': w.created_at,
+                'updated_at': None,
+                'window_title': ws.get('title'),
+                'window_status': ws.get('status'),
+                'is_started': False,
+            })
+
+    # Sort: started conversations first (by updated_at desc), then unstarted
+    result.sort(key=lambda x: (not x['is_started'], -(x['updated_at'] or x['created_at'] or 0)))
+    return jsonify(result)
+
 
 @provider_bp.route("/api/provider/patient/<int:patient_id>/conversations")
 @role_required('provider', 'admin')

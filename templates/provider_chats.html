@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Chats — Cloze{% endblock %}
+{% block page_title %}Chats{% endblock %}
+
+{% block content %}
+  <div class="mb-5 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <h2 class="text-lg font-semibold text-stone-900">Conversations</h2>
+      <span id="chatCount" class="text-xs text-stone-400"></span>
+    </div>
+    <div class="flex items-center gap-3">
+      <select id="patientFilter" onchange="applyFilters()" class="rounded-lg border border-stone-200 px-3 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none">
+        <option value="">All Patients</option>
+      </select>
+      <select id="statusFilter" onchange="applyFilters()" class="rounded-lg border border-stone-200 px-3 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none">
+        <option value="">All Statuses</option>
+        <option value="active">Active</option>
+        <option value="scheduled">Scheduled</option>
+        <option value="report_ready">Completed</option>
+      </select>
+      <div class="relative">
+        <svg class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input type="text" id="searchInput" oninput="applyFilters()" placeholder="Search..."
+               class="rounded-lg border border-stone-200 py-1.5 pl-8 pr-3 text-sm focus:border-cloze-indigo focus:outline-none w-48">
+      </div>
+    </div>
+  </div>
+
+  <div class="overflow-hidden rounded-lg border border-stone-200 bg-white">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-stone-100 bg-violet-50/60 text-left">
+          <th class="px-4 py-2.5 font-medium text-stone-600">Chat</th>
+          <th class="px-4 py-2.5 font-medium text-stone-600">Patient</th>
+          <th class="px-4 py-2.5 font-medium text-stone-600">Flow / Window</th>
+          <th class="px-4 py-2.5 font-medium text-stone-600">Messages</th>
+          <th class="px-4 py-2.5 font-medium text-stone-600">Status</th>
+          <th class="px-4 py-2.5 font-medium text-stone-600">Last Active</th>
+          <th class="px-4 py-2.5 font-medium text-stone-600"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-stone-100" id="chatsTableBody">
+        <tr><td colspan="7" class="py-8 text-center text-stone-400">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  var allChats = [];
+  var patients = [];
+
+  async function loadData() {
+    try {
+      var results = await Promise.all([
+        fetch('/api/provider/all-conversations').then(function(r) { return r.json(); }),
+        fetch('/api/provider/patients').then(function(r) { return r.json(); }),
+      ]);
+      allChats = results[0];
+      patients = results[1];
+
+      // Populate patient filter
+      var filter = document.getElementById('patientFilter');
+      filter.innerHTML = '<option value="">All Patients</option>' +
+        patients.map(function(p) { return '<option value="' + p.id + '">' + escapeHtml(p.username) + '</option>'; }).join('');
+
+      // Check URL param
+      var params = new URLSearchParams(window.location.search);
+      var pid = params.get('patient_id');
+      if (pid) filter.value = pid;
+
+      applyFilters();
+    } catch (e) {
+      console.error('Error loading data:', e);
+    }
+  }
+
+  function applyFilters() {
+    var patientId = document.getElementById('patientFilter').value;
+    var status = document.getElementById('statusFilter').value;
+    var search = (document.getElementById('searchInput').value || '').toLowerCase();
+
+    var filtered = allChats.filter(function(c) {
+      if (patientId && c.patient_id != patientId) return false;
+      if (status && c.window_status !== status) return false;
+      if (search) {
+        var haystack = (c.title + ' ' + c.patient_name + ' ' + (c.window_title || '')).toLowerCase();
+        if (!haystack.includes(search)) return false;
+      }
+      return true;
+    });
+
+    renderTable(filtered);
+  }
+
+  var STATUS_CLASSES = {
+    active: 'bg-emerald-50 text-emerald-700',
+    scheduled: 'bg-blue-50 text-blue-700',
+    generating_report: 'bg-amber-50 text-amber-700',
+    report_ready: 'bg-stone-100 text-stone-600',
+  };
+  var STATUS_LABELS = {
+    active: 'Active',
+    scheduled: 'Scheduled',
+    generating_report: 'Generating',
+    report_ready: 'Completed',
+  };
+
+  function renderTable(chats) {
+    var tbody = document.getElementById('chatsTableBody');
+    document.getElementById('chatCount').textContent = chats.length + ' conversation' + (chats.length !== 1 ? 's' : '');
+
+    if (!chats.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-stone-400">No conversations found</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = chats.map(function(c) {
+      var statusClass = STATUS_CLASSES[c.window_status] || 'bg-stone-100 text-stone-500';
+      var statusLabel = STATUS_LABELS[c.window_status] || (c.window_status || 'No window');
+      var lastActive = c.updated_at ? formatRelativeTime(c.updated_at) : '—';
+      var clickable = c.is_started && c.id;
+      var rowClass = clickable ? 'hover:bg-stone-50 transition cursor-pointer' : 'opacity-60';
+      var onclick = clickable ? ' onclick="viewTranscript(' + c.id + ')"' : '';
+      var titleClass = c.is_started ? 'text-stone-800' : 'text-stone-500';
+
+      return '<tr class="' + rowClass + '"' + onclick + '>' +
+        '<td class="px-4 py-3">' +
+          '<div class="font-medium ' + titleClass + '">' + escapeHtml(c.title) + '</div>' +
+          (c.model ? '<div class="text-xs text-stone-400 mt-0.5">' + escapeHtml(c.model) + '</div>' : '') +
+        '</td>' +
+        '<td class="px-4 py-3 text-stone-600">' + escapeHtml(c.patient_name) + '</td>' +
+        '<td class="px-4 py-3 text-stone-500 text-xs">' + escapeHtml(c.window_title || '—') + '</td>' +
+        '<td class="px-4 py-3 text-stone-600">' + c.message_count + '</td>' +
+        '<td class="px-4 py-3"><span class="rounded-full px-2 py-0.5 text-[11px] font-medium ' + statusClass + '">' + statusLabel + '</span></td>' +
+        '<td class="px-4 py-3 text-xs text-stone-500">' + lastActive + '</td>' +
+        '<td class="px-4 py-3 text-right">' +
+          (clickable ? '<span class="text-xs text-cloze-indigo font-medium">View →</span>' : '') +
+        '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function viewTranscript(conversationId) {
+    window.location.href = '/conversation/' + conversationId;
+  }
+
+  loadData();
+</script>
+{% endblock %}
