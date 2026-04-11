@@ -28,19 +28,32 @@
   }
   .time-warning .time-value { color: #DC143C; animation: pulse-warning 2s infinite; }
 
-  /* Markdown prose inside messages */
+  /* Messages */
+  .message-group { padding: 0.5rem 0; width: 100%; }
+  .message-group:hover .message-time { opacity: 1; }
+  .message-time { opacity: 0; transition: opacity 0.15s; }
+  .user-msg { display: flex; justify-content: flex-end; }
+  .user-bubble { background: #E9E5F5; border-radius: 1.125rem 1.125rem 0.25rem 1.125rem;
+    padding: 0.875rem 1.125rem; max-width: 75%; }
+  .user-bubble .message-text { color: #2D2A3E; }
+  .ai-msg { max-width: 90%; }
+
+  /* Markdown prose — generous, readable */
+  .message-text { font-size: 0.9375rem; line-height: 1.7; color: #44403C; }
   .message-text h1, .message-text h2, .message-text h3,
-  .message-text h4, .message-text h5, .message-text h6 { margin: 1em 0 0.5em; font-weight: 600; }
+  .message-text h4, .message-text h5, .message-text h6 { margin: 1.2em 0 0.5em; font-weight: 600; color: #1C1917; }
   .message-text ul, .message-text ol { margin: 0.5em 0; padding-left: 1.5em; }
-  .message-text li { margin: 0.25em 0; }
-  .message-text p  { margin: 0.5em 0; }
-  .message-text code { background: #f4f4f4; padding: 0.2em 0.4em; border-radius: 3px; font-family: 'Monaco','Menlo',monospace; font-size: 0.9em; }
-  .message-text pre  { background: #f4f4f4; padding: 1em; border-radius: 6px; margin: 0.5em 0; overflow-x: auto; }
+  .message-text li { margin: 0.3em 0; }
+  .message-text p  { margin: 0.6em 0; }
+  .message-text p:first-child { margin-top: 0; }
+  .message-text p:last-child { margin-bottom: 0; }
+  .message-text code { background: #F5F5F4; padding: 0.15em 0.4em; border-radius: 4px; font-family: 'Monaco','Menlo',monospace; font-size: 0.85em; }
+  .message-text pre  { background: #F5F5F4; padding: 1em 1.25em; border-radius: 8px; margin: 0.75em 0; overflow-x: auto; }
   .message-text pre code { background: none; padding: 0; }
-  .message-text blockquote { border-left: 4px solid #d6d3d1; padding-left: 1em; margin: 0.5em 0; color: #78716c; }
-  .message-text strong, .message-text b { font-weight: 600; }
+  .message-text blockquote { border-left: 3px solid #D6D3D1; padding-left: 1em; margin: 0.75em 0; color: #78716C; }
+  .message-text strong, .message-text b { font-weight: 600; color: #1C1917; }
   .message-text em, .message-text i { font-style: italic; }
-  .message-text::selection { background: #ffd700; color: black; }
+  .message-text::selection { background: #C4B5FD; color: #1C1917; }
 
   /* Saved-item truncation */
   .saved-item-text.truncated {
@@ -67,25 +80,25 @@
     <div class="flex items-center gap-3">
       {% if readonly|default(false) %}
       <a href="/admin/dashboard#patients"
-         class="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-sm font-medium text-stone-600 transition hover:bg-stone-50">
+         class="inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-600 transition-colors">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Back
+      </a>
+      {% elif is_provider|default(false) %}
+      <a href="/provider/chats"
+         class="inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-600 transition-colors">
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         Back
       </a>
       {% endif %}
       <h2 id="conversationTitle" class="text-[15px] font-semibold text-stone-900">Loading...</h2>
     </div>
-    <div class="flex items-center gap-4">
-      <div class="flex items-center gap-2 rounded-full bg-violet-50 px-3 py-1.5 text-sm">
-        <span class="text-stone-500">Model:</span>
-        <span class="font-semibold text-stone-800" id="modelName">Loading...</span>
-      </div>
-      <div class="flex items-center gap-2 rounded-full bg-violet-50 px-3 py-1.5 text-sm" id="promptInfo">
-        <span class="text-stone-500">Prompt:</span>
-        <span class="font-semibold text-stone-800" id="promptName">Loading...</span>
-      </div>
-      <div id="timeRemaining" class="hidden flex items-center gap-2 rounded-full bg-violet-50 px-3 py-1.5 text-sm">
-        <span class="time-label text-stone-500">Time left:</span>
-        <span class="time-value font-semibold text-stone-800" id="timeValue"></span>
+    <div class="flex items-center gap-4 text-xs text-stone-400">
+      <span id="modelName"></span>
+      <span id="promptInfo"><span id="promptName"></span></span>
+      <div id="timeRemaining" class="hidden">
+        <span class="time-label">Time left:</span>
+        <span class="time-value font-medium text-stone-600" id="timeValue"></span>
       </div>
     </div>
   </header>
@@ -94,11 +107,11 @@
   <div id="errorBanner" class="hidden bg-red-50 text-red-700 px-6 py-3 text-center text-sm shrink-0"></div>
 
   {# ── Main chat area ── #}
-  <div class="flex flex-1 min-h-0 w-full max-w-6xl mx-auto">
+  <div class="flex flex-1 min-h-0 w-full">
     {# Chat column #}
-    <div class="flex flex-1 flex-col bg-white min-w-0">
+    <div class="flex flex-1 flex-col bg-[#F8F6FC] min-w-0">
       {# Messages #}
-      <div id="messagesContainer" class="flex-1 overflow-y-auto px-6 py-6 space-y-5">
+      <div id="messagesContainer" class="flex-1 overflow-y-auto py-4 w-full px-6 bg-[#F8F6FC]">
         <!-- Messages will be loaded here -->
       </div>
 
@@ -138,13 +151,13 @@
         </div>
       </div>
       {% else %}
-      <div class="border-t border-stone-200 bg-muted px-6 py-4 text-center shrink-0">
+      <div class="border-t border-stone-200 bg-[#F8F6FC] px-6 py-3 text-center shrink-0">
         {% if is_provider %}
-        <div class="flex items-center justify-center gap-2 text-stone-500 text-sm">
+        <div class="flex items-center justify-center gap-2 text-stone-400 text-sm">
           <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
             <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
           </svg>
-          <span>Read-only view &mdash; Only the patient can send messages</span>
+          <span>Read-only transcript &mdash; Only the participant can send messages</span>
         </div>
         {% else %}
         <div class="text-stone-500">
@@ -167,14 +180,31 @@
       {% endif %}
     </div>
 
-    {# ── Sidebar: saved quotes + crisis resources ── #}
-    {% if not readonly|default(false) %}
+    {# ── Sidebar ── #}
+    {% if is_provider|default(false) %}
+    {# Provider view: patient's saved selections, collapsible #}
+    <div id="quotesPanel" class="w-64 shrink-0 border-l border-stone-100 bg-stone-50/50 flex flex-col transition-all">
+      <div class="flex-1 overflow-y-auto p-5">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-xs font-medium uppercase tracking-wider text-stone-300">Saved Quotes</h3>
+          <button onclick="toggleQuotesPanel()" class="text-stone-300 hover:text-stone-500 transition-colors" title="Collapse">
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+        <div id="savedSelections">
+        </div>
+      </div>
+    </div>
+    <button id="quotesToggle" onclick="toggleQuotesPanel()" class="hidden shrink-0 border-l border-stone-100 bg-stone-50/50 px-2 py-4 text-stone-300 hover:text-stone-500 transition-colors" title="Show saved quotes">
+      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg>
+    </button>
+    {% elif not readonly|default(false) %}
+    {# Patient view: their saved quotes + crisis resources #}
     <div class="w-72 shrink-0 border-l border-stone-200 bg-white flex flex-col">
       <div class="flex-1 overflow-y-auto p-5">
         <h3 class="text-sm font-semibold text-stone-900 mb-1">Your Saved Quotes</h3>
         <p class="text-[11px] text-stone-500 leading-relaxed mb-3">Highlight meaningful text to save it for later reflection. Your saved selections are shared with your provider.</p>
         <div id="savedSelections">
-          <!-- Saved quotes will be loaded here -->
         </div>
       </div>
 
@@ -204,8 +234,8 @@
     {% endif %}
   </div>
 
-  {# ── Selection popup ── #}
-  {% if not readonly|default(false) %}
+  {# ── Selection popup (patients only) ── #}
+  {% if not readonly|default(false) and not is_provider|default(false) %}
   <div id="selectionPopup" class="absolute hidden z-[1000] rounded-lg border border-stone-200 bg-white p-1.5 shadow-md">
     <button onclick="saveSelection()" class="flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-emerald-700">
       <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -219,7 +249,7 @@
 
 {# ── Modals ── #}
 {% block modals %}
-  {% if not readonly|default(false) %}
+  {% if not readonly|default(false) and not is_provider|default(false) %}
   {# Safety Disclaimer Modal #}
   <div id="safetyModal" class="fixed inset-0 z-[2000] hidden bg-black/50 p-4 backdrop-blur-sm">
     <div class="mx-auto mt-8 max-w-xl rounded-lg bg-white shadow-xl overflow-hidden">
@@ -309,6 +339,8 @@
   const conversationId = {{ conversation_id }};
   const canSendMessages = {{ 'true' if can_send_messages|default(false) else 'false' }};
   const isReadonly = {{ 'true' if readonly|default(false) else 'false' }};
+  const isProvider = {{ 'true' if is_provider|default(false) else 'false' }};
+  const patientId = {{ patient_id|default(0) }};
   let selectedText = '';
   let selectedMessageIds = [];
   let conversationData = null;
@@ -366,18 +398,7 @@
       }
 
       const container = document.getElementById('messagesContainer');
-      container.innerHTML = conversationData.messages.map(msg => `
-        <div class="msg-fade-in flex gap-3 ${msg.role === 'user' ? '' : ''}" data-message-id="${msg.id}">
-          <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white select-none ${msg.role === 'user' ? 'bg-cloze-sky' : 'bg-stone-600'}">
-            ${msg.role === 'user' ? 'U' : 'AI'}
-          </div>
-          <div class="min-w-0 flex-1">
-            <div class="mb-1 text-sm font-semibold text-stone-800 select-none">${msg.role === 'user' ? 'You' : 'Assistant'}</div>
-            <div class="message-text rounded-lg px-4 py-3 text-sm leading-relaxed text-stone-700 ${msg.role === 'user' ? 'bg-cloze-indigo/5' : 'bg-muted'}">${formatMessageContent(msg.content, msg.role)}</div>
-            <div class="mt-1.5 text-xs text-stone-400 select-none">${formatDateTime(msg.timestamp)}</div>
-          </div>
-        </div>
-      `).join('');
+      container.innerHTML = conversationData.messages.map(msg => renderMessage(msg.role, msg.content, msg.id, msg.timestamp)).join('');
 
       scrollToBottom();
       if (!isReadonly) checkSafetyAcknowledgment();
@@ -432,24 +453,31 @@
     }
   }
 
+  function renderMessage(role, content, messageId, timestamp) {
+    var isUser = role === 'user';
+    var ts = timestamp || Date.now() / 1000;
+    var dataAttr = messageId ? ' data-message-id="' + messageId + '"' : '';
+
+    if (isUser) {
+      return '<div class="message-group msg-fade-in" style="text-align:right"' + dataAttr + '>' +
+        '<div class="user-bubble" style="display:inline-block;text-align:left">' +
+          '<div class="message-text">' + formatMessageContent(content, role) + '</div>' +
+        '</div>' +
+        '<div class="message-time mt-1 text-[11px] text-stone-300 select-none text-right pr-1">' + formatDateTime(ts) + '</div>' +
+      '</div>';
+    } else {
+      return '<div class="message-group ai-msg msg-fade-in"' + dataAttr + '>' +
+        '<div class="message-text">' + formatMessageContent(content, role) + '</div>' +
+        '<div class="message-time mt-1 text-[11px] text-stone-300 select-none">' + formatDateTime(ts) + '</div>' +
+      '</div>';
+    }
+  }
+
   function addMessageToUI(role, content, messageId) {
     const container = document.getElementById('messagesContainer');
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `msg-fade-in flex gap-3`;
-    if (messageId) messageDiv.dataset.messageId = messageId;
-
-    messageDiv.innerHTML = `
-      <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white select-none ${role === 'user' ? 'bg-cloze-sky' : 'bg-stone-600'}">
-        ${role === 'user' ? 'U' : 'AI'}
-      </div>
-      <div class="min-w-0 flex-1">
-        <div class="mb-1 text-sm font-semibold text-stone-800 select-none">${role === 'user' ? 'You' : 'Assistant'}</div>
-        <div class="message-text rounded-lg px-4 py-3 text-sm leading-relaxed text-stone-700 ${role === 'user' ? 'bg-cloze-indigo/5' : 'bg-muted'}">${formatMessageContent(content, role)}</div>
-        <div class="mt-1.5 text-xs text-stone-400 select-none">${formatDateTime(Date.now() / 1000)}</div>
-      </div>
-    `;
-
-    container.appendChild(messageDiv);
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = renderMessage(role, content, messageId);
+    container.appendChild(wrapper.firstChild);
     scrollToBottom();
   }
 
@@ -470,6 +498,16 @@
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       sendMessage();
+    }
+  }
+
+  function toggleQuotesPanel() {
+    var panel = document.getElementById('quotesPanel');
+    var toggle = document.getElementById('quotesToggle');
+    if (panel && toggle) {
+      var isHidden = panel.classList.contains('hidden');
+      panel.classList.toggle('hidden');
+      toggle.classList.toggle('hidden');
     }
   }
 
@@ -613,7 +651,11 @@
 
   async function loadSavedSelections() {
     try {
-      const response = await fetch('/api/selections');
+      var url = '/api/selections';
+      if (isProvider && patientId) {
+        url += '?patient_id=' + patientId;
+      }
+      const response = await fetch(url);
       const selections = await response.json();
 
       const container = document.getElementById('savedSelections');
@@ -774,7 +816,7 @@
   // ── Init ──────────────────────────────────────────────────────
 
   loadConversationData();
-  if (!isReadonly) loadSavedSelections();
+  if (!isReadonly || isProvider) loadSavedSelections();
 
   // Auto-resize textarea
   const textarea = document.getElementById('messageInput');
