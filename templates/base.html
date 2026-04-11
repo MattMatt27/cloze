@@ -229,6 +229,19 @@
   </div>
 {% endblock %}
 
+  {# Global dialog (used by showDialog() in shared.js) #}
+  <div id="dialogOverlay" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/30 backdrop-blur-[2px]">
+    <div class="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg mx-4">
+      <h3 id="dialogTitle" class="text-base font-semibold text-stone-900 mb-2"></h3>
+      <p id="dialogMessage" class="text-sm text-stone-500 mb-4"></p>
+      <input type="text" id="dialogInput" class="hidden w-full rounded-lg border border-stone-200 px-3 py-2 text-sm mb-4 focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo/30">
+      <div class="flex justify-end gap-2">
+        <button id="dialogCancel" class="rounded-lg px-4 py-2 text-sm font-medium text-stone-500 hover:bg-stone-50 transition-colors">Cancel</button>
+        <button id="dialogConfirm" class="rounded-lg px-4 py-2 text-sm font-medium text-white bg-cloze-indigo hover:bg-cloze-hover transition-colors"></button>
+      </div>
+    </div>
+  </div>
+
   {% block modals %}{% endblock %}
 
   <script src="/static/js/shared.js"></script>

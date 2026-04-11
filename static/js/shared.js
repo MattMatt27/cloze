@@ -80,6 +80,72 @@ var STATUS_CLASSES = {
   report_ready:      'bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-200'
 };
 
+// ── Dialogs (replaces browser prompt/confirm/alert) ──────────
+
+/**
+ * Show a custom dialog. Returns a Promise.
+ *
+ * Usage:
+ *   var name = await showDialog({ title: 'Rename', input: 'current name', confirmText: 'Save' });
+ *   if (name === null) return; // cancelled
+ *
+ *   var ok = await showDialog({ title: 'Delete?', message: 'This cannot be undone.', confirmText: 'Delete', danger: true });
+ *   if (!ok) return; // cancelled
+ */
+function showDialog(options) {
+  return new Promise(function(resolve) {
+    var overlay = document.getElementById('dialogOverlay');
+    var title = document.getElementById('dialogTitle');
+    var message = document.getElementById('dialogMessage');
+    var input = document.getElementById('dialogInput');
+    var cancelBtn = document.getElementById('dialogCancel');
+    var confirmBtn = document.getElementById('dialogConfirm');
+
+    title.textContent = options.title || '';
+    message.textContent = options.message || '';
+    message.classList.toggle('hidden', !options.message);
+    confirmBtn.textContent = options.confirmText || 'Confirm';
+
+    if (options.danger) {
+      confirmBtn.className = 'rounded-lg px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 transition-colors';
+    } else {
+      confirmBtn.className = 'rounded-lg px-4 py-2 text-sm font-medium text-white bg-cloze-indigo hover:bg-cloze-hover transition-colors';
+    }
+
+    if (options.input !== undefined) {
+      input.classList.remove('hidden');
+      input.value = options.input || '';
+      input.placeholder = options.placeholder || '';
+      setTimeout(function() { input.focus(); input.select(); }, 50);
+    } else {
+      input.classList.add('hidden');
+    }
+
+    overlay.classList.remove('hidden');
+    overlay.classList.add('flex');
+
+    function cleanup() {
+      overlay.classList.add('hidden');
+      overlay.classList.remove('flex');
+      cancelBtn.onclick = null;
+      confirmBtn.onclick = null;
+      input.onkeydown = null;
+    }
+
+    cancelBtn.onclick = function() { cleanup(); resolve(null); };
+    confirmBtn.onclick = function() {
+      cleanup();
+      resolve(options.input !== undefined ? input.value : true);
+    };
+    if (options.input !== undefined) {
+      input.onkeydown = function(e) {
+        if (e.key === 'Enter') confirmBtn.click();
+        if (e.key === 'Escape') cancelBtn.click();
+      };
+    }
+  });
+}
+
 // ── Auth ──────────────────────────────────────────────────────
 
 async function logout() {
