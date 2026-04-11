@@ -146,6 +146,23 @@ function showDialog(options) {
   });
 }
 
+// ── Auto-resizing textareas ──────────────────────────────────
+
+function autoResize(textarea) {
+  textarea.style.height = 'auto';
+  textarea.style.height = textarea.scrollHeight + 'px';
+}
+
+function initAutoResize(selector) {
+  document.querySelectorAll(selector || 'textarea.auto-resize').forEach(function(ta) {
+    ta.style.overflow = 'hidden';
+    ta.style.resize = 'none';
+    ta.addEventListener('input', function() { autoResize(this); });
+    // Initial sizing
+    setTimeout(function() { autoResize(ta); }, 0);
+  });
+}
+
 // ── Auth ──────────────────────────────────────────────────────
 
 async function logout() {
