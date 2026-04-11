@@ -78,7 +78,13 @@ def get_all_provider_conversations():
     windows = ChatWindow.query.filter_by(provider_id=current_user.id).all()
     window_map = {}
     for w in windows:
-        window_map[w.id] = {'title': w.title, 'status': w.compute_status(), 'patient_id': w.patient_id}
+        window_map[w.id] = {
+            'title': w.title,
+            'status': w.compute_status(),
+            'patient_id': w.patient_id,
+            'flow_name': w.flow_name,
+            'phase_label': w.phase_label,
+        }
 
     # Get all started conversations
     conversations = Conversation.query.filter(
@@ -103,6 +109,8 @@ def get_all_provider_conversations():
             'updated_at': c.updated_at,
             'window_title': window.get('title'),
             'window_status': window.get('status'),
+            'flow_name': window.get('flow_name'),
+            'phase_label': window.get('phase_label'),
             'is_started': True,
         })
 
@@ -127,6 +135,8 @@ def get_all_provider_conversations():
                 'updated_at': None,
                 'window_title': ws.get('title'),
                 'window_status': ws.get('status'),
+                'flow_name': ws.get('flow_name'),
+                'phase_label': ws.get('phase_label'),
                 'is_started': False,
             })
 
@@ -745,13 +755,15 @@ def _generate_windows_for_enrollment(flow, patient_id, enrollment_time):
         for phase in flow.phases:
             _create_window_from_phase(flow, phase, patient_id,
                                      start=enrollment_time,
-                                     end=enrollment_time + (365 * DAY_SECONDS))
+                                     end=enrollment_time + (365 * DAY_SECONDS),
+                                     phase_label=None)
 
     elif flow.flow_type == 'phased':
         for phase in flow.phases:
             start = enrollment_time + (phase.start_day * DAY_SECONDS)
             end = enrollment_time + (phase.end_day * DAY_SECONDS) if phase.end_day else start + (365 * DAY_SECONDS)
-            _create_window_from_phase(flow, phase, patient_id, start=start, end=end)
+            _create_window_from_phase(flow, phase, patient_id, start=start, end=end,
+                                     phase_label=phase.name)
 
     elif flow.flow_type == 'recurring':
         cadence = flow.cadence_days or 7
@@ -763,10 +775,11 @@ def _generate_windows_for_enrollment(flow, patient_id, enrollment_time):
             start = enrollment_time + (cycle * cadence * DAY_SECONDS)
             end = enrollment_time + ((cycle + 1) * cadence * DAY_SECONDS)
             _create_window_from_phase(flow, phase, patient_id, start=start, end=end,
-                                     title_suffix=f" - Cycle {cycle + 1}")
+                                     title_suffix=f" - Cycle {cycle + 1}",
+                                     phase_label=f"Cycle {cycle + 1} of {cycles}")
 
 
-def _create_window_from_phase(flow, phase, patient_id, start, end, title_suffix=''):
+def _create_window_from_phase(flow, phase, patient_id, start, end, title_suffix='', phase_label=None):
     """Create a ChatWindow with ChatTemplates from a FlowPhase."""
     window = ChatWindow(
         patient_id=patient_id,
@@ -775,6 +788,8 @@ def _create_window_from_phase(flow, phase, patient_id, start, end, title_suffix=
         start_date=start,
         end_date=end,
         report_config=flow.report_config,
+        flow_name=flow.name,
+        phase_label=phase_label,
     )
     db.session.add(window)
     db.session.flush()

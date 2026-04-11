@@ -3,94 +3,110 @@
 {% block title %}Chats — Cloze{% endblock %}
 {% block page_title %}Chats{% endblock %}
 
+{% block styles %}
+<style>
+  .chat-list-row { transition: color 0.1s; cursor: pointer; }
+  .chat-list-row:hover { color: #4338CA; }
+  .chat-list-row:hover .row-arrow { opacity: 1; }
+  .chat-list-row.unstarted { opacity: 0.5; cursor: default; }
+  .chat-list-row.unstarted:hover { color: inherit; }
+  .row-arrow { opacity: 0; transition: opacity 0.15s; }
+  .filter-input { border: none; border-bottom: 1px solid #E5E7EB; background: transparent;
+    outline: none; transition: border-color 0.15s; }
+  .filter-input:focus { border-bottom-color: #A78BFA; }
+</style>
+{% endblock %}
+
 {% block content %}
-  <div class="mb-5 flex items-center justify-between gap-4">
-    <div class="flex items-center gap-3">
-      <h2 class="text-lg font-semibold text-stone-900">Conversations</h2>
-      <span id="chatCount" class="text-xs text-stone-400"></span>
+  {# Header #}
+  <div class="mb-6">
+    <div class="flex items-baseline justify-between">
+      <div class="flex items-baseline gap-3">
+        <h2 class="text-2xl font-bold text-stone-900">Chats</h2>
+        <span id="chatCount" class="text-sm text-stone-300"></span>
+      </div>
+      <button onclick="showAddChatModal()" class="text-sm font-medium text-cloze-indigo hover:text-cloze-hover transition-colors">+ New chat</button>
     </div>
-    <div class="flex items-center gap-3">
-      <select id="patientFilter" onchange="applyFilters()" class="rounded-lg border border-stone-200 px-3 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none">
-        <option value="">All Patients</option>
+
+    {# Filters — inline, minimal #}
+    <div class="mt-3 flex items-center gap-4 text-sm">
+      <select id="patientFilter" onchange="applyFilters()" class="filter-input py-1 pr-6 text-stone-600">
+        <option value="">All patients</option>
       </select>
-      <select id="statusFilter" onchange="applyFilters()" class="rounded-lg border border-stone-200 px-3 py-1.5 text-sm focus:border-cloze-indigo focus:outline-none">
-        <option value="">All Statuses</option>
+      <select id="statusFilter" onchange="applyFilters()" class="filter-input py-1 pr-6 text-stone-600">
+        <option value="">All statuses</option>
         <option value="active">Active</option>
         <option value="scheduled">Scheduled</option>
         <option value="report_ready">Completed</option>
       </select>
-      <button onclick="showAddChatModal()" class="rounded-lg bg-cloze-indigo px-3 py-1.5 text-sm font-medium text-white hover:bg-cloze-hover">+ New Chat</button>
       <div class="relative">
-        <svg class="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <svg class="absolute left-0 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-stone-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         <input type="text" id="searchInput" oninput="applyFilters()" placeholder="Search..."
-               class="rounded-lg border border-stone-200 py-1.5 pl-8 pr-3 text-sm focus:border-cloze-indigo focus:outline-none w-48">
+               class="filter-input py-1 pl-5 text-stone-600 w-40">
       </div>
     </div>
   </div>
 
-  <div class="overflow-hidden rounded-lg border border-stone-200 bg-white">
-    <table class="w-full text-sm">
-      <thead>
-        <tr class="border-b border-stone-100 bg-violet-50/60 text-left">
-          <th class="px-4 py-2.5 font-medium text-stone-600">Chat</th>
-          <th class="px-4 py-2.5 font-medium text-stone-600">Patient</th>
-          <th class="px-4 py-2.5 font-medium text-stone-600">Flow / Window</th>
-          <th class="px-4 py-2.5 font-medium text-stone-600">Messages</th>
-          <th class="px-4 py-2.5 font-medium text-stone-600">Status</th>
-          <th class="px-4 py-2.5 font-medium text-stone-600">Last Active</th>
-          <th class="px-4 py-2.5 font-medium text-stone-600"></th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-stone-100" id="chatsTableBody">
-        <tr><td colspan="7" class="py-8 text-center text-stone-400">Loading...</td></tr>
-      </tbody>
-    </table>
+  {# Column headers — subtle #}
+  <div class="flex items-center px-1 pb-2 border-b border-stone-100 text-[11px] font-medium uppercase tracking-wider text-stone-300">
+    <div class="flex-1 min-w-0">Chat</div>
+    <div class="w-28 shrink-0">Patient</div>
+    <div class="w-36 shrink-0 hidden md:block">Study</div>
+    <div class="w-16 shrink-0 text-center">Msgs</div>
+    <div class="w-24 shrink-0 text-center">Status</div>
+    <div class="w-24 shrink-0 text-right hidden sm:block">Last active</div>
+    <div class="w-8 shrink-0"></div>
+  </div>
+
+  {# Chat rows #}
+  <div id="chatsTableBody" class="divide-y divide-stone-50">
+    <div class="py-8 text-center text-stone-300">Loading...</div>
   </div>
 {% endblock %}
 
 {% block modals %}
-  <div class="modal fixed inset-0 z-50 hidden items-center justify-center bg-black/40" id="addChatModal">
-    <div class="w-full max-w-lg rounded-lg bg-white p-6 shadow-lg">
+  <div class="modal fixed inset-0 z-50 hidden items-center justify-center bg-black/30 backdrop-blur-[2px]" id="addChatModal">
+    <div class="w-full max-w-lg rounded-xl bg-white p-6 shadow-lg mx-4">
       <h3 class="mb-4 text-base font-semibold text-stone-900">New Chat</h3>
       <div class="space-y-4">
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="mb-1 block text-sm font-medium text-stone-700">Patient</label>
-            <select id="newChatPatient" onchange="loadPatientWindows()" class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none">
+            <label class="mb-1 block text-[11px] font-medium text-stone-400 uppercase tracking-wide">Patient</label>
+            <select id="newChatPatient" onchange="loadPatientWindows()" class="w-full border-b border-stone-200 bg-transparent py-1.5 text-sm text-stone-700 outline-none focus:border-cloze-indigo">
               <option value="">Select patient...</option>
             </select>
           </div>
           <div>
-            <label class="mb-1 block text-sm font-medium text-stone-700">Window / Phase</label>
-            <select id="newChatWindow" class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none">
+            <label class="mb-1 block text-[11px] font-medium text-stone-400 uppercase tracking-wide">Window</label>
+            <select id="newChatWindow" class="w-full border-b border-stone-200 bg-transparent py-1.5 text-sm text-stone-700 outline-none focus:border-cloze-indigo">
               <option value="">Select patient first...</option>
             </select>
           </div>
         </div>
         <div>
-          <label class="mb-1 block text-sm font-medium text-stone-700">Chat Title</label>
-          <input type="text" id="newChatTitle" placeholder="e.g., Module 3 - Extra Practice" class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none">
+          <label class="mb-1 block text-[11px] font-medium text-stone-400 uppercase tracking-wide">Title</label>
+          <input type="text" id="newChatTitle" placeholder="e.g., Module 3 - Extra Practice" class="w-full border-b border-stone-200 bg-transparent py-1.5 text-sm text-stone-700 outline-none focus:border-cloze-indigo">
         </div>
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="mb-1 block text-sm font-medium text-stone-700">Model</label>
-            <select id="newChatModel" class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none"></select>
+            <label class="mb-1 block text-[11px] font-medium text-stone-400 uppercase tracking-wide">Model</label>
+            <select id="newChatModel" class="w-full border-b border-stone-200 bg-transparent py-1.5 text-sm text-stone-700 outline-none focus:border-cloze-indigo"></select>
           </div>
           <div>
-            <label class="mb-1 block text-sm font-medium text-stone-700">System Prompt</label>
-            <select id="newChatPrompt" class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none">
+            <label class="mb-1 block text-[11px] font-medium text-stone-400 uppercase tracking-wide">System Prompt</label>
+            <select id="newChatPrompt" class="w-full border-b border-stone-200 bg-transparent py-1.5 text-sm text-stone-700 outline-none focus:border-cloze-indigo">
               <option value="">General (default)</option>
             </select>
           </div>
         </div>
         <div>
-          <label class="mb-1 block text-sm font-medium text-stone-700">Max Turns</label>
-          <input type="number" id="newChatTurns" min="1" placeholder="No limit" class="w-32 rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none">
+          <label class="mb-1 block text-[11px] font-medium text-stone-400 uppercase tracking-wide">Max Turns</label>
+          <input type="number" id="newChatTurns" min="1" placeholder="No limit" class="w-32 border-b border-stone-200 bg-transparent py-1.5 text-sm text-stone-700 outline-none focus:border-cloze-indigo">
         </div>
       </div>
-      <div class="mt-5 flex justify-end gap-3">
-        <button onclick="hideModal('addChatModal')" class="rounded-lg border border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 hover:bg-stone-50">Cancel</button>
-        <button onclick="createChat()" class="rounded-lg bg-cloze-indigo px-4 py-2 text-sm font-medium text-white hover:bg-cloze-hover">Create</button>
+      <div class="mt-6 flex justify-end gap-3">
+        <button onclick="hideModal('addChatModal')" class="text-sm text-stone-400 hover:text-stone-600 transition-colors">Cancel</button>
+        <button onclick="createChat()" class="text-sm font-medium text-cloze-indigo hover:text-cloze-hover transition-colors">Create</button>
       </div>
     </div>
   </div>
@@ -117,12 +133,10 @@
       models = results[2];
       systemPrompts = results[3];
 
-      // Populate patient filter
       var filter = document.getElementById('patientFilter');
-      filter.innerHTML = '<option value="">All Patients</option>' +
+      filter.innerHTML = '<option value="">All patients</option>' +
         patients.map(function(p) { return '<option value="' + p.id + '">' + escapeHtml(p.username) + '</option>'; }).join('');
 
-      // Check URL param
       var params = new URLSearchParams(window.location.search);
       var pid = params.get('patient_id');
       if (pid) filter.value = pid;
@@ -148,54 +162,48 @@
       return true;
     });
 
-    renderTable(filtered);
+    renderList(filtered);
   }
 
-  var STATUS_CLASSES = {
-    active: 'bg-emerald-50 text-emerald-700',
-    scheduled: 'bg-blue-50 text-blue-700',
-    generating_report: 'bg-amber-50 text-amber-700',
-    report_ready: 'bg-stone-100 text-stone-600',
-  };
-  var STATUS_LABELS = {
-    active: 'Active',
-    scheduled: 'Scheduled',
-    generating_report: 'Generating',
-    report_ready: 'Completed',
-  };
-
-  function renderTable(chats) {
-    var tbody = document.getElementById('chatsTableBody');
+  function renderList(chats) {
+    var container = document.getElementById('chatsTableBody');
     document.getElementById('chatCount').textContent = chats.length + ' conversation' + (chats.length !== 1 ? 's' : '');
 
     if (!chats.length) {
-      tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-stone-400">No conversations found</td></tr>';
+      container.innerHTML = '<div class="py-8 text-center text-stone-300">No conversations found</div>';
       return;
     }
 
-    tbody.innerHTML = chats.map(function(c) {
-      var statusClass = STATUS_CLASSES[c.window_status] || 'bg-stone-100 text-stone-500';
-      var statusLabel = STATUS_LABELS[c.window_status] || (c.window_status || 'No window');
-      var lastActive = c.updated_at ? formatRelativeTime(c.updated_at) : '—';
+    container.innerHTML = chats.map(function(c) {
       var clickable = c.is_started && c.id;
-      var rowClass = clickable ? 'hover:bg-stone-50 transition cursor-pointer' : 'opacity-60';
+      var rowClass = clickable ? 'chat-list-row' : 'chat-list-row unstarted';
       var onclick = clickable ? ' onclick="viewTranscript(' + c.id + ')"' : '';
-      var titleClass = c.is_started ? 'text-stone-800' : 'text-stone-500';
+      var lastActive = c.updated_at ? formatRelativeTime(c.updated_at) : '—';
 
-      return '<tr class="' + rowClass + '"' + onclick + '>' +
-        '<td class="px-4 py-3">' +
-          '<div class="font-medium ' + titleClass + '">' + escapeHtml(c.title) + '</div>' +
-          (c.model ? '<div class="text-xs text-stone-400 mt-0.5">' + escapeHtml(c.model) + '</div>' : '') +
-        '</td>' +
-        '<td class="px-4 py-3 text-stone-600">' + escapeHtml(c.patient_name) + '</td>' +
-        '<td class="px-4 py-3 text-stone-500 text-xs">' + escapeHtml(c.window_title || '—') + '</td>' +
-        '<td class="px-4 py-3 text-stone-600">' + c.message_count + '</td>' +
-        '<td class="px-4 py-3"><span class="rounded-full px-2 py-0.5 text-[11px] font-medium ' + statusClass + '">' + statusLabel + '</span></td>' +
-        '<td class="px-4 py-3 text-xs text-stone-500">' + lastActive + '</td>' +
-        '<td class="px-4 py-3 text-right">' +
-          (clickable ? '<span class="text-xs text-cloze-indigo font-medium">View →</span>' : '') +
-        '</td>' +
-      '</tr>';
+      var statusDot = '';
+      if (c.window_status === 'active') statusDot = '<span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5"></span>Active';
+      else if (c.window_status === 'scheduled') statusDot = '<span class="inline-block w-1.5 h-1.5 rounded-full bg-blue-400 mr-1.5"></span>Scheduled';
+      else if (c.window_status === 'report_ready') statusDot = '<span class="inline-block w-1.5 h-1.5 rounded-full bg-stone-300 mr-1.5"></span>Completed';
+      else if (c.window_status === 'generating_report') statusDot = '<span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 mr-1.5"></span>Generating';
+      else statusDot = '<span class="inline-block w-1.5 h-1.5 rounded-full bg-stone-200 mr-1.5"></span>' + (c.window_status || '—');
+
+      return '<div class="flex items-center px-1 py-3 ' + rowClass + '"' + onclick + '>' +
+        '<div class="flex-1 min-w-0">' +
+          '<div class="text-sm font-medium truncate">' + escapeHtml(c.title) + '</div>' +
+          (c.model ? '<div class="text-xs text-stone-300 mt-0.5">' + escapeHtml(c.model) + '</div>' : '') +
+        '</div>' +
+        '<div class="w-28 shrink-0 text-sm text-stone-500">' + escapeHtml(c.patient_name) + '</div>' +
+        '<div class="w-36 shrink-0 hidden md:block">' +
+          '<div class="text-xs text-stone-500 truncate">' + escapeHtml(c.flow_name || c.window_title || '—') + '</div>' +
+          (c.phase_label ? '<div class="text-[11px] text-stone-300 truncate">' + escapeHtml(c.phase_label) + '</div>' : '') +
+        '</div>' +
+        '<div class="w-16 shrink-0 text-sm text-stone-500 text-center">' + c.message_count + '</div>' +
+        '<div class="w-24 shrink-0 text-center"><span class="text-xs text-stone-500 inline-flex items-center">' + statusDot + '</span></div>' +
+        '<div class="w-24 shrink-0 text-xs text-stone-400 text-right hidden sm:block">' + lastActive + '</div>' +
+        '<div class="w-8 shrink-0 text-right">' +
+          (clickable ? '<span class="row-arrow text-xs text-cloze-indigo">→</span>' : '') +
+        '</div>' +
+      '</div>';
     }).join('');
   }
 
@@ -215,21 +223,17 @@
   }
 
   function showAddChatModal() {
-    // Populate patient dropdown
     var patientSelect = document.getElementById('newChatPatient');
     patientSelect.innerHTML = '<option value="">Select patient...</option>' +
       patients.map(function(p) { return '<option value="' + p.id + '">' + escapeHtml(p.username) + '</option>'; }).join('');
 
-    // Populate model dropdown
     var modelSelect = document.getElementById('newChatModel');
     modelSelect.innerHTML = models.map(function(m) { return '<option value="' + m.id + '">' + escapeHtml(m.name) + '</option>'; }).join('');
 
-    // Populate prompt dropdown
     var promptSelect = document.getElementById('newChatPrompt');
     promptSelect.innerHTML = '<option value="">General (default)</option>' +
       systemPrompts.map(function(p) { return '<option value="' + p.id + '">' + escapeHtml(p.name) + '</option>'; }).join('');
 
-    // Reset fields
     document.getElementById('newChatWindow').innerHTML = '<option value="">Select patient first...</option>';
     document.getElementById('newChatTitle').value = '';
     document.getElementById('newChatTurns').value = '';
@@ -250,7 +254,7 @@
       patientWindows = await resp.json();
       var active = patientWindows.filter(function(w) { return w.visible; });
       if (!active.length) {
-        windowSelect.innerHTML = '<option value="">No active windows for this patient</option>';
+        windowSelect.innerHTML = '<option value="">No active windows</option>';
       } else {
         windowSelect.innerHTML = active.map(function(w) {
           return '<option value="' + w.id + '">' + escapeHtml(w.title) + '</option>';
@@ -266,8 +270,8 @@
     var title = document.getElementById('newChatTitle').value.trim();
     var modelId = document.getElementById('newChatModel').value;
 
-    if (!windowId) { alert('Please select a patient and window'); return; }
-    if (!title) { alert('Chat title is required'); return; }
+    if (!windowId) { showDialog({ title: 'Missing selection', message: 'Select a patient and window first.', confirmText: 'OK' }); return; }
+    if (!title) { showDialog({ title: 'Missing title', message: 'Enter a chat title.', confirmText: 'OK' }); return; }
 
     try {
       var resp = await fetch('/api/windows/' + windowId + '/templates', {
@@ -290,7 +294,7 @@
       loadData();
     } catch(e) {
       console.error('Error creating chat:', e);
-      alert(e.message || 'Failed to create chat');
+      showDialog({ title: 'Error', message: e.message || 'Failed to create chat', confirmText: 'OK' });
     }
   }
 

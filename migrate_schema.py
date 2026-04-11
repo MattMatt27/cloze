@@ -31,6 +31,8 @@ COLUMN_ADDITIONS = [
     ('users', 'failed_login_attempts', 'INTEGER DEFAULT 0'),
     ('users', 'locked_until', 'REAL'),
     ('provider_feature_flags', 'allowed_prompts', 'TEXT'),
+    ('chat_windows', 'flow_name', 'VARCHAR(200)'),
+    ('chat_windows', 'phase_label', 'VARCHAR(200)'),
 ]
 
 

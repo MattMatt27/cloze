@@ -15,6 +15,8 @@ class ChatWindow(db.Model):
     end_date = db.Column(db.Float, nullable=False)    # Unix timestamp
     visible = db.Column(db.Boolean, default=True)
     status = db.Column(db.String(20), default='scheduled', nullable=False)
+    flow_name = db.Column(db.String(200), nullable=True)   # Name of the StudyFlow that generated this window
+    phase_label = db.Column(db.String(200), nullable=True)  # Phase name, cycle label, or null for always-available
     created_at = db.Column(db.Float, default=lambda: time.time())
     updated_at = db.Column(db.Float, onupdate=lambda: time.time())
 
