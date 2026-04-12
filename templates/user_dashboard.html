@@ -90,9 +90,9 @@
     </div>
 
     {# Footer #}
-    <div class="border-t border-violet-100 px-3 py-3">
+    <div class="border-t border-stone-100 px-3 py-1.5">
       <button type="button" onclick="toggleSelections()"
-              class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-stone-600 transition hover:bg-violet-50">
+              class="flex w-full items-center gap-2.5 rounded-lg px-3 py-1 text-left text-sm text-stone-600 transition hover:bg-stone-100">
         <svg class="h-[18px] w-[18px] text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
           <path d="M6 4h12a1 1 0 011 1v16l-7-3-7 3V5a1 1 0 011-1z"/>
         </svg>
@@ -199,7 +199,7 @@
     <div id="conversationView" class="hidden flex-1 flex flex-col min-h-0">
 
       {# Conv header #}
-      <header class="flex items-center justify-between border-b border-stone-200 bg-white px-4 py-2.5 shrink-0">
+      <header class="flex items-center justify-between border-b border-stone-100 bg-white px-4 py-2 shrink-0">
         <div class="flex items-center gap-3 min-w-0">
           <button onclick="showHome()" class="shrink-0 rounded-md p-1.5 text-stone-400 transition hover:bg-stone-50 hover:text-stone-600 lg:hidden">
             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg>
@@ -271,7 +271,7 @@
           </div>
 
           {# Status area (shown when input is not available) #}
-          <div id="statusArea" class="hidden border-t border-stone-200 bg-muted px-6 py-3 text-center shrink-0">
+          <div id="statusArea" class="hidden border-t border-stone-100 bg-stone-50 px-6 py-2 text-center shrink-0">
             <div id="statusContent" class="text-stone-500"></div>
           </div>
         </div>
@@ -383,14 +383,9 @@
   {# Saved quotes drawer #}
   <div id="selectionsOverlay" class="fixed inset-0 z-30 hidden bg-black/20"></div>
   <aside id="selectionsSidebar"
-         class="fixed inset-y-0 right-0 z-40 flex h-full w-full max-w-md translate-x-full transform flex-col border-l border-stone-200 bg-white shadow-lg transition-transform duration-200 ease-out">
-    <div class="flex items-center justify-between border-b border-stone-200 bg-white px-5 py-3.5">
-      <div class="flex items-center gap-2.5">
-        <svg class="h-[18px] w-[18px] text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-          <path d="M6 4h12a1 1 0 011 1v16l-7-3-7 3V5a1 1 0 011-1z"/>
-        </svg>
-        <h3 class="text-sm font-semibold text-stone-900">Saved Quotes</h3>
-      </div>
+         class="fixed inset-y-0 right-0 z-40 flex h-full w-full max-w-md translate-x-full transform flex-col border-l border-stone-100 bg-stone-50 shadow-lg transition-transform duration-200 ease-out">
+    <div class="flex items-center justify-between border-b border-stone-100 px-5 py-2">
+      <h3 class="text-xs font-medium uppercase tracking-wider text-stone-300">Saved Quotes</h3>
       <button type="button" onclick="toggleSelections()" class="rounded-md p-1.5 text-stone-400 transition hover:bg-stone-50 hover:text-stone-600">
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M6 18L18 6"/></svg>
       </button>
@@ -1497,6 +1492,7 @@ async function acknowledgeSafety() {
 
 function startCountdown(endTimestamp, windowStatus) {
   var timerEl = document.getElementById('convTimer');
+  if (!timerEl) return;
   var timeValueEl = document.getElementById('convTimeValue');
 
   timerEl.classList.remove('hidden');
@@ -1541,10 +1537,10 @@ function startCountdown(endTimestamp, windowStatus) {
       var warnMins = Math.ceil(timeLeft / 60);
       var label = timerEl.querySelector('.time-label');
       if (label) label.textContent = 'Closes in:';
-      timeValueEl.textContent = warnMins + ' min' + (warnMins !== 1 ? 's' : '');
+      if (timeValueEl) timeValueEl.textContent = warnMins + ' min' + (warnMins !== 1 ? 's' : '');
     } else {
       timerEl.classList.remove('time-warning');
-      timeValueEl.textContent = text;
+      if (timeValueEl) timeValueEl.textContent = text;
     }
   }
 
@@ -1694,15 +1690,15 @@ function buildSelectionMarkup(sel) {
     '<path d="M10 11v6M14 11v6"/></svg>';
   var timestamp = sel.created_at ? '<span class="text-[11px] text-stone-400">' + formatRelativeTime(sel.created_at) + '</span>' : '';
 
-  return '<div class="selection-item rounded-lg border border-stone-200 bg-white" data-selection-id="' + sel.id + '">' +
-    '<div class="selection-text-wrapper relative px-4 pt-3 pb-2">' +
-    '<div class="border-l-2 border-stone-300 pl-3"><div class="whitespace-pre-wrap text-stone-700 leading-relaxed text-sm">' +
+  return '<div class="selection-item border-l-2 border-violet-200 pl-3 py-2 mb-4 hover:border-violet-400 transition-colors" data-selection-id="' + sel.id + '">' +
+    '<div class="selection-text-wrapper relative">' +
+    '<div class="whitespace-pre-wrap text-stone-600 leading-relaxed text-sm">' +
     (hasMore ? '<span class="selection-preview">' + escapeHtml(preview) + '</span><span class="selection-full hidden">' + escapeHtml(full) + '</span>' : escapeHtml(full)) +
-    '</div></div>' + fade + '</div>' +
-    (note ? '<div class="px-4 pb-2 text-xs italic text-stone-400">' + escapeHtml(note) + '</div>' : '') +
-    '<div class="flex items-center justify-between border-t border-stone-100 px-4 py-2">' +
+    '</div></div>' +
+    (note ? '<div class="mt-1 text-xs italic text-stone-400">' + escapeHtml(note) + '</div>' : '') +
+    '<div class="flex items-center justify-between mt-1.5">' +
     '<div class="flex items-center gap-2">' + timestamp + toggle + '</div>' +
-    '<button type="button" class="rounded-md p-1.5 text-stone-400 transition hover:bg-red-50 hover:text-red-500" onclick="removeSelection(' + sel.id + ')" title="Delete quote">' + trashIcon + '</button>' +
+    '<button type="button" class="text-stone-300 transition hover:text-red-400" onclick="removeSelection(' + sel.id + ')" title="Delete quote">' + trashIcon + '</button>' +
     '</div></div>';
 }
 
@@ -1723,8 +1719,11 @@ async function loadSelections() {
     if (!r.ok) return;
     var selections = await r.json();
     var content = document.getElementById('selectionsContent');
-    content.innerHTML = selections.length
-      ? selections.map(buildSelectionMarkup).join('')
+    var filtered = activeConversationId
+      ? selections.filter(function(s) { return s.conversation_id == activeConversationId; })
+      : selections;
+    content.innerHTML = filtered.length
+      ? filtered.map(buildSelectionMarkup).join('')
       : '<div class="flex flex-col items-center justify-center py-12 text-center">' +
         '<svg class="h-10 w-10 text-stone-300 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">' +
         '<path d="M6 4h12a1 1 0 011 1v16l-7-3-7 3V5a1 1 0 011-1z"/></svg>' +

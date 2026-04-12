@@ -76,7 +76,7 @@
 {# ── Override layout: NO sidebar, full-screen chat ── #}
 {% block layout %}
   {# ── Header bar ── #}
-  <header class="flex items-center justify-between border-b border-stone-200 bg-white px-6 py-3 shrink-0">
+  <header class="flex items-center justify-between border-b border-stone-100 bg-white px-6 py-2.5 shrink-0">
     <div class="flex items-center gap-3">
       {% if readonly|default(false) %}
       <a href="/admin/dashboard#patients"
@@ -151,7 +151,7 @@
         </div>
       </div>
       {% else %}
-      <div class="border-t border-stone-200 bg-[#F8F6FC] px-6 py-3 text-center shrink-0">
+      <div class="border-t border-stone-100 bg-stone-50 px-6 py-2.5 text-center shrink-0">
         {% if is_provider %}
         <div class="flex items-center justify-center gap-2 text-stone-400 text-sm">
           <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
@@ -183,51 +183,30 @@
     {# ── Sidebar ── #}
     {% if is_provider|default(false) %}
     {# Provider view: patient's saved selections, collapsible #}
-    <div id="quotesPanel" class="w-64 shrink-0 border-l border-stone-100 bg-stone-50/50 flex flex-col transition-all">
-      <div class="flex-1 overflow-y-auto p-5">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="text-xs font-medium uppercase tracking-wider text-stone-300">Saved Quotes</h3>
-          <button onclick="toggleQuotesPanel()" class="text-stone-300 hover:text-stone-500 transition-colors" title="Collapse">
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
-          </button>
-        </div>
+    <div id="quotesPanel" class="w-60 shrink-0 border-l border-stone-100 bg-stone-50 flex flex-col transition-all">
+      <div class="flex items-center justify-between px-5 py-2.5 border-b border-stone-100">
+        <h3 class="text-xs font-medium uppercase tracking-wider text-stone-300">Saved Quotes</h3>
+        <button onclick="toggleQuotesPanel()" class="text-stone-300 hover:text-stone-500 transition-colors" title="Collapse">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+      <div class="flex-1 overflow-y-auto px-5 py-3">
         <div id="savedSelections">
         </div>
       </div>
     </div>
-    <button id="quotesToggle" onclick="toggleQuotesPanel()" class="hidden shrink-0 border-l border-stone-100 bg-stone-50/50 px-2 py-4 text-stone-300 hover:text-stone-500 transition-colors" title="Show saved quotes">
+    <button id="quotesToggle" onclick="toggleQuotesPanel()" class="hidden shrink-0 border-l border-stone-100 bg-stone-50 px-2 py-4 text-stone-300 hover:text-stone-500 transition-colors" title="Show saved quotes">
       <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg>
     </button>
     {% elif not readonly|default(false) %}
-    {# Patient view: their saved quotes + crisis resources #}
-    <div class="w-72 shrink-0 border-l border-stone-200 bg-white flex flex-col">
-      <div class="flex-1 overflow-y-auto p-5">
-        <h3 class="text-sm font-semibold text-stone-900 mb-1">Your Saved Quotes</h3>
-        <p class="text-[11px] text-stone-500 leading-relaxed mb-3">Highlight meaningful text to save it for later reflection. Your saved selections are shared with your provider.</p>
-        <div id="savedSelections">
-        </div>
+    {# Patient view: their saved quotes #}
+    <div class="w-60 shrink-0 border-l border-stone-100 bg-stone-50 flex flex-col">
+      <div class="px-5 py-2.5 border-b border-stone-100">
+        <h3 class="text-xs font-medium uppercase tracking-wider text-stone-300">Saved Quotes</h3>
       </div>
-
-      {# Crisis resources #}
-      <div class="border-t-2 border-amber-300 bg-amber-50 px-5 py-4 shrink-0">
-        <h4 class="flex items-center gap-1.5 text-[13px] font-semibold text-amber-800 mb-2">
-          <svg class="h-4 w-4 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-          </svg>
-          Need Immediate Help?
-        </h4>
-        <div class="text-xs text-amber-900 leading-relaxed">
-          <p class="mb-1.5 font-semibold">US:</p>
-          <ul class="list-disc pl-4 mb-2 space-y-0.5">
-            <li>Call <strong>988</strong> (Suicide &amp; Crisis Lifeline)</li>
-            <li>Call <strong>911</strong> for emergencies</li>
-          </ul>
-          <p class="mb-1.5 font-semibold">UK:</p>
-          <ul class="list-disc pl-4 mb-2 space-y-0.5">
-            <li>Call <strong>999</strong> for emergencies</li>
-            <li>Call <strong>116 123</strong> (Samaritans)</li>
-          </ul>
-          <p class="italic text-amber-800 mt-2">This is for general discussion, not clinical treatment or crisis support.</p>
+      <div class="flex-1 overflow-y-auto px-5 py-3">
+        <p class="text-[11px] text-stone-400 leading-relaxed mb-3">Highlight text to save it. Shared with your provider.</p>
+        <div id="savedSelections">
         </div>
       </div>
     </div>
@@ -662,11 +641,11 @@
       const conversationSelections = selections.filter(s => s.conversation_id === conversationId);
 
       if (conversationSelections.length === 0) {
-        container.innerHTML = '<p class="text-sm text-stone-400">No saved selections yet</p>';
+        container.innerHTML = '<p class="text-xs text-stone-300">No saved quotes yet</p>';
       } else {
         container.innerHTML = conversationSelections.map((sel, index) => {
           const isLong = sel.text.length > 100;
-          return `<div class="cursor-pointer rounded-lg bg-muted p-3 mb-2 text-xs transition hover:bg-stone-200/60" onclick="toggleSelection(${index})"><div class="saved-item-text leading-relaxed text-stone-700 ${isLong ? 'truncated' : ''}" id="selection-${index}" data-full-text="${escapeHtml(sel.text)}">"${escapeHtml(isLong ? sel.text.substring(0, 100) + '...' : sel.text)}"</div>${sel.note ? `<div class="mt-1 italic text-stone-500">${escapeHtml(sel.note)}</div>` : ''}</div>`;
+          return `<div class="cursor-pointer border-l-2 border-violet-200 pl-3 py-2 mb-3 transition hover:border-violet-400" onclick="toggleSelection(${index})"><div class="saved-item-text text-xs leading-relaxed text-stone-600 ${isLong ? 'truncated' : ''}" id="selection-${index}" data-full-text="${escapeHtml(sel.text)}">"${escapeHtml(isLong ? sel.text.substring(0, 100) + '...' : sel.text)}"</div>${sel.note ? `<div class="mt-1 text-[11px] italic text-stone-400">${escapeHtml(sel.note)}</div>` : ''}</div>`;
         }).join('');
       }
     } catch (error) {
