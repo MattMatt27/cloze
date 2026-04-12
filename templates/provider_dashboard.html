@@ -7,14 +7,14 @@
   {# Welcome #}
   <section class="mb-6">
     <h2 class="mb-1 text-lg font-semibold text-stone-900">Provider Dashboard</h2>
-    <p class="text-sm text-stone-500">Manage your patients' chat sessions and therapeutic conversations</p>
+    <p class="text-sm text-stone-500">Manage your participants' chat sessions and conversations</p>
   </section>
 
   {# Patient table #}
   <section class="mb-8">
     <div class="flex items-baseline justify-between mb-3">
       <div class="flex items-baseline gap-3">
-        <h3 class="text-lg font-semibold text-stone-900">Patients</h3>
+        <h3 class="text-lg font-semibold text-stone-900">Participants</h3>
         <span id="patientCount" class="text-sm text-stone-400"></span>
       </div>
       <button onclick="showCreatePatientModal()"
@@ -48,13 +48,13 @@
 {% endblock %}
 
 {% block modals %}
-  {# Create Patient Modal #}
+  {# Create Participant Modal #}
   <div class="modal fixed inset-0 z-50 hidden items-center justify-center bg-black/40" id="createPatientModal">
     <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
-      <h3 class="mb-4 text-base font-semibold text-stone-900">Create Patients</h3>
+      <h3 class="mb-4 text-base font-semibold text-stone-900">Create Participants</h3>
       <form onsubmit="createPatients(event)">
         <div class="mb-5">
-          <label for="patientCount_input" class="mb-1.5 block text-sm font-medium text-stone-700">Number of patients</label>
+          <label for="patientCount_input" class="mb-1.5 block text-sm font-medium text-stone-700">Number of participants</label>
           <input type="number" id="patientCount_input" min="1" max="50" value="1" required
                  class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo">
           <p class="mt-1 text-xs text-stone-400">Usernames and passwords are auto-generated. Max 50 per request.</p>
@@ -126,10 +126,10 @@
   function renderPatientTable() {
     var container = document.getElementById('patientTableBody');
     var countEl = document.getElementById('patientCount');
-    countEl.textContent = allPatients.length + ' patient' + (allPatients.length !== 1 ? 's' : '');
+    countEl.textContent = allPatients.length + ' participant' + (allPatients.length !== 1 ? 's' : '');
 
     if (!allPatients.length) {
-      container.innerHTML = '<div class="py-8 text-center text-stone-400 text-sm">No patients yet. Click "+ Create" to add one.</div>';
+      container.innerHTML = '<div class="py-8 text-center text-stone-400 text-sm">No participants yet. Click "+ Create" to add one.</div>';
       return;
     }
 
@@ -260,7 +260,7 @@
       if (result.status === 'success') {
         hideModal('createPatientModal');
         _lastCredentials = result.patients;
-        showCredentials(result.patients, 'New Patient Credentials');
+        showCredentials(result.patients, 'New Participant Credentials');
         loadDashboard();
       } else {
         alert(result.error || 'Failed to create patients');

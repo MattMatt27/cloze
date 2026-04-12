@@ -38,7 +38,7 @@
       <div class="mb-6 flex gap-1 rounded-md bg-stone-100 p-1">
         <button type="button" class="role-btn flex-1 rounded-md px-3 py-2 text-sm font-medium transition"
                 data-role="user" onclick="selectRole('user')">
-          Patient
+          Participant
         </button>
         <button type="button" class="role-btn flex-1 rounded-md px-3 py-2 text-sm font-medium transition"
                 data-role="provider" onclick="selectRole('provider')">
@@ -67,7 +67,7 @@
 
         <button type="submit" id="loginBtn"
                 class="w-full rounded-md bg-cloze-indigo px-4 py-2.5 text-sm font-medium text-white transition hover:bg-cloze-hover disabled:opacity-50 disabled:cursor-not-allowed">
-          Sign in as Patient
+          Sign in as Participant
         </button>
       </form>
     </div>
@@ -87,7 +87,7 @@
         btn.classList.toggle('text-stone-500', !isActive);
       });
 
-      var label = role === 'user' ? 'Patient' : 'Provider';
+      var label = role === 'user' ? 'Participant' : 'Provider';
       document.getElementById('loginBtn').textContent = 'Sign in as ' + label;
     }
 

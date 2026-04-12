@@ -12,7 +12,7 @@
     <section class="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
       <div class="rounded-lg border border-violet-100 bg-violet-50/40 px-4 py-4">
         <div class="text-2xl font-semibold text-cloze-indigo" id="statPatients">0</div>
-        <div class="mt-0.5 text-xs text-stone-500">Patients</div>
+        <div class="mt-0.5 text-xs text-stone-500">Participants</div>
       </div>
       <div class="rounded-lg border border-violet-100 bg-violet-50/40 px-4 py-4">
         <div class="text-2xl font-semibold text-cloze-indigo" id="statProviders">0</div>
@@ -51,7 +51,7 @@
       {# Patients missing plans #}
       <section class="overflow-hidden rounded-lg border border-stone-200 bg-white">
         <div class="flex items-center justify-between border-b border-stone-100 bg-cloze-indigo px-5 py-3">
-          <h2 class="text-sm font-semibold text-white">Patients Without Active Safety Plan</h2>
+          <h2 class="text-sm font-semibold text-white">Participants Without Active Safety Plan</h2>
         </div>
         <div class="max-h-[320px] divide-y divide-stone-100 overflow-y-auto" id="missingPlansList">
           <div class="py-6 text-center text-sm text-stone-400">Loading...</div>
@@ -88,14 +88,14 @@
     <div class="mb-4 flex items-center justify-between gap-4">
       <div class="relative flex-1 max-w-md">
         <svg class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input type="text" id="patientSearch" placeholder="Search patients..."
+        <input type="text" id="patientSearch" placeholder="Search participants..."
                oninput="filterPatients()"
                class="w-full rounded-lg border border-stone-200 py-2 pl-10 pr-4 text-sm focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo">
       </div>
       <button onclick="showCreatePatientModal()"
               class="inline-flex items-center gap-1.5 rounded-lg bg-cloze-indigo px-4 py-2 text-sm font-medium text-white transition hover:bg-cloze-hover">
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-        Add Patient
+        Add Participant
       </button>
     </div>
 
@@ -124,7 +124,7 @@
     <div id="patientDrillDown" class="mt-6 hidden">
       <div class="rounded-lg border border-stone-200 bg-white">
         <div class="flex items-center justify-between border-b border-stone-100 bg-violet-50/60 px-5 py-3">
-          <h3 class="text-sm font-semibold text-stone-900" id="drillDownTitle">Patient Details</h3>
+          <h3 class="text-sm font-semibold text-stone-900" id="drillDownTitle">Participant Details</h3>
           <button onclick="closePatientDrillDown()" class="rounded-md p-1 text-stone-400 transition hover:text-stone-700">
             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M6 18L18 6"/></svg>
           </button>
@@ -208,7 +208,7 @@
         <label class="flex cursor-pointer items-center justify-between px-5 py-4 transition hover:bg-stone-50">
           <div>
             <div class="text-sm font-medium text-stone-800">Users can save text selections</div>
-            <div class="mt-0.5 text-xs text-stone-500">Whether patients see the bookmark/save-quote UI in conversations</div>
+            <div class="mt-0.5 text-xs text-stone-500">Whether participants see the bookmark/save-quote UI in conversations</div>
           </div>
           <input type="checkbox" id="toggle_users_can_save_selections" class="accent-cloze-indigo h-4 w-4"
                  onchange="updateGlobalSetting('users_can_save_selections', this.checked)">
@@ -216,15 +216,15 @@
         <label class="flex cursor-pointer items-center justify-between px-5 py-4 transition hover:bg-stone-50">
           <div>
             <div class="text-sm font-medium text-stone-800">Require safety plan</div>
-            <div class="mt-0.5 text-xs text-stone-500">Whether patients must have an active safety plan to start conversations</div>
+            <div class="mt-0.5 text-xs text-stone-500">Whether participants must have an active safety plan to start conversations</div>
           </div>
           <input type="checkbox" id="toggle_require_safety_plan" class="accent-cloze-indigo h-4 w-4"
                  onchange="updateGlobalSetting('require_safety_plan', this.checked)">
         </label>
         <label class="flex cursor-pointer items-center justify-between px-5 py-4 transition hover:bg-stone-50">
           <div>
-            <div class="text-sm font-medium text-stone-800">Allow patient anti-patterns</div>
-            <div class="mt-0.5 text-xs text-stone-500">Whether patients can add their own anti-patterns to their safety plan</div>
+            <div class="text-sm font-medium text-stone-800">Allow participant anti-patterns</div>
+            <div class="mt-0.5 text-xs text-stone-500">Whether participants can add their own anti-patterns to their safety plan</div>
           </div>
           <input type="checkbox" id="toggle_allow_patient_anti_patterns" class="accent-cloze-indigo h-4 w-4"
                  onchange="updateGlobalSetting('allow_patient_anti_patterns', this.checked)">
@@ -321,7 +321,7 @@
     <section class="rounded-lg border border-stone-200 bg-white">
       <div class="border-b border-stone-100 bg-violet-50/60 px-5 py-3">
         <h3 class="text-sm font-semibold text-stone-900">Provider Assignments</h3>
-        <p class="mt-0.5 text-xs text-stone-500">Patients are created by their provider. Use provider drill-down to view details.</p>
+        <p class="mt-0.5 text-xs text-stone-500">Participants are created by their provider. Use provider drill-down to view details.</p>
       </div>
       <div class="max-h-[400px] divide-y divide-stone-100 overflow-y-auto" id="assignmentsList">
         <div class="py-6 text-center text-sm text-stone-400">Loading...</div>
@@ -518,7 +518,7 @@
     }
 
     // Update page title in header
-    var titleMap = { overview: 'Dashboard', patients: 'Patients', providers: 'Providers', settings: 'Settings' };
+    var titleMap = { overview: 'Dashboard', patients: 'Participants', providers: 'Providers', settings: 'Settings' };
     var headerTitle = document.querySelector('header h1');
     if (headerTitle) headerTitle.textContent = titleMap[tabId] || 'Dashboard';
 
@@ -585,7 +585,7 @@
       var missing = await missingRes.json();
       var missingEl = document.getElementById('missingPlansList');
       if (missing.length === 0) {
-        missingEl.innerHTML = '<div class="py-6 text-center text-sm text-emerald-600">All patients with windows have active plans</div>';
+        missingEl.innerHTML = '<div class="py-6 text-center text-sm text-emerald-600">All participants with windows have active plans</div>';
       } else {
         missingEl.innerHTML = missing.map(function(m) {
           return '<div class="flex items-center justify-between px-5 py-3">' +
@@ -660,7 +660,7 @@
 
     var tbody = document.getElementById('patientsTableBody');
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-stone-400">' + (query ? 'No matching patients' : 'No patients yet') + '</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-stone-400">' + (query ? 'No matching participants' : 'No participants yet') + '</td></tr>';
       return;
     }
 
@@ -785,7 +785,7 @@
 
   function showCreatePatientModal() {
     document.getElementById('newRole').value = 'user';
-    document.getElementById('createUserTitle').textContent = 'Create New Patient';
+    document.getElementById('createUserTitle').textContent = 'Create New Participant';
     document.getElementById('newUsername').value = '';
     document.getElementById('newEmail').value = '';
     document.getElementById('newPassword').value = '';
@@ -920,7 +920,7 @@
 
   var FLAG_DEFS = [
     { key: 'require_safety_plan', label: 'Require safety plan', desc: 'Must have an active safety plan to start conversations', type: 'bool' },
-    { key: 'allow_patient_anti_patterns', label: 'Allow patient anti-patterns', desc: 'Patients can add their own anti-patterns to safety plans', type: 'bool' },
+    { key: 'allow_patient_anti_patterns', label: 'Allow participant anti-patterns', desc: 'Patients can add their own anti-patterns to safety plans', type: 'bool' },
     { key: 'enable_nlp_report', label: 'Enable NLP reports', desc: 'Generate NLP analysis reports when chat windows expire', type: 'bool' },
     { key: 'allow_custom_prompts', label: 'Allow custom prompts', desc: 'Provider can write custom system prompt text in templates', type: 'bool' },
     { key: 'max_turns_per_conversation', label: 'Max turns per conversation', desc: 'Maximum user exchanges per conversation (blank = unlimited)', type: 'int' },

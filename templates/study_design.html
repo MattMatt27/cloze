@@ -123,7 +123,7 @@
         <div class="mt-2 flex items-center gap-3">
           <span id="flowMeta" class="text-sm text-stone-400"></span>
           <span class="text-stone-200">·</span>
-          <button onclick="showEnrollPanel()" class="text-sm font-medium text-cloze-indigo hover:text-cloze-hover transition-colors">Enroll patients</button>
+          <button onclick="showEnrollPanel()" class="text-sm font-medium text-cloze-indigo hover:text-cloze-hover transition-colors">Enroll participants</button>
         </div>
       </div>
 
@@ -170,7 +170,7 @@
     {# Enrollment panel #}
     <div id="enrollPanel" class="hidden pt-2">
       <div class="mb-6">
-        <h2 class="text-2xl font-bold text-stone-900">Enroll patients</h2>
+        <h2 class="text-2xl font-bold text-stone-900">Enroll participants</h2>
         <button onclick="hideEnrollPanel()" class="text-sm text-stone-300 hover:text-stone-500 mt-1">Back to flow</button>
       </div>
       <div id="enrollList" class="space-y-1 mb-6"></div>
@@ -250,7 +250,7 @@
     document.getElementById('flowName').textContent = f.name;
 
     // Subtle meta — just enrollment count + type badge
-    var enrollText = f.enrollment_count ? f.enrollment_count + ' enrolled' : 'No patients enrolled';
+    var enrollText = f.enrollment_count ? f.enrollment_count + ' enrolled' : 'No participants enrolled';
     document.getElementById('flowMeta').textContent = enrollText;
 
     // Show config bar for all types
@@ -262,7 +262,7 @@
       document.getElementById('cycleCount').value = f.cycle_count || 6;
       var total = (f.cadence_days || 7) * (f.cycle_count || 6);
       var explain = document.getElementById('recurringExplain');
-      if (explain) explain.textContent = total + ' days total · each patient gets ' + (f.cycle_count || 6) + ' windows of ' + (f.cadence_days || 7) + ' days each';
+      if (explain) explain.textContent = total + ' days total · each participant gets ' + (f.cycle_count || 6) + ' windows of ' + (f.cadence_days || 7) + ' days each';
     }
 
     // Timeline/config bar for all types
@@ -533,7 +533,7 @@
     var cycles = parseInt(document.getElementById('cycleCount').value) || 1;
     var totalDays = cadence * cycles;
     var explain = document.getElementById('recurringExplain');
-    if (explain) explain.textContent = totalDays + ' days total · each patient gets ' + cycles + ' windows of ' + cadence + ' days each';
+    if (explain) explain.textContent = totalDays + ' days total · each participant gets ' + cycles + ' windows of ' + cadence + ' days each';
 
     await fetch('/api/provider/flows/' + currentFlow.id, {
       method: 'PUT',
@@ -692,7 +692,7 @@
       '</label>';
     }).join('');
 
-    if (!patients.length) html = '<div class="py-4 text-center text-sm text-stone-400">No patients. Create patients on the Dashboard first.</div>';
+    if (!patients.length) html = '<div class="py-4 text-center text-sm text-stone-400">No participants. Create participants on the Dashboard first.</div>';
     document.getElementById('enrollList').innerHTML = html;
     document.getElementById('enrollStatus').textContent = '';
   }
@@ -708,7 +708,7 @@
     checkboxes.forEach(function(cb) {
       if (cb.checked) ids.push(parseInt(cb.dataset.patientId));
     });
-    if (!ids.length) { showDialog({ title: 'No selection', message: 'Select at least one patient to enroll.', confirmText: 'OK' }); return; }
+    if (!ids.length) { showDialog({ title: 'No selection', message: 'Select at least one participant to enroll.', confirmText: 'OK' }); return; }
 
     var statusEl = document.getElementById('enrollStatus');
     statusEl.textContent = 'Enrolling...';
@@ -719,7 +719,7 @@
       body: JSON.stringify({ patient_ids: ids })
     });
     var result = await resp.json();
-    statusEl.textContent = result.enrolled + ' patient(s) enrolled';
+    statusEl.textContent = result.enrolled + ' participant(s) enrolled';
     statusEl.classList.add('text-emerald-600');
     setTimeout(function() {
       statusEl.classList.remove('text-emerald-600');

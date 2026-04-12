@@ -31,7 +31,7 @@
     {# Filters — inline, minimal #}
     <div class="mt-3 flex flex-wrap items-center gap-3 sm:gap-4 text-sm">
       <select id="patientFilter" onchange="applyFilters()" class="filter-input py-1 pr-6 text-stone-600">
-        <option value="">All patients</option>
+        <option value="">All participants</option>
       </select>
       <select id="statusFilter" onchange="applyFilters()" class="filter-input py-1 pr-6 text-stone-600">
         <option value="">All statuses</option>
@@ -50,7 +50,7 @@
   {# Column headers — desktop only #}
   <div class="hidden sm:flex items-center px-1 pb-2 border-b border-stone-100 text-[11px] font-medium uppercase tracking-wider text-stone-300">
     <div class="flex-1 min-w-0">Chat</div>
-    <div class="w-28 shrink-0">Patient</div>
+    <div class="w-28 shrink-0">Participant</div>
     <div class="w-36 shrink-0 hidden md:block">Study</div>
     <div class="w-16 shrink-0 text-center">Msgs</div>
     <div class="w-24 shrink-0 text-center">Status</div>
@@ -71,15 +71,15 @@
       <div class="space-y-4">
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="mb-1 block text-[11px] font-medium text-stone-400 uppercase tracking-wide">Patient</label>
+            <label class="mb-1 block text-[11px] font-medium text-stone-400 uppercase tracking-wide">Participant</label>
             <select id="newChatPatient" onchange="loadPatientWindows()" class="w-full border-b border-stone-200 bg-transparent py-1.5 text-sm text-stone-700 outline-none focus:border-cloze-indigo">
-              <option value="">Select patient...</option>
+              <option value="">Select participant...</option>
             </select>
           </div>
           <div>
             <label class="mb-1 block text-[11px] font-medium text-stone-400 uppercase tracking-wide">Window</label>
             <select id="newChatWindow" class="w-full border-b border-stone-200 bg-transparent py-1.5 text-sm text-stone-700 outline-none focus:border-cloze-indigo">
-              <option value="">Select patient first...</option>
+              <option value="">Select participant first...</option>
             </select>
           </div>
         </div>
@@ -134,7 +134,7 @@
       systemPrompts = results[3];
 
       var filter = document.getElementById('patientFilter');
-      filter.innerHTML = '<option value="">All patients</option>' +
+      filter.innerHTML = '<option value="">All participants</option>' +
         patients.map(function(p) { return '<option value="' + p.id + '">' + escapeHtml(p.username) + '</option>'; }).join('');
 
       var params = new URLSearchParams(window.location.search);
@@ -246,7 +246,7 @@
 
   function showAddChatModal() {
     var patientSelect = document.getElementById('newChatPatient');
-    patientSelect.innerHTML = '<option value="">Select patient...</option>' +
+    patientSelect.innerHTML = '<option value="">Select participant...</option>' +
       patients.map(function(p) { return '<option value="' + p.id + '">' + escapeHtml(p.username) + '</option>'; }).join('');
 
     var modelSelect = document.getElementById('newChatModel');
@@ -256,7 +256,7 @@
     promptSelect.innerHTML = '<option value="">General (default)</option>' +
       systemPrompts.map(function(p) { return '<option value="' + p.id + '">' + escapeHtml(p.name) + '</option>'; }).join('');
 
-    document.getElementById('newChatWindow').innerHTML = '<option value="">Select patient first...</option>';
+    document.getElementById('newChatWindow').innerHTML = '<option value="">Select participant first...</option>';
     document.getElementById('newChatTitle').value = '';
     document.getElementById('newChatTurns').value = '';
 
@@ -267,7 +267,7 @@
     var pid = document.getElementById('newChatPatient').value;
     var windowSelect = document.getElementById('newChatWindow');
     if (!pid) {
-      windowSelect.innerHTML = '<option value="">Select patient first...</option>';
+      windowSelect.innerHTML = '<option value="">Select participant first...</option>';
       return;
     }
 
@@ -292,7 +292,7 @@
     var title = document.getElementById('newChatTitle').value.trim();
     var modelId = document.getElementById('newChatModel').value;
 
-    if (!windowId) { showDialog({ title: 'Missing selection', message: 'Select a patient and window first.', confirmText: 'OK' }); return; }
+    if (!windowId) { showDialog({ title: 'Missing selection', message: 'Select a participant and window first.', confirmText: 'OK' }); return; }
     if (!title) { showDialog({ title: 'Missing title', message: 'Enter a chat title.', confirmText: 'OK' }); return; }
 
     try {
