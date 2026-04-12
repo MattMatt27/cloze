@@ -76,31 +76,27 @@
 {# ── Override layout: NO sidebar, full-screen chat ── #}
 {% block layout %}
   {# ── Header bar ── #}
-  <header class="flex items-center justify-between border-b border-stone-100 bg-white px-6 py-2.5 shrink-0">
-    <div class="flex items-center gap-3">
+  <header class="flex items-center justify-between border-b border-stone-100 bg-white px-4 sm:px-6 py-2.5 shrink-0">
+    <div class="flex items-center gap-3 min-w-0">
       {% if readonly|default(false) %}
       <a href="/admin/dashboard#patients"
-         class="inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-600 transition-colors">
+         class="shrink-0 inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-600 transition-colors">
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         Back
       </a>
       {% elif is_provider|default(false) %}
       <a href="/provider/chats"
-         class="inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-600 transition-colors">
+         class="shrink-0 inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-600 transition-colors">
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         Back
       </a>
       {% endif %}
-      <h2 id="conversationTitle" class="text-[15px] font-semibold text-stone-900">Loading...</h2>
+      <h2 id="conversationTitle" class="text-[15px] font-semibold text-stone-900 truncate">Loading...</h2>
     </div>
-    <div class="flex items-center gap-4 text-xs text-stone-400">
-      <span id="modelName"></span>
-      <span id="promptInfo"><span id="promptName"></span></span>
-      <div id="timeRemaining" class="hidden">
-        <span class="time-label">Time left:</span>
-        <span class="time-value font-medium text-stone-600" id="timeValue"></span>
-      </div>
-    </div>
+    <span id="modelName" class="text-xs text-stone-400 shrink-0 ml-auto"></span>
+    {# Hidden elements kept for JS compatibility #}
+    <span id="promptInfo" class="hidden"><span id="promptName"></span></span>
+    <div id="timeRemaining" class="hidden"><span class="time-label"></span><span class="time-value" id="timeValue"></span></div>
   </header>
 
   {# ── Error banner ── #}
@@ -151,13 +147,20 @@
         </div>
       </div>
       {% else %}
-      <div class="border-t border-stone-100 bg-stone-50 px-6 py-2.5 text-center shrink-0">
+      <div class="border-t border-stone-100 bg-stone-50 shrink-0">
         {% if is_provider %}
-        <div class="flex items-center justify-center gap-2 text-stone-400 text-sm">
-          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
-          </svg>
-          <span>Read-only transcript &mdash; Only the participant can send messages</span>
+        <div class="px-6 py-2.5 text-center">
+          <div class="flex items-center justify-center gap-2 text-stone-400 text-sm">
+            <svg class="hidden sm:block h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+              <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+            </svg>
+            <span class="hidden sm:inline">Read-only transcript &mdash; Only the participant can send messages</span>
+            <span class="sm:hidden text-center text-xs leading-relaxed">Read-only transcript<br>Only the participant can send messages</span>
+          </div>
+        </div>
+        <div class="flex items-center justify-center gap-4 border-t border-stone-100 px-6 py-2">
+          <button onclick="openQuotesSheet()" class="text-xs text-stone-400 hover:text-cloze-indigo transition-colors">Saved Quotes</button>
+          <span id="viewReportBtn" class="hidden"><button onclick="openReportFromTranscript()" class="text-xs text-stone-400 hover:text-cloze-indigo transition-colors">View Report</button></span>
         </div>
         {% else %}
         <div class="text-stone-500">
@@ -182,8 +185,8 @@
 
     {# ── Sidebar ── #}
     {% if is_provider|default(false) %}
-    {# Provider view: patient's saved selections, collapsible #}
-    <div id="quotesPanel" class="w-60 shrink-0 border-l border-stone-100 bg-stone-50 flex flex-col transition-all">
+    {# Provider view: patient's saved selections — hidden on mobile #}
+    <div id="quotesPanel" class="hidden md:flex w-60 shrink-0 border-l border-stone-100 bg-stone-50 flex-col transition-all">
       <div class="flex items-center justify-between px-5 py-2.5 border-b border-stone-100">
         <h3 class="text-xs font-medium uppercase tracking-wider text-stone-300">Saved Quotes</h3>
         <button onclick="toggleQuotesPanel()" class="text-stone-300 hover:text-stone-500 transition-colors" title="Collapse">
@@ -199,8 +202,8 @@
       <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg>
     </button>
     {% elif not readonly|default(false) %}
-    {# Patient view: their saved quotes #}
-    <div class="w-60 shrink-0 border-l border-stone-100 bg-stone-50 flex flex-col">
+    {# Patient view: their saved quotes — hidden on mobile #}
+    <div class="hidden md:flex w-60 shrink-0 border-l border-stone-100 bg-stone-50 flex-col">
       <div class="px-5 py-2.5 border-b border-stone-100">
         <h3 class="text-xs font-medium uppercase tracking-wider text-stone-300">Saved Quotes</h3>
       </div>
@@ -222,6 +225,30 @@
       </svg>
       Save Selection
     </button>
+  </div>
+  {% endif %}
+
+  {# ── Bottom sheet for saved quotes ── #}
+  {% if is_provider|default(false) %}
+  <div id="quotesSheetOverlay" class="fixed inset-0 z-[90] hidden bg-black/20" onclick="closeQuotesSheet()"></div>
+  <div id="quotesSheet" class="fixed inset-x-0 bottom-0 z-[95] translate-y-full transition-transform duration-300 ease-out">
+    <div class="mx-auto max-w-lg bg-white rounded-t-2xl shadow-xl" style="max-height: 85vh">
+      {# Grab bar #}
+      <div class="flex justify-center pt-3 pb-2 cursor-pointer" onclick="closeQuotesSheet()">
+        <div class="w-10 h-1 rounded-full bg-stone-300"></div>
+      </div>
+      <div class="px-5 pb-2 flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-stone-700">Saved Quotes</h3>
+        <button onclick="closeQuotesSheet()" class="text-stone-400 hover:text-stone-600 transition-colors">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M6 18L18 6"/></svg>
+        </button>
+      </div>
+      <div class="overflow-y-auto px-5 pb-6" style="max-height: calc(85vh - 60px)">
+        <div id="quotesSheetContent">
+          <p class="text-xs text-stone-300 py-4">Loading...</p>
+        </div>
+      </div>
+    </div>
   </div>
   {% endif %}
 {% endblock %}
@@ -484,10 +511,55 @@
     var panel = document.getElementById('quotesPanel');
     var toggle = document.getElementById('quotesToggle');
     if (panel && toggle) {
-      var isHidden = panel.classList.contains('hidden');
       panel.classList.toggle('hidden');
+      panel.classList.toggle('md:flex');
       toggle.classList.toggle('hidden');
     }
+  }
+
+  function openQuotesSheet() {
+    // On desktop, toggle the sidebar
+    if (window.innerWidth >= 768) {
+      toggleQuotesPanel();
+      return;
+    }
+    // On mobile, open bottom sheet
+    var overlay = document.getElementById('quotesSheetOverlay');
+    var sheet = document.getElementById('quotesSheet');
+    var content = document.getElementById('quotesSheetContent');
+    if (!sheet) return;
+
+    // Render full (non-truncated) selections into the sheet
+    if (typeof sheetSelections !== 'undefined' && sheetSelections.length) {
+      content.innerHTML = sheetSelections.map(function(sel) {
+        var formatted = escapeHtml(sel.text).replace(/\n/g, '<br>');
+        return '<div class="border-l-2 border-violet-200 pl-3 py-2 mb-4">' +
+          '<div class="text-sm leading-relaxed text-stone-600">"' + formatted + '"</div>' +
+          (sel.note ? '<div class="mt-1.5 text-xs italic text-stone-400">' + escapeHtml(sel.note) + '</div>' : '') +
+        '</div>';
+      }).join('');
+    } else {
+      content.innerHTML = '<p class="text-xs text-stone-300 py-4">No saved quotes for this conversation</p>';
+    }
+
+    overlay.classList.remove('hidden');
+    requestAnimationFrame(function() {
+      sheet.classList.remove('translate-y-full');
+    });
+  }
+
+  function closeQuotesSheet() {
+    var overlay = document.getElementById('quotesSheetOverlay');
+    var sheet = document.getElementById('quotesSheet');
+    if (!sheet) return;
+    sheet.classList.add('translate-y-full');
+    setTimeout(function() {
+      overlay.classList.add('hidden');
+    }, 300);
+  }
+
+  function openReportFromTranscript() {
+    window.location.href = '/provider/chats';
   }
 
   function scrollToBottom() {
@@ -639,6 +711,8 @@
 
       const container = document.getElementById('savedSelections');
       const conversationSelections = selections.filter(s => s.conversation_id === conversationId);
+      // Store for bottom sheet
+      window.sheetSelections = conversationSelections;
 
       if (conversationSelections.length === 0) {
         container.innerHTML = '<p class="text-xs text-stone-300">No saved quotes yet</p>';
@@ -695,21 +769,10 @@
       const timeLeft = endTimestamp - now;
 
       if (timeLeft <= 0 || windowStatus === 'generating_report' || windowStatus === 'report_ready') {
-        if (windowStatus === 'generating_report') {
-          timerEl.innerHTML = `<div class="flex items-center gap-2 px-3 py-1.5 text-sm text-cloze-indigo">
-            <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Report being generated...
-          </div>`;
-        } else if (windowStatus === 'report_ready') {
-          timerEl.innerHTML = `<button onclick="viewWindowReport()" class="inline-flex items-center gap-2 rounded-lg bg-cloze-indigo px-4 py-2 text-sm font-semibold text-white transition hover:bg-cloze-hover">
-            View Report
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 5l7 7-7 7"/></svg>
-          </button>`;
-        } else {
-          timerEl.innerHTML = `<div class="flex items-center gap-2 px-3 py-1.5 text-sm text-stone-500">Window has closed</div>`;
+        timerEl.classList.add('hidden');
+        if (windowStatus === 'report_ready') {
+          var reportBtn = document.getElementById('viewReportBtn');
+          if (reportBtn) reportBtn.classList.remove('hidden');
         }
         timerEl.classList.remove('time-warning');
         timerEl.style.background = 'transparent';

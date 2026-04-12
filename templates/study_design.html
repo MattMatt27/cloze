@@ -6,7 +6,7 @@
 {% block styles %}
 <style>
   /* Sidebar items — no containers, just text with accent */
-  .flow-item { transition: all 0.12s; padding: 0.5rem 0.75rem; border-radius: 0.375rem; cursor: pointer; }
+  .flow-item { transition: all 0.12s; padding: 0.5rem 0.75rem; border-radius: 0.375rem; cursor: pointer; white-space: nowrap; }
   .flow-item:hover { color: #4338CA; }
   .flow-item.active { color: #4338CA; background: rgba(139, 92, 246, 0.06); }
 
@@ -52,22 +52,22 @@
 {% endblock %}
 
 {% block content %}
-<div class="flex gap-4 min-h-[600px]">
+<div class="flex flex-col lg:flex-row gap-4 min-h-[400px] lg:min-h-[600px]">
   {# ── Sidebar: flow list ── #}
-  <div class="w-48 shrink-0 pt-1 pr-4 border-r border-stone-100">
+  <div class="w-full lg:w-48 shrink-0 pt-1 lg:pr-4 lg:border-r border-stone-100 pb-3 lg:pb-0 border-b lg:border-b-0">
     <div class="mb-4 flex items-center justify-between">
       <h3 class="text-[11px] font-medium uppercase tracking-wider text-stone-300">Flows</h3>
       <button onclick="showNewFlowPicker()" class="add-trigger p-0.5" title="New flow">
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
       </button>
     </div>
-    <div id="flowList" class="space-y-0.5">
+    <div id="flowList" class="flex lg:flex-col gap-1 lg:gap-0.5 overflow-x-auto lg:overflow-visible">
       <div class="py-8 text-center text-xs text-stone-300">Loading...</div>
     </div>
   </div>
 
   {# ── Main workspace — document surface ── #}
-  <div class="flex-1 min-w-0 max-w-2xl rounded-xl bg-white shadow-sm px-10 py-8 border border-stone-100">
+  <div class="flex-1 min-w-0 max-w-2xl rounded-xl bg-white shadow-sm px-5 py-5 sm:px-10 sm:py-8 border border-stone-100">
     {# Empty state #}
     <div id="emptyState" class="flex items-center justify-center h-full">
       <div class="text-center">

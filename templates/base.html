@@ -37,11 +37,11 @@
 
     {# ── Sidebar ─────────────────────────────────────────── #}
     <aside id="sidebar"
-           class="fixed inset-y-0 left-0 z-40 w-64 -translate-x-full border-r border-violet-100 bg-[#F8F6FC] px-3 py-5 transition-transform lg:static lg:translate-x-0">
+           class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col border-r border-stone-200 bg-stone-50 px-3 py-4 transition-transform lg:static lg:translate-x-0">
 
       {# Logo + brand #}
-      <div class="mb-6 flex items-center gap-3 px-3">
-        <img src="/static/images/logo.svg" alt="Cloze" class="h-8 w-8 rounded-md">
+      <div class="mb-4 flex items-center gap-2 px-3">
+        <img src="/static/images/logo.svg" alt="Cloze" class="h-7 w-7">
         <span class="text-base font-semibold text-stone-900">Cloze</span>
       </div>
 
@@ -54,7 +54,7 @@
             {% if current_user.role == 'user' %}
             <li>
               <a href="/dashboard"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50">
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-100">
                 <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6"/>
                 </svg>
@@ -63,7 +63,7 @@
             </li>
             <li>
               <a href="/chat-windows"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50"
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-100"
                  title="View and manage all your conversation windows">
                 <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M8 10h8M8 14h5"/><path d="M21 12a8.5 8.5 0 01-1.6 5l.6 3-3-1a8.5 8.5 0 11-2-14.5"/>
@@ -73,7 +73,7 @@
             </li>
             <li>
               <a href="/my-reports"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50"
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-100"
                  title="Review reports from completed conversations">
                 <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -84,7 +84,7 @@
             <li>
               <button type="button"
                       onclick="typeof toggleSelections === 'function' && toggleSelections()"
-                      class="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-stone-600 transition hover:bg-violet-50"
+                      class="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-stone-600 transition hover:bg-stone-100"
                       title="Quotes and insights you've saved from your conversations">
                 <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M6 4h12a1 1 0 011 1v16l-7-3-7 3V5a1 1 0 011-1z"/>
@@ -98,7 +98,7 @@
             {% if current_user.role == 'provider' %}
             <li>
               <a href="/provider/dashboard"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50">
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-100">
                 <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6"/>
                 </svg>
@@ -107,7 +107,7 @@
             </li>
             <li>
               <a href="/provider/study-design"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50">
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-100">
                 <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                 </svg>
@@ -116,7 +116,7 @@
             </li>
             <li>
               <a href="/provider/chats"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50">
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-100">
                 <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M8 10h8M8 14h5"/><path d="M21 12a8.5 8.5 0 01-1.6 5l.6 3-3-1a8.5 8.5 0 11-2-14.5"/>
                 </svg>
@@ -125,7 +125,7 @@
             </li>
             <li>
               <a href="/provider/settings"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50">
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-100">
                 <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/>
                   <circle cx="12" cy="12" r="3"/>
@@ -139,7 +139,7 @@
             {% if current_user.role == 'admin' %}
             <li>
               <a href="/admin/dashboard#overview"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50">
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-100">
                 <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6"/>
                 </svg>
@@ -148,7 +148,7 @@
             </li>
             <li>
               <a href="/admin/dashboard#patients"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50">
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-100">
                 <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
                 </svg>
@@ -157,7 +157,7 @@
             </li>
             <li>
               <a href="/admin/dashboard#providers"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50">
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-100">
                 <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
                 </svg>
@@ -166,7 +166,7 @@
             </li>
             <li>
               <a href="/admin/dashboard#settings"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50">
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-100">
                 <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
                   <circle cx="12" cy="12" r="3"/>
@@ -181,16 +181,14 @@
       </nav>
 
       {# Sidebar footer #}
-      <div class="mt-auto border-t border-violet-100 pt-4 px-3">
-        <div class="text-xs text-stone-500">
-          {% if current_user.role == 'user' %}
-          {{ current_user.username }}
-          {% elif current_user.role == 'provider' %}
-          Provider
-          {% elif current_user.role == 'admin' %}
-          Admin
-          {% endif %}
-        </div>
+      <div class="mt-auto border-t border-stone-100 pt-2 px-2">
+        <button onclick="logout()"
+                class="flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm text-stone-400 transition hover:bg-stone-100 hover:text-stone-600">
+          <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+          </svg>
+          Log out
+        </button>
       </div>
     </aside>
 
@@ -201,28 +199,23 @@
     <div class="flex min-w-0 flex-1 flex-col">
 
       {# Top bar #}
-      <header class="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-stone-200 bg-white/90 px-4 backdrop-blur-sm">
+      <header class="sticky top-0 z-20 flex items-center gap-3 border-b border-stone-100 bg-white/90 px-4 py-2 backdrop-blur-sm">
         <button id="menuBtn"
-                class="inline-flex items-center gap-2 rounded-lg border border-stone-200 px-2.5 py-1.5 text-sm lg:hidden">
-          <svg class="h-4 w-4 text-stone-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                class="p-1 text-stone-400 hover:text-stone-600 transition-colors lg:hidden">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
             <path d="M4 6h16M4 12h16M4 18h16"/>
           </svg>
-          Menu
         </button>
 
         <h1 class="text-[15px] font-semibold text-stone-900">{% block page_title %}{% endblock %}</h1>
 
         <div class="ml-auto flex items-center gap-3">
           {% block header_actions %}{% endblock %}
-          <button onclick="logout()"
-                  class="rounded-md border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:bg-stone-50">
-            Log out
-          </button>
         </div>
       </header>
 
       {# Page content #}
-      <main class="w-full flex-1 p-6">
+      <main class="w-full flex-1 px-4 py-5 sm:px-6">
         {% block content %}{% endblock %}
       </main>
     </div>
