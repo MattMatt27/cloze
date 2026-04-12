@@ -206,15 +206,12 @@
           </button>
           <h2 id="convTitle" class="truncate text-[15px] font-semibold text-stone-900">Loading...</h2>
         </div>
-        <div class="flex items-center gap-3 shrink-0">
-          <div class="hidden sm:flex items-center gap-2 rounded-full bg-violet-50 px-3 py-1 text-xs">
-            <span class="text-stone-500">Model:</span>
-            <span class="font-semibold text-stone-800" id="convModel">-</span>
+        <div class="flex items-center gap-3 shrink-0 ml-auto">
+          <div id="convTimer" class="hidden items-center gap-2 text-xs">
+            <span class="time-label text-stone-400">Time left:</span>
+            <span class="time-value font-medium text-stone-600" id="convTimeValue"></span>
           </div>
-          <div id="convTimer" class="hidden items-center gap-2 rounded-full bg-violet-50 px-3 py-1 text-xs">
-            <span class="time-label text-stone-500">Time left:</span>
-            <span class="time-value font-semibold text-stone-800" id="convTimeValue"></span>
-          </div>
+          <span class="text-xs text-stone-400" id="convModel"></span>
         </div>
       </header>
 
@@ -1207,6 +1204,10 @@ async function loadConversationView(convId) {
   var existingLockout = document.getElementById('turnLimitBanner');
   if (existingLockout) existingLockout.remove();
 
+  // Reset timer and report button
+  var timerEl = document.getElementById('convTimer');
+  if (timerEl) { timerEl.classList.add('hidden'); timerEl.innerHTML = ''; }
+
   if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
 
   try {
@@ -1256,7 +1257,12 @@ async function loadConversationView(convId) {
           '<div><p class="font-semibold text-sm">This conversation has closed. A report will be generated shortly.</p>' +
           '<p class="text-xs mt-0.5">Your report is being prepared...</p></div></div>';
       } else if (windowStatus === 'report_ready') {
-        statusContent.innerHTML = '<p class="font-semibold text-sm mb-0.5">This conversation has ended</p><p class="text-xs">Your session report is ready. You can view it using the link in the header above.</p>';
+        var hasReport = allReports.some(function(r) { return r.window_id === conversationData.window_id; });
+        if (hasReport) {
+          statusContent.innerHTML = '<p class="font-semibold text-sm mb-0.5">This conversation has ended</p><p class="text-xs">Your session report is ready. You can view it using the link in the header above.</p>';
+        } else {
+          statusContent.innerHTML = '<p class="font-semibold text-sm mb-0.5">This conversation has ended</p><p class="text-xs">You can review all your messages here anytime.</p>';
+        }
       } else {
         statusContent.innerHTML = '<p class="font-semibold text-sm mb-0.5">This conversation has ended</p><p class="text-xs">You can review all your messages here anytime.</p>';
       }
@@ -1494,10 +1500,16 @@ function startCountdown(endTimestamp, windowStatus) {
           '<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>' +
           '</svg> Generating report...</div>';
       } else if (windowStatus === 'report_ready') {
-        timerEl.className = 'flex items-center gap-2 shrink-0';
-        timerEl.innerHTML = '<button onclick="openReportModalForWindow()" class="inline-flex items-center gap-1.5 text-xs font-semibold text-cloze-indigo transition hover:text-cloze-hover">View Report</button>';
+        // Only show View Report if a report actually exists
+        var windowReportExists = allReports.some(function(r) { return r.window_id === conversationData.window_id; });
+        if (windowReportExists) {
+          timerEl.className = 'flex items-center gap-2 shrink-0';
+          timerEl.innerHTML = '<button onclick="openReportModalForWindow()" class="inline-flex items-center gap-1.5 text-xs font-semibold text-cloze-indigo transition hover:text-cloze-hover">View Report</button>';
+        } else {
+          timerEl.classList.add('hidden');
+        }
       } else {
-        timerEl.innerHTML = '<div class="flex items-center gap-2 px-3 py-1 text-xs text-stone-500">Window closed</div>';
+        timerEl.classList.add('hidden');
       }
       timerEl.classList.remove('time-warning');
       if (countdownInterval) clearInterval(countdownInterval);

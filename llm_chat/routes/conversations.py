@@ -85,14 +85,19 @@ def view_conversation(conversation_id):
     can_send_messages = False
     is_provider = current_user.is_provider()
     window_status = None
+    has_report = False
+    window_id = None
 
     # Check if conversation belongs to an expired window
     if conversation.window_id:
         window = ChatWindow.query.get(conversation.window_id)
         if window:
             window_status = window.compute_status()
+            window_id = window.id
+            from ..models import Report
+            has_report = Report.query.filter_by(window_id=window.id).first() is not None
 
-    return render_template("conversation.html", conversation_id=conversation_id, can_send_messages=can_send_messages, is_provider=is_provider, window_status=window_status, patient_id=conversation.user_id)
+    return render_template("conversation.html", conversation_id=conversation_id, can_send_messages=can_send_messages, is_provider=is_provider, window_status=window_status, patient_id=conversation.user_id, has_report=has_report, window_id=window_id)
 
 @conv_bp.route("/api/conversation/<int:conversation_id>")
 @login_required
