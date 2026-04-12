@@ -73,14 +73,21 @@
       <span class="text-base font-semibold text-stone-900">Cloze</span>
     </div>
 
-    {# Home button #}
-    <div class="px-3 pt-3 pb-1">
+    {# Navigation #}
+    <div class="px-3 pt-3 pb-1 space-y-0.5">
       <button onclick="showHome()" id="homeBtn"
-              class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-700 transition hover:bg-violet-50">
+              class="flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm font-medium text-stone-700 transition hover:bg-stone-100">
         <svg class="h-[18px] w-[18px] text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
           <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6"/>
         </svg>
         Home
+      </button>
+      <button type="button" onclick="toggleSelections()"
+              class="flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm text-stone-600 transition hover:bg-stone-100">
+        <svg class="h-[18px] w-[18px] text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+          <path d="M6 4h12a1 1 0 011 1v16l-7-3-7 3V5a1 1 0 011-1z"/>
+        </svg>
+        Saved Quotes
       </button>
     </div>
 
@@ -91,12 +98,12 @@
 
     {# Footer #}
     <div class="border-t border-stone-100 px-3 py-1.5">
-      <button type="button" onclick="toggleSelections()"
-              class="flex w-full items-center gap-2.5 rounded-lg px-3 py-1 text-left text-sm text-stone-600 transition hover:bg-stone-100">
-        <svg class="h-[18px] w-[18px] text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-          <path d="M6 4h12a1 1 0 011 1v16l-7-3-7 3V5a1 1 0 011-1z"/>
+      <button onclick="logout()"
+              class="flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm text-stone-400 transition hover:bg-stone-100 hover:text-stone-600">
+        <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
         </svg>
-        Saved Quotes
+        Log out
       </button>
     </div>
   </aside>
@@ -108,14 +115,13 @@
   <div class="flex min-w-0 flex-1 flex-col">
 
     {# Mobile header (hamburger only, no top bar in home view) #}
-    <div id="mobileMenuBar" class="flex items-center gap-3 border-b border-stone-200 bg-white px-4 py-3 lg:hidden">
-      <button id="menuBtn" class="inline-flex items-center gap-2 rounded-lg border border-stone-200 px-2.5 py-1.5 text-sm">
-        <svg class="h-4 w-4 text-stone-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <div id="mobileMenuBar" class="flex items-center gap-3 border-b border-stone-100 bg-white px-4 py-2 lg:hidden">
+      <button id="menuBtn" class="p-1 text-stone-400 hover:text-stone-600 transition-colors">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
           <path d="M4 6h16M4 12h16M4 18h16"/>
         </svg>
-        Menu
       </button>
-      <span id="mobileTitle" class="text-sm font-semibold text-stone-900">Cloze</span>
+      <span id="mobileTitle" class="text-sm font-medium text-stone-700">Cloze</span>
     </div>
 
     {# ══════ HOME VIEW ══════ #}
@@ -123,15 +129,9 @@
       <div class="mx-auto max-w-3xl px-6 py-8">
 
         {# Welcome #}
-        <div class="mb-8 flex items-start justify-between">
-          <div>
-            <h1 class="text-xl font-semibold text-stone-900">Welcome back, {{ current_user.username }}</h1>
-            <p class="mt-1 text-sm text-stone-500">Your space for conversations between sessions.</p>
-          </div>
-          <button onclick="logout()"
-                  class="shrink-0 rounded-md border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:bg-stone-50">
-            Log out
-          </button>
+        <div class="mb-8">
+          <h1 class="text-xl font-semibold text-stone-900">Welcome back, {{ current_user.username }}</h1>
+          <p class="mt-1 text-sm text-stone-500">Your space for conversations between sessions.</p>
         </div>
 
         {# ── Safety Plan Section ── #}
@@ -490,23 +490,7 @@ function closeMobileSidebar() {
   if (overlay) overlay.classList.add('hidden');
 }
 
-/* ── Sidebar: mobile toggle ─────────────────────────────────── */
-
-(function() {
-  var menuBtn = document.getElementById('menuBtn');
-  var sidebar = document.getElementById('sidebar');
-  var overlay = document.getElementById('overlay');
-  if (!menuBtn || !sidebar) return;
-
-  function openSide() { sidebar.classList.remove('-translate-x-full'); if (overlay) overlay.classList.remove('hidden'); }
-  function closeSide() { sidebar.classList.add('-translate-x-full'); if (overlay) overlay.classList.add('hidden'); }
-
-  menuBtn.addEventListener('click', function() {
-    sidebar.classList.contains('-translate-x-full') ? openSide() : closeSide();
-  });
-  if (overlay) overlay.addEventListener('click', closeSide);
-  if (window.innerWidth >= 1024) sidebar.classList.remove('-translate-x-full');
-})();
+/* ── Sidebar: mobile toggle handled by shared.js ── */
 
 /* ── Data loading ───────────────────────────────────────────── */
 

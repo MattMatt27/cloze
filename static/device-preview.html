@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Device Preview — Cloze</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #1a1a1a; color: #aaa; font-family: -apple-system, system-ui, sans-serif; padding: 20px; }
+    .controls { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    .controls button { background: #333; color: #ccc; border: 1px solid #444; padding: 6px 14px;
+      border-radius: 6px; cursor: pointer; font-size: 13px; transition: all 0.15s; }
+    .controls button:hover { background: #444; color: #fff; }
+    .controls button.active { background: #5B5FC7; color: white; border-color: #5B5FC7; }
+    .controls input { background: #333; color: #ccc; border: 1px solid #444; padding: 6px 10px;
+      border-radius: 6px; font-size: 13px; width: 70px; text-align: center; }
+    .controls span { color: #666; font-size: 12px; }
+    .frame-wrapper { display: flex; justify-content: center; padding: 20px 0; }
+    .device-frame { background: #000; border-radius: 20px; padding: 12px; box-shadow: 0 8px 40px rgba(0,0,0,0.5); transition: width 0.3s, height 0.3s; }
+    .device-frame iframe { width: 100%; height: 100%; border: none; border-radius: 10px; background: white; }
+    .device-label { text-align: center; margin-top: 12px; font-size: 11px; color: #555; }
+    .url-bar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+    .url-bar input { flex: 1; background: #333; color: #ccc; border: 1px solid #444; padding: 8px 12px;
+      border-radius: 8px; font-size: 13px; font-family: monospace; }
+    .url-bar button { background: #5B5FC7; color: white; border: none; padding: 8px 16px;
+      border-radius: 8px; cursor: pointer; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="url-bar">
+    <input type="text" id="urlInput" value="http://127.0.0.1:5051/login" placeholder="URL to preview">
+    <button onclick="loadUrl()">Go</button>
+  </div>
+
+  <div class="controls">
+    <button onclick="setDevice('iphone-se', 375, 667)" data-device="iphone-se">iPhone SE</button>
+    <button onclick="setDevice('iphone-14', 390, 844)" data-device="iphone-14">iPhone 14</button>
+    <button onclick="setDevice('iphone-15-pro-max', 430, 932)" data-device="iphone-15-pro-max">iPhone 15 Pro Max</button>
+    <button onclick="setDevice('pixel-7', 412, 915)" data-device="pixel-7">Pixel 7</button>
+    <button onclick="setDevice('ipad-mini', 768, 1024)" data-device="ipad-mini">iPad Mini</button>
+    <button onclick="setDevice('ipad-pro', 1024, 1366)" data-device="ipad-pro">iPad Pro</button>
+    <span>|</span>
+    <button onclick="toggleOrientation()">↻ Rotate</button>
+    <span>|</span>
+    <span>Custom:</span>
+    <input type="number" id="customW" placeholder="W" value="390">
+    <span>×</span>
+    <input type="number" id="customH" placeholder="H" value="844">
+    <button onclick="setCustom()">Set</button>
+  </div>
+
+  <div class="frame-wrapper">
+    <div>
+      <div class="device-frame" id="deviceFrame">
+        <iframe id="preview" src="http://127.0.0.1:5051/login"></iframe>
+      </div>
+      <div class="device-label" id="deviceLabel">iPhone 14 — 390 × 844</div>
+    </div>
+  </div>
+
+  <script>
+    var currentW = 390, currentH = 844, rotated = false;
+
+    function setDevice(name, w, h) {
+      currentW = w; currentH = h; rotated = false;
+      applySize();
+      document.querySelectorAll('.controls button[data-device]').forEach(function(b) {
+        b.classList.toggle('active', b.dataset.device === name);
+      });
+      document.getElementById('deviceLabel').textContent =
+        name.replace(/-/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); }) +
+        ' — ' + w + ' × ' + h;
+    }
+
+    function setCustom() {
+      currentW = parseInt(document.getElementById('customW').value) || 390;
+      currentH = parseInt(document.getElementById('customH').value) || 844;
+      rotated = false;
+      applySize();
+      document.querySelectorAll('.controls button[data-device]').forEach(function(b) { b.classList.remove('active'); });
+      document.getElementById('deviceLabel').textContent = 'Custom — ' + currentW + ' × ' + currentH;
+    }
+
+    function toggleOrientation() {
+      rotated = !rotated;
+      applySize();
+    }
+
+    function applySize() {
+      var w = rotated ? currentH : currentW;
+      var h = rotated ? currentW : currentH;
+      var frame = document.getElementById('deviceFrame');
+      frame.style.width = (w + 24) + 'px';
+      frame.style.height = (h + 24) + 'px';
+      document.getElementById('customW').value = w;
+      document.getElementById('customH').value = h;
+    }
+
+    function loadUrl() {
+      document.getElementById('preview').src = document.getElementById('urlInput').value;
+    }
+
+    // Init
+    setDevice('iphone-14', 390, 844);
+  </script>
+</body>
+</html>
