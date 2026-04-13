@@ -58,7 +58,7 @@
 
       {# Logo + brand #}
       <div class="mb-4 flex items-center gap-2 px-3">
-        <img src="/static/images/logo.svg" alt="Cloze" class="h-7 w-7">
+        <img src="{% if current_user.is_authenticated and current_user.role == 'admin' %}/static/images/logo-dark.svg{% else %}/static/images/logo.svg{% endif %}" alt="Cloze" class="h-7 w-7">
         <span class="text-base font-semibold {% if current_user.role == 'admin' %}text-white{% else %}text-stone-900{% endif %}">Cloze</span>
       </div>
 

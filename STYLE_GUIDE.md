@@ -537,6 +537,25 @@ The same conditional switches sidebar, header, and nav link classes. Component-l
 
 ---
 
+## Participant Auto Dark Mode
+
+The participant chat (`user_dashboard.html`) automatically follows the device's OS dark mode setting using `@media (prefers-color-scheme: dark)`. No toggle — it just matches what the user's phone or laptop is set to (many devices auto-switch at sunset).
+
+Uses the same deep purple-gray palette as the admin theme, with adjustments for the chat context:
+
+| Element | Light | Dark |
+|---|---|---|
+| Messages bg | `#F8F6FC` | `#1e1b28` |
+| User bubble | `#E9E5F5` | `#3D3A6E` |
+| User bubble text | `#2D2A3E` | `#e8e5f0` |
+| AI message text | `#44403C` | `#d6d3d1` |
+| Input container | `white` | `#221f2e` |
+| Send button | `#312E81` | `#4338CA` |
+
+All overrides live in a single `@media (prefers-color-scheme: dark) { ... }` block in the `{% block styles %}` section of `user_dashboard.html`. No JS required — pure CSS.
+
+---
+
 ## Key Principles
 
 1. **Warm neutrals** — `stone-*` palette, never `slate-*` or `gray-*`
