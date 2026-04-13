@@ -165,13 +165,23 @@ class ChatTemplate(db.Model):
             if active_plan:
                 safety_plan_data = active_plan.to_prompt_dict()
 
+        # Build custom instructions from system prompt content + per-template overrides
+        custom_parts = []
+        if self.system_prompt and self.system_prompt.content and not domain_id:
+            # SystemPrompt has content but no domain — it IS the custom prompt
+            # (e.g., the Ann & Alex homework protocol)
+            custom_parts.append(self.system_prompt.content)
+        if self.custom_system_prompt and self.custom_system_prompt.strip():
+            custom_parts.append(self.custom_system_prompt.strip())
+        custom_instructions = '\n\n'.join(custom_parts) if custom_parts else None
+
         return compose_system_prompt(
             is_clinical_use=is_clinical,
             monitoring_disclosure=monitoring_disclosure,
             persona_override=persona_override,
             interaction_context_override=interaction_context_override,
             domain_id=domain_id,
-            custom_instructions=self.custom_system_prompt,
+            custom_instructions=custom_instructions,
             safety_plan=safety_plan_data,
         )
 

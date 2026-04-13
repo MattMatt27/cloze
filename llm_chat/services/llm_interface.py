@@ -19,7 +19,8 @@ except ImportError:
     Anthropic = None
 
 try:
-    import google.generativeai as genai
+    from google import genai
+    from google.genai.types import GenerateContentConfig, SafetySetting, HarmCategory, HarmBlockThreshold
 except ImportError:
     genai = None
 
@@ -74,8 +75,8 @@ class LLMInterface:
         google_key = os.environ.get('GOOGLE_API_KEY')
         if genai and google_key and google_key.strip() and google_key != 'your_google_api_key_here':
             try:
-                genai.configure(api_key=google_key)
-                cls._provider_clients['google'] = genai
+                client = genai.Client(api_key=google_key)
+                cls._provider_clients['google'] = client
                 print("✓ Google client initialized successfully")
             except Exception as e:
                 print(f"✗ Could not initialize Google client: {e}")
@@ -175,7 +176,7 @@ class LLMInterface:
                 if not client:
                     raise RuntimeError("Google client not available")
 
-                # Extract system prompt
+                # Extract system prompt and format messages
                 system_instruction = None
                 gemini_messages = []
                 for msg in formatted_messages:
@@ -185,55 +186,49 @@ class LLMInterface:
                         role = 'model' if msg['role'] == 'assistant' else 'user'
                         gemini_messages.append({'role': role, 'parts': [{'text': msg['content']}]})
 
-                # Create model with system instruction if available
-                if system_instruction:
-                    model_obj = genai.GenerativeModel(
-                        model_name=model.model_identifier,
-                        system_instruction=system_instruction
-                    )
-                else:
-                    model_obj = genai.GenerativeModel(model.model_identifier)
+                # Safety filters — OFF is available on Gemini 2.5+ models.
+                # Fall back to BLOCK_ONLY_HIGH if OFF isn't supported.
+                safety_settings = [
+                    SafetySetting(category=HarmCategory.HARM_CATEGORY_HARASSMENT, threshold=HarmBlockThreshold.OFF),
+                    SafetySetting(category=HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold=HarmBlockThreshold.OFF),
+                    SafetySetting(category=HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold=HarmBlockThreshold.OFF),
+                    SafetySetting(category=HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold=HarmBlockThreshold.OFF),
+                ]
 
-                # Reduce Gemini safety filters for research use.
-                # BLOCK_NONE requires special API key permissions and may be
-                # silently ignored. BLOCK_ONLY_HIGH is available to all keys
-                # and permissive enough for clinical/crisis content.
-                safety_settings = None
-                try:
-                    from google.generativeai.types import HarmCategory, HarmBlockThreshold
-                    safety_settings = {
-                        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
-                        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_ONLY_HIGH,
-                        HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
-                        HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_ONLY_HIGH,
-                    }
-                except (ImportError, AttributeError):
-                    safety_settings = [
-                        {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_ONLY_HIGH"},
-                        {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_ONLY_HIGH"},
-                        {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_ONLY_HIGH"},
-                        {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_ONLY_HIGH"},
-                    ]
-
-                response = model_obj.generate_content(
+                response = client.models.generate_content(
+                    model=model.model_identifier,
                     contents=gemini_messages,
-                    generation_config={
-                        'temperature': config.get('temperature', 0.7),
-                        'max_output_tokens': config.get('max_tokens', 1000),
-                    },
-                    safety_settings=safety_settings,
+                    config=GenerateContentConfig(
+                        system_instruction=system_instruction,
+                        temperature=config.get('temperature', 0.7),
+                        max_output_tokens=config.get('max_tokens', 1000),
+                        safety_settings=safety_settings,
+                    ),
                 )
 
-                # Handle blocked responses gracefully
-                if not response.candidates or not response.candidates[0].content.parts:
-                    finish_reason = response.candidates[0].finish_reason if response.candidates else 'unknown'
-                    # Dump detailed safety info before raising
+                # Handle blocked or empty responses
+                if not response.candidates:
+                    cls._dump_gemini_safety_block(model, formatted_messages, response, config)
+                    raise RuntimeError("Gemini returned no response candidates.")
+
+                candidate = response.candidates[0]
+                finish_reason = getattr(candidate, 'finish_reason', None)
+
+                # Try to extract text even from truncated responses
+                parts = getattr(getattr(candidate, 'content', None), 'parts', None)
+                if parts:
+                    result = response.text
+                elif finish_reason and 'SAFETY' in str(finish_reason):
                     cls._dump_gemini_safety_block(model, formatted_messages, response, config)
                     raise RuntimeError(
                         f"Gemini blocked this response (finish_reason: {finish_reason}). "
                         "This may occur with sensitive clinical content. Try rephrasing."
                     )
-                result = response.text
+                else:
+                    cls._dump_gemini_safety_block(model, formatted_messages, response, config)
+                    raise RuntimeError(
+                        f"Gemini returned an empty response (finish_reason: {finish_reason})."
+                    )
 
             elif model.provider == 'local':
                 response = requests.post(
@@ -287,13 +282,17 @@ class LLMInterface:
                 for j, candidate in enumerate(response.candidates):
                     lines.append(f"  Candidate {j}:")
                     lines.append(f"    finish_reason: {candidate.finish_reason}")
-                    if hasattr(candidate, 'safety_ratings') and candidate.safety_ratings:
+                    safety_ratings = getattr(candidate, 'safety_ratings', None)
+                    if safety_ratings:
                         lines.append(f"    safety_ratings:")
-                        for rating in candidate.safety_ratings:
-                            lines.append(f"      {rating.category}: {rating.probability}")
-            if hasattr(response, 'prompt_feedback'):
+                        for rating in safety_ratings:
+                            cat = getattr(rating, 'category', 'unknown')
+                            prob = getattr(rating, 'probability', None) or getattr(rating, 'blocked', 'unknown')
+                            lines.append(f"      {cat}: {prob}")
+            prompt_feedback = getattr(response, 'prompt_feedback', None)
+            if prompt_feedback:
                 lines.append(f"")
-                lines.append(f"Prompt Feedback: {response.prompt_feedback}")
+                lines.append(f"Prompt Feedback: {prompt_feedback}")
         except Exception as e:
             lines.append(f"Error reading response: {e}")
 
