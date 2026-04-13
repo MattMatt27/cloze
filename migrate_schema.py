@@ -33,6 +33,9 @@ COLUMN_ADDITIONS = [
     ('provider_feature_flags', 'allowed_prompts', 'TEXT'),
     ('chat_windows', 'flow_name', 'VARCHAR(200)'),
     ('chat_windows', 'phase_label', 'VARCHAR(200)'),
+    ('provider_feature_flags', 'is_clinical_use', 'BOOLEAN'),
+    ('provider_feature_flags', 'monitoring_disclosure', 'TEXT'),
+    ('provider_feature_flags', 'persona_override', 'TEXT'),
 ]
 
 

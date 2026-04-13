@@ -331,12 +331,15 @@ def get_content_defaults():
     from prompts.registry import PromptRegistry
     registry = PromptRegistry.instance()
 
-    # Get system_context constitutional prompt content
-    system_context_default = ''
-    for prompt in registry.get_constitutional_prompts():
-        if prompt.id == 'system_context':
-            system_context_default = prompt.content
-            break
+    # Get default overridable prompt content
+    persona_default = ''
+    interaction_context_default = ''
+    default_persona = registry.get_default_prompt('default_persona')
+    if default_persona:
+        persona_default = default_persona.content
+    default_context = registry.get_default_prompt('default_interaction_context')
+    if default_context:
+        interaction_context_default = default_context.content
 
     # Default disclaimer HTML (the hardcoded modal body content)
     disclaimer_default = """<p class="mb-4 text-sm leading-relaxed text-stone-700">
@@ -372,7 +375,9 @@ def get_content_defaults():
 
     return jsonify({
         'disclaimer_default': disclaimer_default,
-        'system_context_default': system_context_default,
+        'persona_default': persona_default,
+        'interaction_context_default': interaction_context_default,
+        'system_context_default': interaction_context_default,  # backwards compat
     })
 
 
@@ -386,7 +391,7 @@ def update_my_flags():
         flags = ProviderFeatureFlags(provider_id=current_user.id)
         db.session.add(flags)
 
-    editable = ['safety_disclaimer_text', 'system_context_override']
+    editable = ['safety_disclaimer_text', 'system_context_override', 'monitoring_disclosure', 'persona_override']
     for key in editable:
         if key in data:
             setattr(flags, key, data[key] or None)

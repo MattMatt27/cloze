@@ -801,21 +801,24 @@ def get_settings_flags():
 
 # Columns that are editable via the API
 _FLAG_COLUMNS = [
+    'is_clinical_use',
     'require_safety_plan', 'allow_patient_anti_patterns',
     'enable_nlp_report', 'report_config',
     'default_system_prompt_id', 'allow_custom_prompts',
     'allowed_models', 'allowed_prompts', 'max_turns_per_conversation',
+    'monitoring_disclosure', 'persona_override',
     'safety_disclaimer_text', 'system_context_override',
 ]
 
 _BOOL_FLAGS = {
+    'is_clinical_use',
     'require_safety_plan', 'allow_patient_anti_patterns',
     'enable_nlp_report', 'allow_custom_prompts',
 }
 
 _JSON_FLAGS = {'allowed_models', 'allowed_prompts', 'report_config'}
 _INT_FLAGS = {'max_turns_per_conversation', 'default_system_prompt_id'}
-_TEXT_FLAGS = {'safety_disclaimer_text', 'system_context_override'}
+_TEXT_FLAGS = {'safety_disclaimer_text', 'system_context_override', 'monitoring_disclosure', 'persona_override'}
 
 
 @admin_bp.route("/api/admin/provider/<int:provider_id>/feature-flags", methods=["GET"])

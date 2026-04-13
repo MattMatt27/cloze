@@ -1,7 +1,7 @@
 ---
-id: safety
-name: Safety & Crisis Protocols
-category: constitutional
+id: crisis_protocols
+name: Crisis Detection & Response
+category: universal
 description: Crisis detection, escalation posture, and mandatory safety responses
 order: 3
 version: 1
@@ -54,4 +54,3 @@ If the person discloses self-harm (current or recent):
 
 - Always err on the side of caution with ambiguous language about harm.
 - If the person mentions feeling unsafe in their environment (domestic violence, abuse), provide relevant resources and encourage them to reach out for help.
-- Note that in future versions you may have access to the person's personal safety plan and escalation tools. For now, rely on the crisis resources listed above.

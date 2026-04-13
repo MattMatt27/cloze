@@ -2,10 +2,16 @@
 Prompt Composer
 
 Assembles the final system prompt from layers:
-1. Constitutional (identity + scope + safety + system_context)
-2. Domain (anxiety, depression, etc.)
-3. Provider custom instructions
-4. Safety plan context (future)
+
+1. Universal (always) — forbidden content, AI honesty, crisis protocols,
+   platform context, persona guardrails
+2. Clinical safety (when is_clinical_use = true) — non-editable clinical
+   restrictions
+3. Monitoring disclosure (team-written freeform text)
+4. Persona (default, overridable per provider)
+5. Interaction context (default, overridable per provider)
+6. Domain (anxiety, depression, etc.)
+7. Safety plan (when is_clinical_use = true AND plan exists)
 """
 
 from typing import Optional
@@ -14,46 +20,86 @@ from .registry import PromptRegistry
 
 
 def compose_system_prompt(
+    *,
+    is_clinical_use: bool = True,
+    monitoring_disclosure: Optional[str] = None,
+    persona_override: Optional[str] = None,
+    interaction_context_override: Optional[str] = None,
     domain_id: Optional[str] = None,
     custom_instructions: Optional[str] = None,
     safety_plan: Optional[dict] = None,
-    system_context_override: Optional[str] = None,
 ) -> str:
     """
     Assemble full system prompt from layers.
 
     Args:
-        domain_id: ID of the domain prompt to include (e.g. "anxiety")
+        is_clinical_use: Whether clinical safety prompt is loaded
+        monitoring_disclosure: Team-written monitoring disclosure text
+        persona_override: Replaces the default persona prompt
+        interaction_context_override: Replaces the default interaction context
+        domain_id: Domain prompt to include (e.g. "anxiety")
         custom_instructions: Provider's custom instructions text
-        safety_plan: Future — per-patient safety plan context
-        system_context_override: If set, replaces the system_context constitutional prompt
+        safety_plan: Patient's active safety plan dict
 
     Returns:
         The fully composed system prompt string.
     """
     registry = PromptRegistry.instance()
-
     sections = []
 
-    # Layer 1: Constitutional (always included)
-    for prompt in registry.get_constitutional_prompts():
-        if prompt.id == 'system_context' and system_context_override:
-            sections.append(system_context_override)
-        else:
-            sections.append(prompt.content)
+    # Layer 1: Universal (always loaded, not editable)
+    for prompt in registry.get_universal_prompts():
+        sections.append(prompt.content)
 
-    # Layer 2: Domain
+    # Layer 2: Study context (conditional prompts from study_context/)
+    if is_clinical_use:
+        clinical = registry.get_study_context_prompt('clinical_safety')
+        if clinical:
+            sections.append(clinical.content)
+
+    # PII protection — loaded when no safety plan is active (safety plans
+    # are inherently personal, so PII restrictions conflict with them)
+    if not safety_plan:
+        pii = registry.get_study_context_prompt('pii_protection')
+        if pii:
+            sections.append(pii.content)
+
+    # Layer 3: Monitoring disclosure (team-written)
+    if monitoring_disclosure and monitoring_disclosure.strip():
+        sections.append(
+            f"## Conversation Monitoring\n\n{monitoring_disclosure.strip()}"
+        )
+
+    # Layer 4: Persona (overridable)
+    if persona_override and persona_override.strip():
+        sections.append(persona_override.strip())
+    else:
+        default_persona = registry.get_default_prompt('default_persona')
+        if default_persona:
+            sections.append(default_persona.content)
+
+    # Layer 5: Interaction context (overridable)
+    if interaction_context_override and interaction_context_override.strip():
+        sections.append(interaction_context_override.strip())
+    else:
+        default_context = registry.get_default_prompt('default_interaction_context')
+        if default_context:
+            sections.append(default_context.content)
+
+    # Layer 6: Domain prompt
     if domain_id:
         domain = registry.get_domain_prompt(domain_id)
         if domain:
             sections.append(f"## Clinical Focus\n\n{domain.content}")
 
-    # Layer 3: Provider customization
+    # Layer 7: Custom instructions (provider-written per conversation)
     if custom_instructions and custom_instructions.strip():
-        sections.append(f"## Additional Instructions\n\n{custom_instructions.strip()}")
+        sections.append(
+            f"## Additional Instructions\n\n{custom_instructions.strip()}"
+        )
 
-    # Layer 4: Safety plan
-    if safety_plan:
+    # Layer 8: Safety plan (when clinical + plan exists)
+    if is_clinical_use and safety_plan:
         sections.append(_format_safety_plan(safety_plan))
 
     return "\n\n---\n\n".join(sections)
@@ -215,8 +261,6 @@ def _format_conflicts(all_anti_patterns: list[dict], conflicts: list[dict]) -> s
         "The following anti-patterns have been flagged as potentially conflicting. "
         "Both remain in effect. Use your judgement to navigate the tension between them:"
     ]
-    # Build index for lookup
-    ap_index = {i: ap for i, ap in enumerate(all_anti_patterns)}
 
     for conflict_ap in conflicts:
         other_idx = conflict_ap.get('conflicts_with')

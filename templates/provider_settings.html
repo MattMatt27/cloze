@@ -18,17 +18,44 @@
     <p class="text-sm text-stone-500">Configure your study's content and prompts</p>
   </section>
 
-  {# 2. System Context Override #}
+  {# 2. Persona Override #}
   <section class="mb-8 rounded-lg border border-stone-200 bg-white">
     <div class="border-b border-stone-100 px-5 py-3">
-      <h3 class="text-sm font-semibold text-stone-900">System Context Override</h3>
-      <p class="mt-0.5 text-xs text-stone-500">The system context is injected into every AI prompt. It tells the AI about the platform and how conversations work. Edit the default or write your own.</p>
+      <h3 class="text-sm font-semibold text-stone-900">Persona</h3>
+      <p class="mt-0.5 text-xs text-stone-500">Defines the AI's tone, communication style, and role. Edit the default or replace it entirely for your study.</p>
+    </div>
+    <div class="p-5">
+      <textarea id="personaOverride"
+                class="auto-resize w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-mono focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo"
+                placeholder="Loading default..."></textarea>
+      <button onclick="resetPersona()" class="mt-2 text-xs text-stone-400 hover:text-cloze-indigo">Reset to default</button>
+    </div>
+  </section>
+
+  {# 3. Interaction Context Override #}
+  <section class="mb-8 rounded-lg border border-stone-200 bg-white">
+    <div class="border-b border-stone-100 px-5 py-3">
+      <h3 class="text-sm font-semibold text-stone-900">Interaction Context</h3>
+      <p class="mt-0.5 text-xs text-stone-500">Defines what conversations are for — their purpose, scope, and boundaries. This is the primary prompt that shapes the interaction.</p>
     </div>
     <div class="p-5">
       <textarea id="contextOverride"
                 class="auto-resize w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-mono focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo"
                 placeholder="Loading default..."></textarea>
       <button onclick="resetContext()" class="mt-2 text-xs text-stone-400 hover:text-cloze-indigo">Reset to default</button>
+    </div>
+  </section>
+
+  {# 4. Monitoring Disclosure #}
+  <section class="mb-8 rounded-lg border border-stone-200 bg-white">
+    <div class="border-b border-stone-100 px-5 py-3">
+      <h3 class="text-sm font-semibold text-stone-900">Monitoring Disclosure</h3>
+      <p class="mt-0.5 text-xs text-stone-500">How the AI should describe conversation monitoring to participants. Each protocol may differ — write what's accurate for your study.</p>
+    </div>
+    <div class="p-5">
+      <textarea id="monitoringDisclosure"
+                class="auto-resize w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-mono focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo"
+                placeholder="e.g., Your conversations are reviewed by the research team. Reports are generated for your provider at the end of each study phase."></textarea>
     </div>
   </section>
 
@@ -157,8 +184,14 @@
       renderBlockEditor();
       renderDisclaimerPreview();
 
+      var personaEl = document.getElementById('personaOverride');
+      personaEl.value = myFlags.persona_override || defaults.persona_default || '';
+
       var contextEl = document.getElementById('contextOverride');
-      contextEl.value = myFlags.system_context_override || defaults.system_context_default || '';
+      contextEl.value = myFlags.system_context_override || defaults.interaction_context_default || '';
+
+      var monitoringEl = document.getElementById('monitoringDisclosure');
+      monitoringEl.value = myFlags.monitoring_disclosure || '';
 
       if (myFlags.allow_custom_prompts === false) {
         document.getElementById('promptsSection').classList.add('hidden');
@@ -311,8 +344,12 @@
     renderDisclaimerPreview();
   }
 
+  function resetPersona() {
+    document.getElementById('personaOverride').value = defaults.persona_default || '';
+  }
+
   function resetContext() {
-    document.getElementById('contextOverride').value = defaults.system_context_default || '';
+    document.getElementById('contextOverride').value = defaults.interaction_context_default || '';
   }
 
   async function saveContent() {
@@ -321,9 +358,12 @@
 
     // If the value matches the default, save null (inherit) to avoid storing a copy
     var disclaimerVal = document.getElementById('disclaimerText').value;
+    var personaVal = document.getElementById('personaOverride').value;
     var contextVal = document.getElementById('contextOverride').value;
+    var monitoringVal = document.getElementById('monitoringDisclosure').value;
     if (disclaimerVal.trim() === (defaults.disclaimer_default || '').trim()) disclaimerVal = null;
-    if (contextVal.trim() === (defaults.system_context_default || '').trim()) contextVal = null;
+    if (personaVal.trim() === (defaults.persona_default || '').trim()) personaVal = null;
+    if (contextVal.trim() === (defaults.interaction_context_default || '').trim()) contextVal = null;
 
     try {
       var resp = await fetch('/api/provider/my-flags', {
@@ -331,7 +371,9 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           safety_disclaimer_text: disclaimerVal || null,
+          persona_override: personaVal || null,
           system_context_override: contextVal || null,
+          monitoring_disclosure: monitoringVal || null,
         })
       });
       var result = await resp.json();
@@ -438,6 +480,7 @@
   function renderFlagsSummary() {
     var el = document.getElementById('flagsSummary');
     var items = [
+      { label: 'Clinical use', value: myFlags.is_clinical_use !== false },
       { label: 'Safety plans', value: myFlags.require_safety_plan !== false },
       { label: 'NLP reports', value: myFlags.enable_nlp_report !== false },
       { label: 'Custom prompts', value: myFlags.allow_custom_prompts !== false },

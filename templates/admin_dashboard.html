@@ -985,6 +985,7 @@
   // ── Provider Feature Flags ────────────────────────────────────
 
   var FLAG_DEFS = [
+    { key: 'is_clinical_use', label: 'Clinical use', desc: 'Loads clinical safety prompt (no diagnosis, no treatment, provider redirects). Turn off for non-clinical studies.', type: 'bool' },
     { key: 'require_safety_plan', label: 'Require safety plan', desc: 'Must have an active safety plan to start conversations', type: 'bool' },
     { key: 'allow_patient_anti_patterns', label: 'Allow participant anti-patterns', desc: 'Patients can add their own anti-patterns to safety plans', type: 'bool' },
     { key: 'enable_nlp_report', label: 'Enable NLP reports', desc: 'Generate NLP analysis reports when chat windows expire', type: 'bool' },
@@ -993,7 +994,6 @@
     { key: 'allowed_models', label: 'Allowed models', desc: 'Restrict this provider to specific models (blank = all models)', type: 'models' },
     { key: 'allowed_prompts', label: 'System prompts', desc: 'Select which prompts this provider can use. None selected = general prompt only.', type: 'prompts' },
     { key: 'default_system_prompt_id', label: 'Default system prompt', desc: 'Prompt used when templates don\'t specify one', type: 'prompt' },
-    { key: 'system_context_override', label: 'System context override', desc: 'Replace the default platform context prompt', type: 'text' },
     { key: 'safety_disclaimer_text', label: 'Safety disclaimer override', desc: 'Custom safety disclaimer modal text (HTML allowed)', type: 'text' },
   ];
 

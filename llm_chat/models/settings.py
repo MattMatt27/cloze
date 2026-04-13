@@ -91,9 +91,14 @@ class ProviderFeatureFlags(db.Model):
     # Conversation limits
     max_turns_per_conversation = db.Column(db.Integer, nullable=True)
 
+    # Constitutional prompt configuration
+    is_clinical_use = db.Column(db.Boolean, nullable=True)        # Loads clinical_safety.md when true
+    monitoring_disclosure = db.Column(db.Text, nullable=True)     # Team-written monitoring disclosure text
+    persona_override = db.Column(db.Text, nullable=True)          # Replaces defaults/persona.md
+
     # Configurable content
     safety_disclaimer_text = db.Column(db.Text, nullable=True)
-    system_context_override = db.Column(db.Text, nullable=True)
+    system_context_override = db.Column(db.Text, nullable=True)   # Replaces defaults/interaction_context.md
 
     created_at = db.Column(db.Float, default=lambda: time.time())
     updated_at = db.Column(db.Float, onupdate=lambda: time.time())
