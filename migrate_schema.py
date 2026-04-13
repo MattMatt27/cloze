@@ -150,6 +150,20 @@ def run_migration(apply=False):
     cursor.close()
     conn.close()
 
+    # ── Create any missing tables via SQLAlchemy ────────────
+    if apply:
+        print("\nRunning db.create_all() for any new tables...")
+        try:
+            from llm_chat import create_app
+            from llm_chat.extensions import db
+            app = create_app()
+            with app.app_context():
+                db.create_all()
+            print("Done. All tables up to date.")
+        except Exception as e:
+            print(f"Warning: db.create_all() failed: {e}")
+            print("New tables may need to be created manually.")
+
 
 if __name__ == '__main__':
     apply = '--apply' in sys.argv

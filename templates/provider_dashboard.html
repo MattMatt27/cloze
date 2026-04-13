@@ -162,9 +162,9 @@
             (reports.length ? '<span>·</span><span>' + reports.length + ' reports</span>' : '') +
           '</div>' +
         '</div>' +
-        '<div class="flex items-center gap-2 shrink-0 ml-3">' +
-          '<button onclick="event.stopPropagation(); renamePatient(' + patient.id + ', \'' + escapeHtml(patient.username) + '\')" class="hidden sm:inline-block text-xs text-stone-400 hover:text-stone-600 transition-colors">Rename</button>' +
-          '<button onclick="event.stopPropagation(); resetPatientPassword(' + patient.id + ', \'' + escapeHtml(patient.username) + '\')" class="hidden sm:inline-block text-xs text-stone-400 hover:text-stone-600 transition-colors">Reset Password</button>' +
+        '<div class="flex items-center gap-3 shrink-0 ml-3">' +
+          '<button onclick="event.stopPropagation(); renamePatient(' + patient.id + ', \'' + escapeHtml(patient.username) + '\')" class="hidden sm:inline-block rounded-md border border-stone-200 px-2 py-0.5 text-xs text-stone-500 hover:text-stone-700 hover:border-stone-300 transition-colors">Rename</button>' +
+          '<button onclick="event.stopPropagation(); resetPatientPassword(' + patient.id + ', \'' + escapeHtml(patient.username) + '\')" class="hidden sm:inline-block rounded-md border border-stone-200 px-2 py-0.5 text-xs text-stone-500 hover:text-stone-700 hover:border-stone-300 transition-colors">Reset Password</button>' +
           '<span class="text-xs text-cloze-indigo opacity-0 group-hover:opacity-100 transition-opacity">→</span>' +
         '</div>' +
       '</div>';
