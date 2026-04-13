@@ -199,10 +199,10 @@
     {# ── Sidebar ─────────────────────────────────────────── #}
     {% if current_user.is_authenticated and current_user.role == 'admin' %}
     <aside id="sidebar"
-           class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col border-r border-stone-800 bg-[#15121e] px-3 py-4 transition-transform lg:static lg:translate-x-0">
+           class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col border-r border-stone-800 bg-[#15121e] px-3 py-4 transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0">
     {% else %}
     <aside id="sidebar"
-           class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col border-r border-stone-200 bg-stone-50 px-3 py-4 transition-transform lg:static lg:translate-x-0">
+           class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col border-r border-stone-200 bg-stone-50 px-3 py-4 transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0">
     {% endif %}
 
       {# Logo + brand #}
@@ -211,7 +211,7 @@
         <span class="text-base font-semibold {% if current_user.role == 'admin' %}text-white{% else %}text-stone-900{% endif %}">Cloze</span>
       </div>
 
-      <nav class="space-y-6 overflow-y-auto px-1">
+      <nav class="flex-1 min-h-0 space-y-6 overflow-y-auto px-1">
         <div>
           <p class="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wider {% if current_user.role == 'admin' %}text-stone-500{% else %}text-stone-400{% endif %}">Menu</p>
           <ul class="space-y-0.5">
@@ -347,7 +347,7 @@
       </nav>
 
       {# Sidebar footer #}
-      <div class="mt-auto border-t {% if current_user.role == 'admin' %}border-stone-800{% else %}border-stone-100{% endif %} pt-2 px-2">
+      <div class="shrink-0 mt-auto border-t {% if current_user.role == 'admin' %}border-stone-800{% else %}border-stone-100{% endif %} pt-2 px-2">
         <button onclick="logout()"
                 class="flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm {% if current_user.role == 'admin' %}text-stone-500 hover:bg-white/5 hover:text-stone-300{% else %}text-stone-400 hover:bg-stone-100 hover:text-stone-600{% endif %} transition">
           <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
