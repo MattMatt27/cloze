@@ -556,6 +556,16 @@ All overrides live in a single `@media (prefers-color-scheme: dark) { ... }` blo
 
 ---
 
+## Provider Auto Dark Mode
+
+Provider pages also follow `prefers-color-scheme: dark`. The overrides live in `base.html` inside a `{% if current_user.role == 'provider' %}` conditional, so they apply to all provider pages at once (dashboard, chats, settings, study design, chat windows).
+
+The provider dark mode reuses the same color tokens as the admin and participant themes. Page-specific custom styles (study design inline inputs, chat list row hovers, filter inputs) have additional `@media` overrides in their own templates.
+
+The `conversation.html` transcript page overrides `{% block layout %}` entirely, so it has its own self-contained dark mode block covering the header, messages, quotes sidebar, bottom sheet, and report modal.
+
+---
+
 ## Key Principles
 
 1. **Warm neutrals** — `stone-*` palette, never `slate-*` or `gray-*`

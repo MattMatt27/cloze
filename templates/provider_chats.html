@@ -14,6 +14,13 @@
   .filter-input { border: none; border-bottom: 1px solid #E5E7EB; background: transparent;
     outline: none; transition: border-color 0.15s; }
   .filter-input:focus { border-bottom-color: #A78BFA; }
+
+  @media (prefers-color-scheme: dark) {
+    .chat-list-row:hover { color: #c4b5fd !important; }
+    .chat-list-row.unstarted:hover { color: #a8a29e !important; }
+    .filter-input { border-color: #3a3545 !important; color: #d6d3d1 !important; }
+    .filter-input:focus { border-color: #c4b5fd !important; }
+  }
 </style>
 {% endblock %}
 

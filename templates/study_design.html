@@ -48,6 +48,22 @@
   .type-option:hover { padding-left: 1rem; color: #4338CA; }
   .type-option:hover .type-dot { background: #7C3AED; }
   .type-dot { width: 8px; height: 8px; border-radius: 50%; background: #D1D5DB; transition: background 0.15s; flex-shrink: 0; }
+
+  @media (prefers-color-scheme: dark) {
+    .flow-item:hover { color: #c4b5fd; }
+    .flow-item.active { color: #c4b5fd; background: rgba(139,92,246,0.12); }
+    .phase-accent { background: #3a3545; }
+    .phase-group:hover .phase-accent { background: #A78BFA; }
+    .chat-row:hover { color: #c4b5fd; }
+    .inline-input { color: #e7e5e4; }
+    .inline-input:focus { border-bottom-color: #A78BFA; }
+    .inline-input::placeholder { color: #57534e; }
+    .add-trigger { color: #78716c; }
+    .add-trigger:hover { color: #c4b5fd; }
+    .type-option:hover { color: #c4b5fd; }
+    .type-dot { background: #57534e; }
+    .timeline-bar { background: #2a2535; }
+  }
 </style>
 {% endblock %}
 

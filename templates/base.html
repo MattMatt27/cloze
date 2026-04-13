@@ -34,6 +34,155 @@
     #sidebar a.text-cloze-indigo svg { color: #c4b5fd !important; }
   </style>
   {% endif %}
+  {% if current_user.is_authenticated and current_user.role == 'provider' %}
+  <style>
+    @media (prefers-color-scheme: dark) {
+      /* ── Provider auto dark mode ── */
+
+      /* Body */
+      body { background: #1c1926 !important; color: #d6d3d1 !important; }
+
+      /* Logo swap */
+      #sidebar img[alt="Cloze"] { content: url('/static/images/logo-dark.svg'); }
+
+      /* Sidebar */
+      #sidebar { background: #15121e !important; border-color: #2a2535 !important; }
+      #sidebar .border-b, #sidebar .border-t, #sidebar .border-stone-100 { border-color: #2a2535 !important; }
+      #sidebar span.text-stone-900 { color: #f5f5f4 !important; }
+      #sidebar .text-stone-600 { color: #a8a29e !important; }
+      #sidebar .text-stone-400 { color: #78716c !important; }
+      #sidebar button:hover, #sidebar a:hover { background: rgba(255,255,255,0.05) !important; }
+      #sidebar a.bg-cloze-lavender { background: rgba(255,255,255,0.08) !important; }
+      #sidebar a.text-cloze-indigo { color: #c4b5fd !important; }
+      #sidebar a.text-cloze-indigo svg { color: #c4b5fd !important; }
+      #sidebar svg.text-stone-400 { color: #78716c !important; }
+
+      /* Header */
+      header { background: rgba(28,25,38,0.9) !important; border-color: #2a2535 !important; }
+      header h1 { color: #f5f5f4 !important; }
+      header .text-stone-400 { color: #a8a29e !important; }
+
+      /* Overlay */
+      #overlay { background: rgba(0,0,0,0.5) !important; }
+
+      /* ── Main content ── */
+
+      /* Headings */
+      main .text-stone-900 { color: #f5f5f4 !important; }
+      main .text-stone-800 { color: #e7e5e4 !important; }
+      main .text-stone-700 { color: #d6d3d1 !important; }
+      main .text-stone-600 { color: #a8a29e !important; }
+      main .text-stone-500 { color: #a8a29e !important; }
+      main .text-stone-400 { color: #78716c !important; }
+      main .text-stone-300 { color: #78716c !important; }
+
+      /* Cards and sections */
+      main .bg-white { background: #221f2e !important; }
+      main .bg-stone-50 { background: #1c1926 !important; }
+      main .bg-violet-50\/40 { background: #2a2535 !important; }
+      main .bg-muted { background: #2a2535 !important; }
+
+      /* Borders and dividers */
+      main .border-stone-200 { border-color: #2a2535 !important; }
+      main .border-stone-100 { border-color: #2a2535 !important; }
+      main .divide-stone-100 > * + * { border-color: #2a2535 !important; }
+      main .divide-stone-50 > * + * { border-color: #2a2535 !important; }
+      main hr { border-color: #2a2535 !important; }
+
+      /* Inputs */
+      main input, main select, main textarea {
+        background: #1c1926 !important;
+        border-color: #3a3545 !important;
+        color: #e7e5e4 !important;
+      }
+      main input::placeholder, main textarea::placeholder { color: #57534e !important; }
+      main input:focus, main select:focus, main textarea:focus { border-color: #5B5FC7 !important; }
+
+      /* Filter inputs (borderless style) */
+      main .filter-input { border-color: #3a3545 !important; color: #d6d3d1 !important; background: transparent !important; }
+      main .filter-input:focus { border-color: #c4b5fd !important; }
+
+      /* Tables */
+      main table th { color: #a8a29e !important; }
+      main table td { color: #d6d3d1 !important; }
+
+      /* Dashed empty states */
+      main .border-dashed { border-color: #3a3545 !important; }
+
+      /* Hover states */
+      main .hover\:bg-stone-50:hover { background: #2a2535 !important; }
+      main .hover\:bg-stone-100:hover { background: #2a2535 !important; }
+      main .hover\:bg-violet-50:hover { background: #2a2535 !important; }
+
+      /* Badges */
+      main .bg-emerald-50 { background: rgba(16,185,129,0.15) !important; }
+      main .bg-amber-50 { background: rgba(245,158,11,0.1) !important; }
+      main .bg-amber-100 { background: rgba(245,158,11,0.15) !important; }
+      main .text-amber-700 { color: #fcd34d !important; }
+      main .text-amber-800 { color: #fcd34d !important; }
+      main .bg-red-50 { background: rgba(239,68,68,0.1) !important; }
+      main .bg-violet-50 { background: rgba(139,92,246,0.12) !important; }
+      main .bg-stone-100 { background: #2a2535 !important; }
+
+      /* Status dots stay as-is (they're colored) */
+
+      /* Chat list rows */
+      main .chat-list-row:hover { color: #c4b5fd !important; }
+      main .chat-list-row.unstarted:hover { color: #a8a29e !important; }
+
+      /* Tabs */
+      main .window-tab-btn { color: #a8a29e !important; }
+      main .window-tab-btn[data-tab].border-cloze-indigo { color: #f5f5f4 !important; }
+      main .border-b.border-stone-200 { border-color: #2a2535 !important; }
+
+      /* Prompt form */
+      main #promptForm { background: #2a2535 !important; }
+
+      /* Disclaimer block editor */
+      main .border-amber-300 { border-color: rgba(245,158,11,0.3) !important; }
+      main .bg-amber-50\/50 { background: rgba(245,158,11,0.08) !important; }
+      main .border-red-300 { border-color: rgba(239,68,68,0.3) !important; }
+      main .bg-red-50\/50 { background: rgba(239,68,68,0.08) !important; }
+      main .border-violet-300 { border-color: rgba(139,92,246,0.3) !important; }
+      main .bg-violet-50\/50 { background: rgba(139,92,246,0.08) !important; }
+
+      /* Disclaimer preview */
+      main #disclaimerPreview { color: #d6d3d1 !important; }
+      main #disclaimerPreview .text-stone-700 { color: #d6d3d1 !important; }
+      main #disclaimerPreview .bg-amber-50 { background: rgba(245,158,11,0.1) !important; }
+      main #disclaimerPreview .text-amber-800,
+      main #disclaimerPreview .text-amber-900 { color: #fcd34d !important; }
+      main #disclaimerPreview .bg-red-50 { background: rgba(239,68,68,0.1) !important; }
+      main #disclaimerPreview .text-red-900 { color: #fca5a5 !important; }
+
+      /* Modals */
+      .modal .bg-white, .modal .rounded-xl.bg-white { background: #221f2e !important; }
+      .modal .bg-stone-50 { background: #1c1926 !important; }
+      .modal .text-stone-900 { color: #f5f5f4 !important; }
+      .modal .text-stone-800 { color: #e7e5e4 !important; }
+      .modal .text-stone-700 { color: #d6d3d1 !important; }
+      .modal .text-stone-600 { color: #a8a29e !important; }
+      .modal .text-stone-500 { color: #a8a29e !important; }
+      .modal .text-stone-400 { color: #78716c !important; }
+      .modal .border-stone-200 { border-color: #3a3545 !important; }
+      .modal .border-stone-100 { border-color: #2a2535 !important; }
+      .modal .bg-amber-50 { background: rgba(245,158,11,0.1) !important; }
+      .modal .text-amber-800 { color: #fcd34d !important; }
+      .modal input, .modal select, .modal textarea {
+        background: #1c1926 !important;
+        border-color: #3a3545 !important;
+        color: #e7e5e4 !important;
+      }
+
+      /* Global dialog (from shared.js) */
+      #globalDialog .bg-white { background: #221f2e !important; }
+      #globalDialog .text-stone-900 { color: #f5f5f4 !important; }
+      #globalDialog .text-stone-600 { color: #a8a29e !important; }
+      #globalDialog .border-stone-200 { border-color: #3a3545 !important; }
+      #globalDialog input { background: #1c1926 !important; border-color: #3a3545 !important; color: #e7e5e4 !important; }
+    }
+  </style>
+  {% endif %}
 </head>
 
 {% block body_tag %}
