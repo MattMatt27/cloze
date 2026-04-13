@@ -7,37 +7,21 @@
   {# Welcome #}
   <section class="mb-6">
     <h2 class="mb-1 text-lg font-semibold text-stone-900">Provider Dashboard</h2>
-    <p class="text-sm text-stone-500">Manage your patients' chat sessions and therapeutic conversations</p>
+    <p class="text-sm text-stone-500">Manage your participants' chat sessions and conversations</p>
   </section>
 
   {# Patient table #}
-  <section class="mb-8 rounded-lg border border-stone-200 bg-white overflow-hidden">
-    <div class="border-b border-stone-100 px-5 py-3 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <h3 class="text-sm font-semibold text-stone-900">Patients</h3>
-        <span id="patientCount" class="text-xs text-stone-400"></span>
+  <section class="mb-8">
+    <div class="flex items-baseline justify-between mb-3">
+      <div class="flex items-baseline gap-3">
+        <h3 class="text-lg font-semibold text-stone-900">Participants</h3>
+        <span id="patientCount" class="text-sm text-stone-400"></span>
       </div>
       <button onclick="showCreatePatientModal()"
-              class="inline-flex items-center gap-1.5 rounded-lg bg-cloze-indigo px-3 py-1.5 text-xs font-medium text-white transition hover:bg-cloze-hover">
-        <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-        Create Patient
-      </button>
+              class="text-sm font-medium text-cloze-indigo hover:text-cloze-hover transition-colors">+ Create</button>
     </div>
-    <div id="patientTableContainer" class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead>
-          <tr class="border-b border-stone-200 bg-violet-50/60 text-left">
-            <th class="px-5 py-2.5 font-medium text-stone-600">Patient</th>
-            <th class="px-5 py-2.5 font-medium text-stone-600">Active Windows</th>
-            <th class="px-5 py-2.5 font-medium text-stone-600 hidden sm:table-cell">Last Activity</th>
-            <th class="px-5 py-2.5 font-medium text-stone-600">Reports</th>
-            <th class="px-5 py-2.5 font-medium text-stone-600"></th>
-          </tr>
-        </thead>
-        <tbody id="patientTableBody">
-          <tr><td colspan="5" class="px-5 py-8 text-center text-stone-400">Loading...</td></tr>
-        </tbody>
-      </table>
+    <div id="patientTableBody" class="divide-y divide-stone-100">
+      <div class="py-8 text-center text-stone-400 text-sm">Loading...</div>
     </div>
   </section>
 
@@ -64,13 +48,13 @@
 {% endblock %}
 
 {% block modals %}
-  {# Create Patient Modal #}
+  {# Create Participant Modal #}
   <div class="modal fixed inset-0 z-50 hidden items-center justify-center bg-black/40" id="createPatientModal">
     <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
-      <h3 class="mb-4 text-base font-semibold text-stone-900">Create Patients</h3>
+      <h3 class="mb-4 text-base font-semibold text-stone-900">Create Participants</h3>
       <form onsubmit="createPatients(event)">
         <div class="mb-5">
-          <label for="patientCount_input" class="mb-1.5 block text-sm font-medium text-stone-700">Number of patients</label>
+          <label for="patientCount_input" class="mb-1.5 block text-sm font-medium text-stone-700">Number of participants</label>
           <input type="number" id="patientCount_input" min="1" max="50" value="1" required
                  class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo">
           <p class="mt-1 text-xs text-stone-400">Usernames and passwords are auto-generated. Max 50 per request.</p>
@@ -140,60 +124,49 @@
   }
 
   function renderPatientTable() {
-    var tbody = document.getElementById('patientTableBody');
+    var container = document.getElementById('patientTableBody');
     var countEl = document.getElementById('patientCount');
-    countEl.textContent = allPatients.length + ' patient' + (allPatients.length !== 1 ? 's' : '');
+    countEl.textContent = allPatients.length + ' participant' + (allPatients.length !== 1 ? 's' : '');
 
     if (!allPatients.length) {
-      tbody.innerHTML = '<tr><td colspan="5" class="px-5 py-8 text-center text-stone-400">No patients assigned yet.</td></tr>';
+      container.innerHTML = '<div class="py-8 text-center text-stone-400 text-sm">No participants yet. Click "+ Create" to add one.</div>';
       return;
     }
 
-    // Build lookup maps
     var windowsByPatient = {};
     allWindows.forEach(function(w) {
-      var pid = w.patient_id;
-      if (!windowsByPatient[pid]) windowsByPatient[pid] = [];
-      windowsByPatient[pid].push(w);
+      if (!windowsByPatient[w.patient_id]) windowsByPatient[w.patient_id] = [];
+      windowsByPatient[w.patient_id].push(w);
     });
 
     var reportsByPatient = {};
     allReports.forEach(function(r) {
-      var pid = r.patient_id;
-      if (!reportsByPatient[pid]) reportsByPatient[pid] = [];
-      reportsByPatient[pid].push(r);
+      if (!reportsByPatient[r.patient_id]) reportsByPatient[r.patient_id] = [];
+      reportsByPatient[r.patient_id].push(r);
     });
 
-    tbody.innerHTML = allPatients.map(function(patient) {
+    container.innerHTML = allPatients.map(function(patient) {
       var windows = windowsByPatient[patient.id] || [];
       var activeWindows = windows.filter(function(w) { return w.visible && w.is_current; });
       var reports = reportsByPatient[patient.id] || [];
-      var newReports = reports.filter(function(r) {
-        // Reports from last 7 days
-        return r.generated_at && (Date.now() / 1000 - r.generated_at) < 604800;
-      });
-
       var lastActivity = patient.last_active || patient.updated_at;
       var lastActivityText = lastActivity ? formatRelativeTime(lastActivity) : 'No activity';
 
-      var reportsText = reports.length ? reports.length + ' total' : '0';
-      if (newReports.length) reportsText = '<span class="font-medium text-violet-600">' + newReports.length + ' new</span>';
-
-      return '<tr class="border-b border-stone-100 last:border-0 hover:bg-stone-50 transition">' +
-        '<td class="px-5 py-3">' +
-          '<div class="font-medium text-stone-900">' + escapeHtml(patient.username || 'Unknown') + '</div>' +
-          (patient.email ? '<div class="text-xs text-stone-400">' + escapeHtml(patient.email) + '</div>' : '') +
-        '</td>' +
-        '<td class="px-5 py-3 text-stone-700">' + activeWindows.length + '</td>' +
-        '<td class="px-5 py-3 text-stone-500 hidden sm:table-cell">' + lastActivityText + '</td>' +
-        '<td class="px-5 py-3 text-stone-700">' + reportsText + '</td>' +
-        '<td class="px-5 py-3 text-right">' +
-          '<button onclick="event.stopPropagation(); resetPatientPassword(' + patient.id + ', \'' + escapeHtml(patient.username) + '\')" class="mr-2 rounded-md border border-stone-200 px-2 py-1 text-xs text-stone-600 hover:bg-stone-50">Reset Password</button>' +
-          '<a href="/provider/chat-windows?patient_id=' + patient.id + '" class="inline-flex items-center gap-1 text-xs font-medium text-cloze-indigo transition hover:text-cloze-hover">' +
-            'Manage <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>' +
-          '</a>' +
-        '</td>' +
-      '</tr>';
+      return '<div class="flex items-center justify-between py-3 group cursor-pointer hover:text-cloze-indigo transition-colors" onclick="window.location.href=\'/provider/chats?patient_id=' + patient.id + '\'">' +
+        '<div class="min-w-0 flex-1">' +
+          '<div class="text-sm font-medium text-stone-900 group-hover:text-cloze-indigo">' + escapeHtml(patient.username) + '</div>' +
+          '<div class="flex items-center gap-2 mt-0.5 text-xs text-stone-400">' +
+            '<span>' + activeWindows.length + ' active</span>' +
+            '<span>·</span>' +
+            '<span>' + lastActivityText + '</span>' +
+            (reports.length ? '<span>·</span><span>' + reports.length + ' reports</span>' : '') +
+          '</div>' +
+        '</div>' +
+        '<div class="flex items-center gap-2 shrink-0 ml-3">' +
+          '<button onclick="event.stopPropagation(); resetPatientPassword(' + patient.id + ', \'' + escapeHtml(patient.username) + '\')" class="hidden sm:inline-block text-xs text-stone-400 hover:text-stone-600 transition-colors">Reset Password</button>' +
+          '<span class="text-xs text-cloze-indigo opacity-0 group-hover:opacity-100 transition-opacity">→</span>' +
+        '</div>' +
+      '</div>';
     }).join('');
   }
 
@@ -287,7 +260,7 @@
       if (result.status === 'success') {
         hideModal('createPatientModal');
         _lastCredentials = result.patients;
-        showCredentials(result.patients, 'New Patient Credentials');
+        showCredentials(result.patients, 'New Participant Credentials');
         loadDashboard();
       } else {
         alert(result.error || 'Failed to create patients');

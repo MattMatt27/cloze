@@ -31,6 +31,11 @@ COLUMN_ADDITIONS = [
     ('users', 'failed_login_attempts', 'INTEGER DEFAULT 0'),
     ('users', 'locked_until', 'REAL'),
     ('provider_feature_flags', 'allowed_prompts', 'TEXT'),
+    ('chat_windows', 'flow_name', 'VARCHAR(200)'),
+    ('chat_windows', 'phase_label', 'VARCHAR(200)'),
+    ('provider_feature_flags', 'is_clinical_use', 'BOOLEAN'),
+    ('provider_feature_flags', 'monitoring_disclosure', 'TEXT'),
+    ('provider_feature_flags', 'persona_override', 'TEXT'),
 ]
 
 
@@ -116,7 +121,8 @@ def run_migration(apply=False):
             print(f"  ADD   {table_name}.{col_name} ({col_type})")
 
     # ── Check for new tables (will be created by db.create_all) ──
-    new_tables = ['safety_plans', 'audit_log', 'escalation_events', 'provider_feature_flags']
+    new_tables = ['safety_plans', 'audit_log', 'escalation_events', 'provider_feature_flags',
+                   'study_flows', 'flow_phases', 'flow_chats', 'flow_enrollments']
     print()
     for t in new_tables:
         if table_exists(cursor, t, db_type):

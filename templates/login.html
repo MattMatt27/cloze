@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sign in — Cloze</title>
-  <link rel="icon" type="image/png" href="/static/images/logo.png">
+  <link rel="icon" type="image/svg+xml" href="/static/images/logo.svg">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -26,7 +26,7 @@
   <div class="w-full max-w-sm">
     {# Logo + title #}
     <div class="mb-8 text-center">
-      <img src="/static/images/logo.png" alt="Cloze" class="mx-auto mb-4 h-14 w-14 rounded-lg">
+      <img src="/static/images/logo.svg" alt="Cloze" class="mx-auto mb-1 h-20 w-20">
       <h1 class="text-xl font-semibold text-stone-900">Sign in to Cloze</h1>
       <p class="mt-1 text-sm text-stone-500">Select your role and sign in</p>
     </div>
@@ -38,7 +38,7 @@
       <div class="mb-6 flex gap-1 rounded-md bg-stone-100 p-1">
         <button type="button" class="role-btn flex-1 rounded-md px-3 py-2 text-sm font-medium transition"
                 data-role="user" onclick="selectRole('user')">
-          Patient
+          Participant
         </button>
         <button type="button" class="role-btn flex-1 rounded-md px-3 py-2 text-sm font-medium transition"
                 data-role="provider" onclick="selectRole('provider')">
@@ -66,8 +66,8 @@
         </div>
 
         <button type="submit" id="loginBtn"
-                class="w-full rounded-md bg-cloze-indigo px-4 py-2.5 text-sm font-medium text-white transition hover:bg-cloze-hover disabled:opacity-50 disabled:cursor-not-allowed">
-          Sign in as Patient
+                class="w-full rounded-md bg-[#312E81] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#3D3A94] disabled:opacity-50 disabled:cursor-not-allowed">
+          Sign in as Participant
         </button>
       </form>
     </div>
@@ -87,7 +87,7 @@
         btn.classList.toggle('text-stone-500', !isActive);
       });
 
-      var label = role === 'user' ? 'Patient' : 'Provider';
+      var label = role === 'user' ? 'Participant' : 'Provider';
       document.getElementById('loginBtn').textContent = 'Sign in as ' + label;
     }
 

@@ -28,18 +28,251 @@
   }
   .time-warning .time-value { color: #DC143C; animation: pulse-warning 2s infinite; }
 
+  /* Messages */
+  .message-group { padding: 0.5rem 0; width: 100%; }
+  .message-group:hover .message-time { opacity: 1; }
+  .message-time { opacity: 0; transition: opacity 0.15s; }
+  .user-bubble { background: #E9E5F5; border-radius: 1.125rem 1.125rem 0.25rem 1.125rem;
+    padding: 0.875rem 1.125rem; max-width: 75%; }
+  .user-bubble .message-text { color: #2D2A3E; }
+  .ai-msg { max-width: 90%; }
+
+  /* Markdown prose */
+  .message-text { font-size: 0.9375rem; line-height: 1.7; color: #44403C; }
   .message-text h1, .message-text h2, .message-text h3,
-  .message-text h4, .message-text h5, .message-text h6 { margin: 1em 0 0.5em; font-weight: 600; }
+  .message-text h4, .message-text h5, .message-text h6 { margin: 1.2em 0 0.5em; font-weight: 600; color: #1C1917; }
   .message-text ul, .message-text ol { margin: 0.5em 0; padding-left: 1.5em; }
-  .message-text li { margin: 0.25em 0; }
-  .message-text p  { margin: 0.5em 0; }
-  .message-text code { background: #f4f4f4; padding: 0.2em 0.4em; border-radius: 3px; font-family: 'Monaco','Menlo',monospace; font-size: 0.9em; }
-  .message-text pre  { background: #f4f4f4; padding: 1em; border-radius: 6px; margin: 0.5em 0; overflow-x: auto; }
+  .message-text li { margin: 0.3em 0; }
+  .message-text p  { margin: 0.6em 0; }
+  .message-text p:first-child { margin-top: 0; }
+  .message-text p:last-child { margin-bottom: 0; }
+  .message-text code { background: #F5F5F4; padding: 0.15em 0.4em; border-radius: 4px; font-family: 'Monaco','Menlo',monospace; font-size: 0.85em; }
+  .message-text pre  { background: #F5F5F4; padding: 1em 1.25em; border-radius: 8px; margin: 0.75em 0; overflow-x: auto; }
   .message-text pre code { background: none; padding: 0; }
-  .message-text blockquote { border-left: 4px solid #d6d3d1; padding-left: 1em; margin: 0.5em 0; color: #78716c; }
-  .message-text strong, .message-text b { font-weight: 600; }
+  .message-text blockquote { border-left: 3px solid #D6D3D1; padding-left: 1em; margin: 0.75em 0; color: #78716C; }
+  .message-text strong, .message-text b { font-weight: 600; color: #1C1917; }
   .message-text em, .message-text i { font-style: italic; }
-  .message-text::selection { background: #ffd700; color: black; }
+  .message-text::selection { background: #C4B5FD; color: #1C1917; }
+
+  /* ── Auto dark mode (follows OS preference) ── */
+  @media (prefers-color-scheme: dark) {
+    /* Body & page-level */
+    body { background: #1c1926 !important; color: #d6d3d1 !important; }
+
+    /* Logo — swap to lighter orbit variant */
+    #sidebar img[alt="Cloze"] { content: url('/static/images/logo-dark.svg'); }
+
+    /* Sidebar */
+    #sidebar { background: #15121e !important; border-color: #2a2535 !important; }
+    #sidebar .border-b, #sidebar .border-t { border-color: #2a2535 !important; }
+    #sidebar span.text-stone-900 { color: #f5f5f4 !important; }
+    #sidebar .text-stone-700 { color: #a8a29e !important; }
+    #sidebar .text-stone-600 { color: #a8a29e !important; }
+    #sidebar .text-stone-400 { color: #78716c !important; }
+    #sidebar button:hover, #sidebar .sidebar-conv:hover { background: rgba(255,255,255,0.05) !important; }
+    #sidebar .bg-cloze-lavender { background: rgba(255,255,255,0.08) !important; }
+    #sidebar .text-cloze-indigo { color: #c4b5fd !important; }
+    #sidebarConversations .text-stone-400 { color: #78716c !important; }
+
+    /* Mobile header */
+    #mobileMenuBar { background: #1c1926 !important; border-color: #2a2535 !important; }
+    #mobileTitle { color: #d6d3d1 !important; }
+
+    /* Overlay */
+    #overlay { background: rgba(0,0,0,0.5) !important; }
+
+    /* ── Home view ── */
+    #homeView { background: #1c1926 !important; }
+    #homeView h1 { color: #f5f5f4 !important; }
+    #homeView .text-stone-900 { color: #f5f5f4 !important; }
+    #homeView .text-stone-700 { color: #d6d3d1 !important; }
+    #homeView .text-stone-600 { color: #a8a29e !important; }
+    #homeView .text-stone-500 { color: #a8a29e !important; }
+    #homeView .text-stone-400 { color: #78716c !important; }
+
+    /* Home cards and sections */
+    #homeView .bg-white { background: #221f2e !important; }
+    #homeView .border-stone-200 { border-color: #2a2535 !important; }
+    #homeView .border-stone-100 { border-color: #2a2535 !important; }
+    #homeView .hover\:bg-stone-50:hover { background: #2a2535 !important; }
+
+    /* Safety gating banner */
+    #safetyPlanGating { background: rgba(245,158,11,0.1) !important; border-color: rgba(245,158,11,0.25) !important; }
+    #safetyPlanGating .text-amber-800,
+    #safetyPlanGating .text-amber-700 { color: #fcd34d !important; }
+
+    /* Home action card icon circles */
+    #actionCards .bg-emerald-50 { background: rgba(16,185,129,0.15) !important; }
+    #actionCards .text-emerald-600 { color: #6ee7b7 !important; }
+    #actionCards .bg-cloze-indigo\/10 { background: rgba(91,95,199,0.15) !important; }
+    #actionCards .bg-violet-50 { background: rgba(139,92,246,0.15) !important; }
+    #actionCards .text-violet-600 { color: #c4b5fd !important; }
+    #actionCards .hover\:bg-violet-50:hover { background: #2a2535 !important; }
+    #actionCards .hover\:bg-violet-50\/30:hover { background: #2a2535 !important; }
+
+    /* Empty state */
+    #homeEmpty { background: #221f2e !important; border-color: #3a3545 !important; }
+
+    /* ── Conversation view ── */
+    #conversationView header { background: #1c1926 !important; border-color: #2a2535 !important; }
+    #convTitle { color: #f5f5f4 !important; }
+    #convModel { color: #a8a29e !important; }
+    .time-label { color: #a8a29e !important; }
+    .time-value { color: #a8a29e !important; }
+    #conversationView header button:hover { background: #2a2535 !important; }
+
+    /* Error banner */
+    #errorBanner { background: rgba(239,68,68,0.1) !important; color: #fca5a5 !important; }
+
+    /* Messages area */
+    #messagesContainer { background: #1e1b28 !important; }
+
+    /* AI messages */
+    .ai-msg .message-text { color: #d6d3d1 !important; }
+    .ai-msg .message-text strong, .ai-msg .message-text b { color: #f5f5f4 !important; }
+    .ai-msg .message-text h1, .ai-msg .message-text h2, .ai-msg .message-text h3,
+    .ai-msg .message-text h4, .ai-msg .message-text h5, .ai-msg .message-text h6 { color: #f5f5f4 !important; }
+    .ai-msg .message-text code { background: #2a2535 !important; color: #d6d3d1 !important; }
+    .ai-msg .message-text pre { background: #2a2535 !important; }
+    .ai-msg .message-text blockquote { border-color: #3a3545 !important; color: #a8a29e !important; }
+
+    /* User bubbles */
+    .user-bubble { background: #3D3A6E !important; }
+    .user-bubble .message-text { color: #e8e5f0 !important; }
+    .user-bubble .message-text strong { color: #fff !important; }
+
+    /* Message timestamps */
+    .message-time { color: #78716c !important; }
+
+    /* Typing indicator */
+    #typingIndicator { background: #2a2535 !important; color: #a8a29e !important; }
+    #typingIndicator .typing-dot { background: #78716c !important; }
+
+    /* Turn warning */
+    #turnWarningBar { background: rgba(245,158,11,0.1) !important; border-color: rgba(245,158,11,0.2) !important; color: #fcd34d !important; }
+
+    /* Input area */
+    #inputArea { background: #1e1b28 !important; }
+    #inputArea > div { background: #221f2e !important; border-color: #3a3545 !important; }
+    #messageInput { color: #e7e5e4 !important; }
+    #messageInput::placeholder { color: #57534e !important; }
+
+    /* Send button stays dark indigo */
+    #sendBtn { background: #4338CA !important; }
+    #sendBtn:hover { background: #4F46E5 !important; }
+
+    /* Crisis heart popover */
+    #crisisPopover { background: #221f2e !important; border-color: #3a3545 !important; }
+    #crisisPopover h4 { color: #d6d3d1 !important; }
+    #crisisPopover .text-stone-600 { color: #a8a29e !important; }
+
+    /* Status area */
+    #statusArea { background: #1c1926 !important; border-color: #2a2535 !important; }
+    #statusContent { color: #a8a29e !important; }
+
+    /* Input disclaimer */
+    #inputArea p { color: #78716c !important; }
+
+    /* ── All Reports view ── */
+    #allReportsView { background: #1c1926 !important; }
+    #allReportsView .text-stone-900 { color: #f5f5f4 !important; }
+
+    /* ── Selection popup (save quote) ── */
+    #selectionPopup { background: #221f2e !important; border-color: #3a3545 !important; }
+
+    /* ── Saved quotes drawer ── */
+    #selectionsSidebar { background: #1c1926 !important; border-color: #2a2535 !important; }
+    #selectionsSidebar .border-stone-100 { border-color: #2a2535 !important; }
+    #selectionsSidebar .text-stone-300 { color: #a8a29e !important; }
+    #selectionsContent .text-stone-600 { color: #d6d3d1 !important; }
+    #selectionsContent .text-stone-700 { color: #d6d3d1 !important; }
+    #selectionsContent .text-stone-500 { color: #a8a29e !important; }
+    #selectionsContent .text-stone-400 { color: #a8a29e !important; }
+    #selectionsContent .text-stone-300 { color: #78716c !important; }
+    #selectionsContent .border-violet-200 { border-color: #5B5FC7 !important; }
+    #selectionsContent .selection-fade { background: linear-gradient(to top, #1c1926, transparent) !important; }
+    #selectionsOverlay { background: rgba(0,0,0,0.5) !important; }
+
+    /* ── Safety modal ── */
+    #safetyModal .bg-white { background: #221f2e !important; }
+    #safetyModal .text-stone-700 { color: #d6d3d1 !important; }
+    #safetyModal .text-stone-500 { color: #a8a29e !important; }
+    #safetyModal .border-stone-200 { border-color: #2a2535 !important; }
+    #safetyModal .bg-muted { background: #1c1926 !important; }
+    #safetyModal .bg-amber-50 { background: rgba(245,158,11,0.1) !important; }
+    #safetyModal .text-amber-800, #safetyModal .text-amber-900 { color: #fcd34d !important; }
+    #safetyModal .bg-red-50 { background: rgba(239,68,68,0.1) !important; }
+    #safetyModal .text-red-900 { color: #fca5a5 !important; }
+
+    /* Report modal */
+    #reportModal .bg-white { background: #221f2e !important; }
+    #reportModal .border-stone-200 { border-color: #2a2535 !important; }
+    #reportModal .text-stone-900 { color: #f5f5f4 !important; }
+    #reportModal .text-stone-500 { color: #a8a29e !important; }
+
+    /* Report content (injected HTML with hardcoded colors) */
+    .unified-report { color: #d6d3d1 !important; }
+    .unified-report .report-header h2 { color: #f5f5f4 !important; }
+    .unified-report .report-meta { border-color: #2a2535 !important; }
+    .unified-report .meta-label { color: #a8a29e !important; }
+    .unified-report .meta-value { color: #f5f5f4 !important; }
+    .unified-report .meta-value-models { color: #a8a29e !important; }
+    .unified-report .window-description { color: #a8a29e !important; }
+    .unified-report .component-title { color: #a8a29e !important; }
+
+    /* Summary & themes */
+    .unified-report .summary-text { color: #d6d3d1 !important; }
+    .unified-report .themes-section h4 { color: #f5f5f4 !important; }
+    .unified-report .themes-list-simple li { color: #d6d3d1 !important; border-color: #2a2535 !important; }
+    .unified-report .themes-list-simple li::before { color: #78716c !important; }
+    .unified-report .themes-list li { color: #d6d3d1 !important; border-color: #5B5FC7 !important; }
+    .unified-report .progress-notes h4 { color: #f5f5f4 !important; }
+    .unified-report .progress-notes-text { color: #d6d3d1 !important; }
+    .unified-report .generated-by { color: #78716c !important; }
+
+    /* Stats */
+    .unified-report .stat-value { color: #f5f5f4 !important; }
+    .unified-report .stat-label { color: #a8a29e !important; }
+
+    /* NLP analysis */
+    .unified-report .nlp-title { color: #f5f5f4 !important; }
+    .unified-report .sentiment-score { color: #f5f5f4 !important; }
+    .unified-report .progress-bar { background: #2a2535 !important; }
+    .unified-report .progress-item span { color: #a8a29e !important; }
+    .unified-report .nlp-note { color: #a8a29e !important; }
+
+    /* Saved messages */
+    .unified-report .saved-message { border-color: #5B5FC7 !important; }
+    .unified-report .saved-message .message-text { color: #d6d3d1 !important; }
+    .unified-report .saved-message .message-note { color: #a8a29e !important; }
+    .unified-report .saved-message .message-date { color: #78716c !important; }
+
+    /* Keywords & co-occurrence */
+    .unified-report .keyword-label { color: #d6d3d1 !important; }
+    .unified-report .keyword-value { color: #f5f5f4 !important; }
+    .unified-report .word-text { color: #d6d3d1 !important; }
+    .unified-report .word-count { color: #a8a29e !important; }
+    .unified-report .top-words-section { border-color: #5B5FC7 !important; }
+    .unified-report .top-words-section h4 { color: #f5f5f4 !important; }
+    .unified-report .graph-caption { color: #a8a29e !important; }
+
+    /* Tables & methodology */
+    .unified-report .breakdown-table th { color: #a8a29e !important; border-color: #3a3545 !important; }
+    .unified-report .breakdown-table td { color: #d6d3d1 !important; border-color: #2a2535 !important; }
+    .unified-report .methodology-section { border-color: #2a2535 !important; }
+    .unified-report .methodology-intro { color: #a8a29e !important; }
+    .unified-report .methodology-list li { color: #d6d3d1 !important; }
+    .unified-report .citations-section { border-color: #2a2535 !important; }
+    .unified-report .citations-list { color: #a8a29e !important; }
+
+    /* Misc */
+    .unified-report .no-data { color: #78716c !important; }
+    .unified-report .error-message { border-color: #f59e0b !important; }
+    .unified-report .error-message p { color: #fcd34d !important; }
+
+    /* Text selection highlight */
+    .message-text::selection { background: #6D28D9; color: #f5f5f4; }
+  }
 </style>
 {% endblock %}
 
@@ -52,22 +285,29 @@
 
   {# ── Left Sidebar ── #}
   <aside id="sidebar"
-         class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col border-r border-violet-100 bg-[#F8F6FC] transition-transform lg:static lg:translate-x-0">
+         class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col border-r border-stone-200 bg-stone-50 transition-transform lg:static lg:translate-x-0">
 
     {# Logo #}
-    <div class="flex items-center gap-3 px-4 py-4 border-b border-violet-100">
-      <img src="/static/images/logo.png" alt="Cloze" class="h-7 w-7 rounded-md">
+    <div class="flex items-center gap-2 px-4 py-3 border-b border-stone-200">
+      <img src="/static/images/logo.svg" alt="Cloze" class="h-7 w-7 rounded-md">
       <span class="text-base font-semibold text-stone-900">Cloze</span>
     </div>
 
-    {# Home button #}
-    <div class="px-3 pt-3 pb-1">
+    {# Navigation #}
+    <div class="px-3 pt-3 pb-1 space-y-0.5">
       <button onclick="showHome()" id="homeBtn"
-              class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-stone-700 transition hover:bg-violet-50">
+              class="flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm font-medium text-stone-700 transition hover:bg-stone-100">
         <svg class="h-[18px] w-[18px] text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
           <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6"/>
         </svg>
         Home
+      </button>
+      <button type="button" onclick="toggleSelections()"
+              class="flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm text-stone-600 transition hover:bg-stone-100">
+        <svg class="h-[18px] w-[18px] text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+          <path d="M6 4h12a1 1 0 011 1v16l-7-3-7 3V5a1 1 0 011-1z"/>
+        </svg>
+        Saved Quotes
       </button>
     </div>
 
@@ -77,13 +317,13 @@
     </div>
 
     {# Footer #}
-    <div class="border-t border-violet-100 px-3 py-3">
-      <button type="button" onclick="toggleSelections()"
-              class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-stone-600 transition hover:bg-violet-50">
-        <svg class="h-[18px] w-[18px] text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-          <path d="M6 4h12a1 1 0 011 1v16l-7-3-7 3V5a1 1 0 011-1z"/>
+    <div class="shrink-0 border-t border-stone-100 px-3 py-1.5">
+      <button onclick="logout()"
+              class="flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm text-stone-400 transition hover:bg-stone-100 hover:text-stone-600">
+        <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+          <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
         </svg>
-        Saved Quotes
+        Log out
       </button>
     </div>
   </aside>
@@ -95,14 +335,13 @@
   <div class="flex min-w-0 flex-1 flex-col">
 
     {# Mobile header (hamburger only, no top bar in home view) #}
-    <div id="mobileMenuBar" class="flex items-center gap-3 border-b border-stone-200 bg-white px-4 py-3 lg:hidden">
-      <button id="menuBtn" class="inline-flex items-center gap-2 rounded-lg border border-stone-200 px-2.5 py-1.5 text-sm">
-        <svg class="h-4 w-4 text-stone-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <div id="mobileMenuBar" class="flex items-center gap-3 border-b border-stone-100 bg-white px-4 py-2 lg:hidden">
+      <button id="menuBtn" class="p-1 text-stone-400 hover:text-stone-600 transition-colors">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
           <path d="M4 6h16M4 12h16M4 18h16"/>
         </svg>
-        Menu
       </button>
-      <span id="mobileTitle" class="text-sm font-semibold text-stone-900">Cloze</span>
+      <span id="mobileTitle" class="text-sm font-medium text-stone-700">Cloze</span>
     </div>
 
     {# ══════ HOME VIEW ══════ #}
@@ -110,15 +349,9 @@
       <div class="mx-auto max-w-3xl px-6 py-8">
 
         {# Welcome #}
-        <div class="mb-8 flex items-start justify-between">
-          <div>
-            <h1 class="text-xl font-semibold text-stone-900">Welcome back, {{ current_user.username }}</h1>
-            <p class="mt-1 text-sm text-stone-500">Your space for conversations between sessions.</p>
-          </div>
-          <button onclick="logout()"
-                  class="shrink-0 rounded-md border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:bg-stone-50">
-            Log out
-          </button>
+        <div class="mb-8">
+          <h1 class="text-xl font-semibold text-stone-900">Welcome back, {{ current_user.username }}</h1>
+          <p class="mt-1 text-sm text-stone-500">Your space for conversations between sessions.</p>
         </div>
 
         {# ── Safety Plan Section ── #}
@@ -142,16 +375,16 @@
         {# Action cards #}
         <div id="actionCards" class="space-y-4 mb-8">
 
-          {# Available conversations #}
-          <div id="availableSection" class="hidden">
-            <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-stone-400">Available Now</h3>
-            <div id="availableCards" class="space-y-2"></div>
-          </div>
-
           {# Continue conversations #}
           <div id="continueSection" class="hidden">
             <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-stone-400">Continue</h3>
             <div id="continueCards" class="space-y-2"></div>
+          </div>
+
+          {# Unstarted conversations #}
+          <div id="availableSection" class="hidden">
+            <h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-stone-400">Not Started</h3>
+            <div id="availableCards" class="space-y-2"></div>
           </div>
 
           {# Reports ready #}
@@ -186,50 +419,25 @@
     <div id="conversationView" class="hidden flex-1 flex flex-col min-h-0">
 
       {# Conv header #}
-      <header class="flex items-center justify-between border-b border-stone-200 bg-white px-4 py-2.5 shrink-0">
+      <header class="flex items-center justify-between border-b border-stone-100 bg-white px-4 py-2 shrink-0">
         <div class="flex items-center gap-3 min-w-0">
           <button onclick="showHome()" class="shrink-0 rounded-md p-1.5 text-stone-400 transition hover:bg-stone-50 hover:text-stone-600 lg:hidden">
             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg>
           </button>
           <h2 id="convTitle" class="truncate text-[15px] font-semibold text-stone-900">Loading...</h2>
         </div>
-        <div class="flex items-center gap-3 shrink-0">
-          <div class="hidden sm:flex items-center gap-2 rounded-full bg-violet-50 px-3 py-1 text-xs">
-            <span class="text-stone-500">Model:</span>
-            <span class="font-semibold text-stone-800" id="convModel">-</span>
+        <div class="flex items-center gap-3 shrink-0 ml-auto">
+          <div id="convTimer" class="hidden items-center gap-2 text-xs">
+            <span class="time-label text-stone-400">Time left:</span>
+            <span class="time-value font-medium text-stone-600" id="convTimeValue"></span>
           </div>
-          <div id="convTimer" class="hidden items-center gap-2 rounded-full bg-violet-50 px-3 py-1 text-xs">
-            <span class="time-label text-stone-500">Time left:</span>
-            <span class="time-value font-semibold text-stone-800" id="convTimeValue"></span>
-          </div>
+          <span class="text-xs text-stone-400" id="convModel"></span>
         </div>
       </header>
 
       {# Crisis resources (collapsible under title) #}
-      <div id="crisisBar" class="hidden border-b border-amber-200 bg-amber-50 shrink-0">
-        <button onclick="toggleCrisis()" class="flex w-full items-center justify-between px-4 py-2 text-left">
-          <span class="flex items-center gap-1.5 text-xs font-semibold text-amber-700">
-            <svg class="h-3.5 w-3.5 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-            </svg>
-            Need Immediate Help?
-          </span>
-          <svg id="crisisChevron" class="h-4 w-4 text-amber-500 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-        </button>
-        <div id="crisisContent" class="hidden px-4 pb-3 text-xs text-amber-900 leading-relaxed">
-          <p class="mb-1 font-semibold">US:</p>
-          <ul class="list-disc pl-4 mb-2 space-y-0.5">
-            <li>Call <strong>988</strong> (Suicide &amp; Crisis Lifeline)</li>
-            <li>Call <strong>911</strong> for emergencies</li>
-          </ul>
-          <p class="mb-1 font-semibold">UK:</p>
-          <ul class="list-disc pl-4 mb-1 space-y-0.5">
-            <li>Call <strong>999</strong> for emergencies</li>
-            <li>Call <strong>116 123</strong> (Samaritans)</li>
-          </ul>
-          <p class="italic text-amber-800 mt-1.5">This is for general discussion, not clinical treatment or crisis support.</p>
-        </div>
-      </div>
+      {# Crisis bar removed — crisis resources now in heart icon popover by input #}
+      <div id="crisisBar" class="hidden"></div>
 
       {# Error banner #}
       <div id="errorBanner" class="hidden bg-red-50 text-red-700 px-6 py-2.5 text-center text-sm shrink-0"></div>
@@ -238,7 +446,7 @@
       <div class="flex flex-1 min-h-0">
         <div class="flex flex-1 flex-col min-w-0">
           {# Messages #}
-          <div id="messagesContainer" class="flex-1 overflow-y-auto px-6 py-6 space-y-5"></div>
+          <div id="messagesContainer" class="flex-1 overflow-y-auto px-6 py-4 pb-8 bg-[#F8F6FC]"></div>
 
           {# Typing indicator #}
           <div id="typingIndicator" class="hidden items-center gap-2 px-6 py-2.5 bg-violet-50 rounded-lg mx-6 mb-2 text-sm text-stone-600">
@@ -252,22 +460,35 @@
           <div id="turnWarningBar" class="hidden border-t border-amber-200 bg-amber-50 px-6 py-2 text-center text-sm text-amber-800 shrink-0"></div>
 
           {# Input area (shown/hidden by JS based on conversation state) #}
-          <div id="inputArea" class="hidden border-t border-stone-200 bg-white px-6 py-3 shrink-0">
-            <div class="flex items-end gap-3">
+          <div id="inputArea" class="hidden bg-[#F8F6FC] px-6 py-3 shrink-0">
+            <div class="flex items-end gap-2 rounded-2xl border border-stone-200 bg-white px-4 py-2">
               <textarea id="messageInput"
-                class="flex-1 resize-y rounded-lg border-2 border-stone-200 px-3 py-2.5 text-sm font-[inherit] placeholder:text-stone-400 focus:border-cloze-indigo focus:outline-none"
-                style="min-height:50px; max-height:200px;"
+                class="auto-resize flex-1 border-0 bg-transparent py-1.5 text-[15px] font-[inherit] placeholder:text-stone-400 focus:outline-none"
+                style="min-height:24px; max-height:200px; overflow:hidden; resize:none;"
                 placeholder="Type your message..."
+                oninput="autoResize(this)"
                 onkeydown="handleKeyPress(event)"></textarea>
+              <button onclick="toggleCrisisPopover()" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-violet-300 hover:text-violet-500 hover:bg-violet-50 transition-all relative" title="Safety resources">
+                <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                <div id="crisisPopover" class="hidden absolute bottom-full right-0 mb-2 w-56 rounded-xl bg-white shadow-lg border border-stone-200 p-4 text-left">
+                  <h4 class="text-xs font-semibold text-stone-700 mb-2">Crisis Support</h4>
+                  <div class="text-xs text-stone-600 leading-relaxed space-y-1">
+                    <p>Call or text <strong>988</strong> (Suicide & Crisis Lifeline)</p>
+                    <p>Call <strong>911</strong> for emergencies</p>
+                    <p>Text HOME to <strong>741741</strong> (Crisis Text Line)</p>
+                  </div>
+                </div>
+              </button>
               <button id="sendBtn" onclick="sendMessage()"
-                class="rounded-lg bg-cloze-indigo px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-cloze-hover disabled:opacity-50 disabled:cursor-not-allowed">
-                Send
+                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#312E81] text-white transition hover:bg-[#3D3A94] disabled:opacity-30 disabled:cursor-not-allowed">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
               </button>
             </div>
+            <p class="text-center text-[11px] text-stone-400 mt-2">AI can make mistakes. This is not a substitute for professional care.</p>
           </div>
 
           {# Status area (shown when input is not available) #}
-          <div id="statusArea" class="hidden border-t border-stone-200 bg-muted px-6 py-3 text-center shrink-0">
+          <div id="statusArea" class="hidden border-t border-stone-100 bg-stone-50 px-6 py-2 text-center shrink-0">
             <div id="statusContent" class="text-stone-500"></div>
           </div>
         </div>
@@ -379,14 +600,9 @@
   {# Saved quotes drawer #}
   <div id="selectionsOverlay" class="fixed inset-0 z-30 hidden bg-black/20"></div>
   <aside id="selectionsSidebar"
-         class="fixed inset-y-0 right-0 z-40 flex h-full w-full max-w-md translate-x-full transform flex-col border-l border-stone-200 bg-white shadow-lg transition-transform duration-200 ease-out">
-    <div class="flex items-center justify-between border-b border-stone-200 bg-white px-5 py-3.5">
-      <div class="flex items-center gap-2.5">
-        <svg class="h-[18px] w-[18px] text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-          <path d="M6 4h12a1 1 0 011 1v16l-7-3-7 3V5a1 1 0 011-1z"/>
-        </svg>
-        <h3 class="text-sm font-semibold text-stone-900">Saved Quotes</h3>
-      </div>
+         class="fixed inset-y-0 right-0 z-40 flex h-full w-full max-w-md translate-x-full transform flex-col border-l border-stone-100 bg-stone-50 shadow-lg transition-transform duration-200 ease-out">
+    <div class="flex items-center justify-between border-b border-stone-100 px-5 py-2">
+      <h3 class="text-xs font-medium uppercase tracking-wider text-stone-300">Saved Quotes</h3>
       <button type="button" onclick="toggleSelections()" class="rounded-md p-1.5 text-stone-400 transition hover:bg-stone-50 hover:text-stone-600">
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M6 18L18 6"/></svg>
       </button>
@@ -491,23 +707,7 @@ function closeMobileSidebar() {
   if (overlay) overlay.classList.add('hidden');
 }
 
-/* ── Sidebar: mobile toggle ─────────────────────────────────── */
-
-(function() {
-  var menuBtn = document.getElementById('menuBtn');
-  var sidebar = document.getElementById('sidebar');
-  var overlay = document.getElementById('overlay');
-  if (!menuBtn || !sidebar) return;
-
-  function openSide() { sidebar.classList.remove('-translate-x-full'); if (overlay) overlay.classList.remove('hidden'); }
-  function closeSide() { sidebar.classList.add('-translate-x-full'); if (overlay) overlay.classList.add('hidden'); }
-
-  menuBtn.addEventListener('click', function() {
-    sidebar.classList.contains('-translate-x-full') ? openSide() : closeSide();
-  });
-  if (overlay) overlay.addEventListener('click', closeSide);
-  if (window.innerWidth >= 1024) sidebar.classList.remove('-translate-x-full');
-})();
+/* ── Sidebar: mobile toggle handled by shared.js ── */
 
 /* ── Data loading ───────────────────────────────────────────── */
 
@@ -1090,7 +1290,34 @@ function renderHomeView() {
   }
   actionCards.classList.remove('hidden');
 
-  // 1. Available conversations (unstarted templates from active windows)
+  // 1. Continue conversations (in-progress, active window or no window)
+  var continueSection = document.getElementById('continueSection');
+  var continueCards = document.getElementById('continueCards');
+  var inProgress = allConversations.filter(function(c) {
+    if (!c.id || c.is_placeholder || c.message_count <= 0) return false;
+    return !c.window_status || c.window_status === 'active';
+  });
+
+  if (inProgress.length) {
+    hasContent = true;
+    continueSection.classList.remove('hidden');
+    continueCards.innerHTML = inProgress.map(function(c) {
+      return '<button onclick="showConversation(' + c.id + ')" ' +
+        'class="flex w-full items-center gap-3 rounded-lg border border-stone-200 bg-white p-3 text-left transition hover:border-stone-300 hover:bg-violet-50">' +
+        '<div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">' +
+        '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">' +
+        '<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>' +
+        '<div class="min-w-0 flex-1">' +
+        '<div class="text-sm font-medium text-stone-900">' + escapeHtml(c.title || 'Untitled') + '</div>' +
+        '<div class="text-xs text-stone-500">' + c.message_count + ' messages &middot; ' + formatRelativeTime(c.updated_at) + '</div></div>' +
+        '<svg class="h-4 w-4 shrink-0 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>' +
+        '</button>';
+    }).join('');
+  } else {
+    continueSection.classList.add('hidden');
+  }
+
+  // 2. Not started conversations (unstarted templates from active windows)
   var availableSection = document.getElementById('availableSection');
   var availableCards = document.getElementById('availableCards');
   var availableItems = [];
@@ -1123,32 +1350,6 @@ function renderHomeView() {
     }).join('');
   } else {
     availableSection.classList.add('hidden');
-  }
-
-  // 2. Continue conversations (in-progress with active windows)
-  var continueSection = document.getElementById('continueSection');
-  var continueCards = document.getElementById('continueCards');
-  var inProgress = allConversations.filter(function(c) {
-    return c.id && !c.is_placeholder && c.window_status === 'active' && c.message_count > 0;
-  });
-
-  if (inProgress.length) {
-    hasContent = true;
-    continueSection.classList.remove('hidden');
-    continueCards.innerHTML = inProgress.map(function(c) {
-      return '<button onclick="showConversation(' + c.id + ')" ' +
-        'class="flex w-full items-center gap-3 rounded-lg border border-stone-200 bg-white p-3 text-left transition hover:border-stone-300 hover:bg-violet-50">' +
-        '<div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">' +
-        '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">' +
-        '<path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>' +
-        '<div class="min-w-0 flex-1">' +
-        '<div class="text-sm font-medium text-stone-900">' + escapeHtml(c.title || 'Untitled') + '</div>' +
-        '<div class="text-xs text-stone-500">' + c.message_count + ' messages &middot; ' + formatRelativeTime(c.updated_at) + '</div></div>' +
-        '<svg class="h-4 w-4 shrink-0 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>' +
-        '</button>';
-    }).join('');
-  } else {
-    continueSection.classList.add('hidden');
   }
 
   // 3. Reports ready
@@ -1223,6 +1424,10 @@ async function loadConversationView(convId) {
   var existingLockout = document.getElementById('turnLimitBanner');
   if (existingLockout) existingLockout.remove();
 
+  // Reset timer and report button
+  var timerEl = document.getElementById('convTimer');
+  if (timerEl) { timerEl.classList.add('hidden'); timerEl.innerHTML = ''; }
+
   if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
 
   try {
@@ -1272,7 +1477,12 @@ async function loadConversationView(convId) {
           '<div><p class="font-semibold text-sm">This conversation has closed. A report will be generated shortly.</p>' +
           '<p class="text-xs mt-0.5">Your report is being prepared...</p></div></div>';
       } else if (windowStatus === 'report_ready') {
-        statusContent.innerHTML = '<p class="font-semibold text-sm mb-0.5">This conversation has ended</p><p class="text-xs">Your session report is ready. You can view it using the link in the header above.</p>';
+        var hasReport = allReports.some(function(r) { return r.window_id === conversationData.window_id; });
+        if (hasReport) {
+          statusContent.innerHTML = '<p class="font-semibold text-sm mb-0.5">This conversation has ended</p><p class="text-xs">Your session report is ready. You can view it using the link in the header above.</p>';
+        } else {
+          statusContent.innerHTML = '<p class="font-semibold text-sm mb-0.5">This conversation has ended</p><p class="text-xs">You can review all your messages here anytime.</p>';
+        }
       } else {
         statusContent.innerHTML = '<p class="font-semibold text-sm mb-0.5">This conversation has ended</p><p class="text-xs">You can review all your messages here anytime.</p>';
       }
@@ -1283,14 +1493,7 @@ async function loadConversationView(convId) {
 
     // Render messages
     container.innerHTML = conversationData.messages.map(function(msg) {
-      return '<div class="msg-fade-in flex gap-3" data-message-id="' + msg.id + '">' +
-        '<div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white select-none ' + (msg.role === 'user' ? 'bg-cloze-sky' : 'bg-[#312E81]') + '">' +
-        (msg.role === 'user' ? 'U' : 'AI') + '</div>' +
-        '<div class="min-w-0 flex-1">' +
-        '<div class="mb-1 text-sm font-semibold text-stone-800 select-none">' + (msg.role === 'user' ? 'You' : 'Assistant') + '</div>' +
-        '<div class="message-text rounded-lg px-4 py-3 text-sm leading-relaxed text-stone-700 ' + (msg.role === 'user' ? 'bg-cloze-indigo/5' : 'bg-muted') + '">' + formatMessageContent(msg.content, msg.role) + '</div>' +
-        '<div class="mt-1.5 text-xs text-stone-400 select-none">' + formatDateTime(msg.timestamp) + '</div>' +
-        '</div></div>';
+      return renderMessage(msg.role, msg.content, msg.id, msg.timestamp);
     }).join('');
 
     scrollToBottom();
@@ -1375,22 +1578,30 @@ async function sendMessage() {
   }
 }
 
+function renderMessage(role, content, messageId, timestamp) {
+  var ts = timestamp || Date.now() / 1000;
+  var dataAttr = messageId ? ' data-message-id="' + messageId + '"' : '';
+
+  if (role === 'user') {
+    return '<div class="message-group msg-fade-in" style="text-align:right"' + dataAttr + '>' +
+      '<div class="user-bubble" style="display:inline-block;text-align:left">' +
+        '<div class="message-text">' + formatMessageContent(content, role) + '</div>' +
+      '</div>' +
+      '<div class="message-time mt-1 text-[11px] text-stone-300 select-none text-right pr-1">' + formatDateTime(ts) + '</div>' +
+    '</div>';
+  } else {
+    return '<div class="message-group ai-msg msg-fade-in"' + dataAttr + '>' +
+      '<div class="message-text">' + formatMessageContent(content, role) + '</div>' +
+      '<div class="message-time mt-1 text-[11px] text-stone-300 select-none">' + formatDateTime(ts) + '</div>' +
+    '</div>';
+  }
+}
+
 function addMessageToUI(role, content, messageId) {
   var container = document.getElementById('messagesContainer');
-  var div = document.createElement('div');
-  div.className = 'msg-fade-in flex gap-3';
-  if (messageId) div.dataset.messageId = messageId;
-
-  div.innerHTML =
-    '<div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white select-none ' + (role === 'user' ? 'bg-cloze-sky' : 'bg-[#312E81]') + '">' +
-    (role === 'user' ? 'U' : 'AI') + '</div>' +
-    '<div class="min-w-0 flex-1">' +
-    '<div class="mb-1 text-sm font-semibold text-stone-800 select-none">' + (role === 'user' ? 'You' : 'Assistant') + '</div>' +
-    '<div class="message-text rounded-lg px-4 py-3 text-sm leading-relaxed text-stone-700 ' + (role === 'user' ? 'bg-cloze-indigo/5' : 'bg-muted') + '">' + formatMessageContent(content, role) + '</div>' +
-    '<div class="mt-1.5 text-xs text-stone-400 select-none">' + formatDateTime(Date.now() / 1000) + '</div>' +
-    '</div>';
-
-  container.appendChild(div);
+  var wrapper = document.createElement('div');
+  wrapper.innerHTML = renderMessage(role, content, messageId);
+  container.appendChild(wrapper.firstChild);
   scrollToBottom();
 }
 
@@ -1491,6 +1702,7 @@ async function acknowledgeSafety() {
 
 function startCountdown(endTimestamp, windowStatus) {
   var timerEl = document.getElementById('convTimer');
+  if (!timerEl) return;
   var timeValueEl = document.getElementById('convTimeValue');
 
   timerEl.classList.remove('hidden');
@@ -1508,10 +1720,16 @@ function startCountdown(endTimestamp, windowStatus) {
           '<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>' +
           '</svg> Generating report...</div>';
       } else if (windowStatus === 'report_ready') {
-        timerEl.className = 'flex items-center gap-2 shrink-0';
-        timerEl.innerHTML = '<button onclick="openReportModalForWindow()" class="inline-flex items-center gap-1.5 text-xs font-semibold text-cloze-indigo transition hover:text-cloze-hover">View Report</button>';
+        // Only show View Report if a report actually exists
+        var windowReportExists = allReports.some(function(r) { return r.window_id === conversationData.window_id; });
+        if (windowReportExists) {
+          timerEl.className = 'flex items-center gap-2 shrink-0';
+          timerEl.innerHTML = '<button onclick="openReportModalForWindow()" class="inline-flex items-center gap-1.5 text-xs font-semibold text-cloze-indigo transition hover:text-cloze-hover">View Report</button>';
+        } else {
+          timerEl.classList.add('hidden');
+        }
       } else {
-        timerEl.innerHTML = '<div class="flex items-center gap-2 px-3 py-1 text-xs text-stone-500">Window closed</div>';
+        timerEl.classList.add('hidden');
       }
       timerEl.classList.remove('time-warning');
       if (countdownInterval) clearInterval(countdownInterval);
@@ -1535,10 +1753,10 @@ function startCountdown(endTimestamp, windowStatus) {
       var warnMins = Math.ceil(timeLeft / 60);
       var label = timerEl.querySelector('.time-label');
       if (label) label.textContent = 'Closes in:';
-      timeValueEl.textContent = warnMins + ' min' + (warnMins !== 1 ? 's' : '');
+      if (timeValueEl) timeValueEl.textContent = warnMins + ' min' + (warnMins !== 1 ? 's' : '');
     } else {
       timerEl.classList.remove('time-warning');
-      timeValueEl.textContent = text;
+      if (timeValueEl) timeValueEl.textContent = text;
     }
   }
 
@@ -1548,11 +1766,22 @@ function startCountdown(endTimestamp, windowStatus) {
 
 /* ── Crisis resources toggle ────────────────────────────────── */
 
-function toggleCrisis() {
-  var content = document.getElementById('crisisContent');
-  var chevron = document.getElementById('crisisChevron');
-  content.classList.toggle('hidden');
-  chevron.classList.toggle('rotate-180');
+function toggleCrisis() {}
+
+function toggleCrisisPopover() {
+  var popover = document.getElementById('crisisPopover');
+  popover.classList.toggle('hidden');
+  // Close on outside click
+  if (!popover.classList.contains('hidden')) {
+    setTimeout(function() {
+      document.addEventListener('click', function closePop(e) {
+        if (!e.target.closest('#crisisPopover') && !e.target.closest('[onclick*="toggleCrisisPopover"]')) {
+          popover.classList.add('hidden');
+          document.removeEventListener('click', closePop);
+        }
+      });
+    }, 0);
+  }
 }
 
 /* ── Error banner ───────────────────────────────────────────── */
@@ -1677,15 +1906,15 @@ function buildSelectionMarkup(sel) {
     '<path d="M10 11v6M14 11v6"/></svg>';
   var timestamp = sel.created_at ? '<span class="text-[11px] text-stone-400">' + formatRelativeTime(sel.created_at) + '</span>' : '';
 
-  return '<div class="selection-item rounded-lg border border-stone-200 bg-white" data-selection-id="' + sel.id + '">' +
-    '<div class="selection-text-wrapper relative px-4 pt-3 pb-2">' +
-    '<div class="border-l-2 border-stone-300 pl-3"><div class="whitespace-pre-wrap text-stone-700 leading-relaxed text-sm">' +
+  return '<div class="selection-item border-l-2 border-violet-200 pl-3 py-2 mb-4 hover:border-violet-400 transition-colors" data-selection-id="' + sel.id + '">' +
+    '<div class="selection-text-wrapper relative">' +
+    '<div class="whitespace-pre-wrap text-stone-600 leading-relaxed text-sm">' +
     (hasMore ? '<span class="selection-preview">' + escapeHtml(preview) + '</span><span class="selection-full hidden">' + escapeHtml(full) + '</span>' : escapeHtml(full)) +
-    '</div></div>' + fade + '</div>' +
-    (note ? '<div class="px-4 pb-2 text-xs italic text-stone-400">' + escapeHtml(note) + '</div>' : '') +
-    '<div class="flex items-center justify-between border-t border-stone-100 px-4 py-2">' +
+    '</div></div>' +
+    (note ? '<div class="mt-1 text-xs italic text-stone-400">' + escapeHtml(note) + '</div>' : '') +
+    '<div class="flex items-center justify-between mt-1.5">' +
     '<div class="flex items-center gap-2">' + timestamp + toggle + '</div>' +
-    '<button type="button" class="rounded-md p-1.5 text-stone-400 transition hover:bg-red-50 hover:text-red-500" onclick="removeSelection(' + sel.id + ')" title="Delete quote">' + trashIcon + '</button>' +
+    '<button type="button" class="text-stone-300 transition hover:text-red-400" onclick="removeSelection(' + sel.id + ')" title="Delete quote">' + trashIcon + '</button>' +
     '</div></div>';
 }
 
@@ -1706,8 +1935,11 @@ async function loadSelections() {
     if (!r.ok) return;
     var selections = await r.json();
     var content = document.getElementById('selectionsContent');
-    content.innerHTML = selections.length
-      ? selections.map(buildSelectionMarkup).join('')
+    var filtered = activeConversationId
+      ? selections.filter(function(s) { return s.conversation_id == activeConversationId; })
+      : selections;
+    content.innerHTML = filtered.length
+      ? filtered.map(buildSelectionMarkup).join('')
       : '<div class="flex flex-col items-center justify-center py-12 text-center">' +
         '<svg class="h-10 w-10 text-stone-300 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">' +
         '<path d="M6 4h12a1 1 0 011 1v16l-7-3-7 3V5a1 1 0 011-1z"/></svg>' +

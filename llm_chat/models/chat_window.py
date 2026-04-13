@@ -15,6 +15,8 @@ class ChatWindow(db.Model):
     end_date = db.Column(db.Float, nullable=False)    # Unix timestamp
     visible = db.Column(db.Boolean, default=True)
     status = db.Column(db.String(20), default='scheduled', nullable=False)
+    flow_name = db.Column(db.String(200), nullable=True)   # Name of the StudyFlow that generated this window
+    phase_label = db.Column(db.String(200), nullable=True)  # Phase name, cycle label, or null for always-available
     created_at = db.Column(db.Float, default=lambda: time.time())
     updated_at = db.Column(db.Float, onupdate=lambda: time.time())
 
@@ -123,9 +125,15 @@ class ChatTemplate(db.Model):
     def get_system_prompt_content(self):
         """Get the actual system prompt content to use.
 
-        Composes constitutional + domain + custom instructions via the
-        prompt composer.  Falls back to legacy flat content if the linked
-        SystemPrompt has no domain_prompt_id.
+        Composes the system prompt from layers:
+        1. Universal (always) — forbidden content, AI honesty, crisis, platform, guardrails
+        2. Clinical safety (when is_clinical_use = true)
+        3. Monitoring disclosure (team-written)
+        4. Persona (default or provider override)
+        5. Interaction context (default or provider override)
+        6. Domain (anxiety, depression, etc.)
+        7. Custom instructions (per conversation)
+        8. Safety plan (when clinical + plan exists)
         """
         from prompts.composer import compose_system_prompt
         from .settings import ProviderFeatureFlags
@@ -134,7 +142,20 @@ class ChatTemplate(db.Model):
         if self.system_prompt and self.system_prompt.domain_prompt_id:
             domain_id = self.system_prompt.domain_prompt_id
 
-        # Load patient's active safety plan
+        # Load provider feature flags
+        flags = None
+        if self.window and self.window.provider_id:
+            flags = ProviderFeatureFlags.query.filter_by(
+                provider_id=self.window.provider_id
+            ).first()
+
+        # Resolve settings from flags (NULL = default)
+        is_clinical = flags.is_clinical_use if (flags and flags.is_clinical_use is not None) else True
+        monitoring_disclosure = flags.monitoring_disclosure if flags else None
+        persona_override = flags.persona_override if flags else None
+        interaction_context_override = flags.system_context_override if flags else None
+
+        # Load patient's active safety plan (gracefully handle missing)
         safety_plan_data = None
         if self.window and self.window.patient_id:
             from .safety_plan import SafetyPlan
@@ -144,30 +165,15 @@ class ChatTemplate(db.Model):
             if active_plan:
                 safety_plan_data = active_plan.to_prompt_dict()
 
-        # Check for provider-level system_context override
-        system_context_override = None
-        if self.window and self.window.provider_id:
-            flags = ProviderFeatureFlags.query.filter_by(
-                provider_id=self.window.provider_id
-            ).first()
-            if flags and flags.system_context_override:
-                system_context_override = flags.system_context_override
-
-        # If we have a domain_id (new-style) or no system_prompt at all,
-        # use the composer which always injects constitutional prompts.
-        if domain_id or not self.system_prompt:
-            return compose_system_prompt(
-                domain_id=domain_id,
-                custom_instructions=self.custom_system_prompt,
-                safety_plan=safety_plan_data,
-                system_context_override=system_context_override,
-            )
-
-        # Legacy fallback: system_prompt exists but has no domain_prompt_id
-        base_content = self.system_prompt.content
-        if self.custom_system_prompt and self.custom_system_prompt.strip():
-            base_content = f"{base_content}\n\nAdditional Instructions: {self.custom_system_prompt.strip()}"
-        return base_content if base_content else None
+        return compose_system_prompt(
+            is_clinical_use=is_clinical,
+            monitoring_disclosure=monitoring_disclosure,
+            persona_override=persona_override,
+            interaction_context_override=interaction_context_override,
+            domain_id=domain_id,
+            custom_instructions=self.custom_system_prompt,
+            safety_plan=safety_plan_data,
+        )
 
     def to_dict(self):
         return {

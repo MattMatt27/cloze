@@ -28,19 +28,32 @@
   }
   .time-warning .time-value { color: #DC143C; animation: pulse-warning 2s infinite; }
 
-  /* Markdown prose inside messages */
+  /* Messages */
+  .message-group { padding: 0.5rem 0; width: 100%; }
+  .message-group:hover .message-time { opacity: 1; }
+  .message-time { opacity: 0; transition: opacity 0.15s; }
+  .user-msg { display: flex; justify-content: flex-end; }
+  .user-bubble { background: #E9E5F5; border-radius: 1.125rem 1.125rem 0.25rem 1.125rem;
+    padding: 0.875rem 1.125rem; max-width: 75%; }
+  .user-bubble .message-text { color: #2D2A3E; }
+  .ai-msg { max-width: 90%; }
+
+  /* Markdown prose — generous, readable */
+  .message-text { font-size: 0.9375rem; line-height: 1.7; color: #44403C; }
   .message-text h1, .message-text h2, .message-text h3,
-  .message-text h4, .message-text h5, .message-text h6 { margin: 1em 0 0.5em; font-weight: 600; }
+  .message-text h4, .message-text h5, .message-text h6 { margin: 1.2em 0 0.5em; font-weight: 600; color: #1C1917; }
   .message-text ul, .message-text ol { margin: 0.5em 0; padding-left: 1.5em; }
-  .message-text li { margin: 0.25em 0; }
-  .message-text p  { margin: 0.5em 0; }
-  .message-text code { background: #f4f4f4; padding: 0.2em 0.4em; border-radius: 3px; font-family: 'Monaco','Menlo',monospace; font-size: 0.9em; }
-  .message-text pre  { background: #f4f4f4; padding: 1em; border-radius: 6px; margin: 0.5em 0; overflow-x: auto; }
+  .message-text li { margin: 0.3em 0; }
+  .message-text p  { margin: 0.6em 0; }
+  .message-text p:first-child { margin-top: 0; }
+  .message-text p:last-child { margin-bottom: 0; }
+  .message-text code { background: #F5F5F4; padding: 0.15em 0.4em; border-radius: 4px; font-family: 'Monaco','Menlo',monospace; font-size: 0.85em; }
+  .message-text pre  { background: #F5F5F4; padding: 1em 1.25em; border-radius: 8px; margin: 0.75em 0; overflow-x: auto; }
   .message-text pre code { background: none; padding: 0; }
-  .message-text blockquote { border-left: 4px solid #d6d3d1; padding-left: 1em; margin: 0.5em 0; color: #78716c; }
-  .message-text strong, .message-text b { font-weight: 600; }
+  .message-text blockquote { border-left: 3px solid #D6D3D1; padding-left: 1em; margin: 0.75em 0; color: #78716C; }
+  .message-text strong, .message-text b { font-weight: 600; color: #1C1917; }
   .message-text em, .message-text i { font-style: italic; }
-  .message-text::selection { background: #ffd700; color: black; }
+  .message-text::selection { background: #C4B5FD; color: #1C1917; }
 
   /* Saved-item truncation */
   .saved-item-text.truncated {
@@ -52,6 +65,132 @@
     white-space: normal;
   }
   .saved-item-text.expanded { display: block; }
+
+  /* ── Auto dark mode (follows OS preference) ── */
+  @media (prefers-color-scheme: dark) {
+    body { background: #1c1926 !important; color: #d6d3d1 !important; }
+
+    /* Header */
+    header { background: #1c1926 !important; border-color: #2a2535 !important; }
+    header h2, #conversationTitle { color: #f5f5f4 !important; }
+    header .text-stone-400 { color: #a8a29e !important; }
+    header a.text-stone-400:hover { color: #d6d3d1 !important; }
+    #modelName { color: #a8a29e !important; }
+
+    /* Error banner */
+    #errorBanner { background: rgba(239,68,68,0.1) !important; color: #fca5a5 !important; }
+
+    /* Messages area */
+    .bg-\[\#F8F6FC\] { background: #1e1b28 !important; }
+
+    /* AI messages */
+    .ai-msg .message-text { color: #d6d3d1 !important; }
+    .ai-msg .message-text strong, .ai-msg .message-text b { color: #f5f5f4 !important; }
+    .ai-msg .message-text h1, .ai-msg .message-text h2, .ai-msg .message-text h3,
+    .ai-msg .message-text h4, .ai-msg .message-text h5, .ai-msg .message-text h6 { color: #f5f5f4 !important; }
+    .ai-msg .message-text code { background: #2a2535 !important; color: #d6d3d1 !important; }
+    .ai-msg .message-text pre { background: #2a2535 !important; }
+    .ai-msg .message-text blockquote { border-color: #3a3545 !important; color: #a8a29e !important; }
+
+    /* User bubbles */
+    .user-bubble { background: #3D3A6E !important; }
+    .user-bubble .message-text { color: #e8e5f0 !important; }
+    .user-bubble .message-text strong { color: #fff !important; }
+
+    /* Timestamps */
+    .message-time { color: #78716c !important; }
+
+    /* Typing indicator */
+    #typingIndicator { background: #2a2535 !important; color: #a8a29e !important; }
+    #typingIndicator .typing-dot { background: #78716c !important; }
+
+    /* Input area */
+    .border-t.border-stone-200.bg-white { background: #1c1926 !important; border-color: #2a2535 !important; }
+    #messageInput { background: #221f2e !important; border-color: #3a3545 !important; color: #e7e5e4 !important; }
+    #messageInput::placeholder { color: #57534e !important; }
+
+    /* Read-only bar */
+    .bg-violet-50\/40 { background: #2a2535 !important; }
+    .border-t.border-stone-100.bg-stone-50 { background: #1c1926 !important; border-color: #2a2535 !important; }
+    .border-t.border-stone-100 { border-color: #2a2535 !important; }
+    .text-stone-500 { color: #a8a29e !important; }
+
+    /* Saved quotes sidebar */
+    #quotesPanel, .border-l.border-stone-100.bg-stone-50 { background: #15121e !important; border-color: #2a2535 !important; }
+    #quotesPanel .border-stone-100 { border-color: #2a2535 !important; }
+    #quotesPanel .text-stone-300 { color: #78716c !important; }
+    #quotesToggle { background: #15121e !important; border-color: #2a2535 !important; }
+    #savedSelections .text-stone-600 { color: #d6d3d1 !important; }
+    #savedSelections .text-stone-400 { color: #a8a29e !important; }
+    #savedSelections .text-stone-300 { color: #78716c !important; }
+    #savedSelections .border-violet-200 { border-color: #5B5FC7 !important; }
+
+    /* Selection popup */
+    #selectionPopup { background: #221f2e !important; border-color: #3a3545 !important; }
+
+    /* Bottom sheet for quotes */
+    #quotesSheet .bg-white { background: #221f2e !important; }
+    #quotesSheet .bg-stone-300 { background: #3a3545 !important; }
+    #quotesSheet .text-stone-700 { color: #d6d3d1 !important; }
+    #quotesSheet .text-stone-400 { color: #a8a29e !important; }
+    #quotesSheet .text-stone-300 { color: #78716c !important; }
+    #quotesSheetContent .text-stone-600 { color: #d6d3d1 !important; }
+    #quotesSheetContent .border-violet-200 { border-color: #5B5FC7 !important; }
+
+    /* Report modal */
+    .bg-white.shadow-xl { background: #221f2e !important; }
+    #reportModal .bg-white { background: #221f2e !important; }
+    #reportModal .border-stone-200 { border-color: #2a2535 !important; }
+    #reportModal .text-stone-900 { color: #f5f5f4 !important; }
+
+    /* Report content */
+    .unified-report { color: #d6d3d1 !important; }
+    .unified-report .report-header h2 { color: #f5f5f4 !important; }
+    .unified-report .report-meta { border-color: #2a2535 !important; }
+    .unified-report .meta-label { color: #a8a29e !important; }
+    .unified-report .meta-value { color: #f5f5f4 !important; }
+    .unified-report .meta-value-models { color: #a8a29e !important; }
+    .unified-report .window-description { color: #a8a29e !important; }
+    .unified-report .component-title { color: #a8a29e !important; }
+    .unified-report .summary-text { color: #d6d3d1 !important; }
+    .unified-report .themes-section h4 { color: #f5f5f4 !important; }
+    .unified-report .themes-list-simple li { color: #d6d3d1 !important; border-color: #2a2535 !important; }
+    .unified-report .themes-list li { color: #d6d3d1 !important; border-color: #5B5FC7 !important; }
+    .unified-report .progress-notes h4 { color: #f5f5f4 !important; }
+    .unified-report .progress-notes-text { color: #d6d3d1 !important; }
+    .unified-report .stat-value { color: #f5f5f4 !important; }
+    .unified-report .stat-label { color: #a8a29e !important; }
+    .unified-report .nlp-title { color: #f5f5f4 !important; }
+    .unified-report .sentiment-score { color: #f5f5f4 !important; }
+    .unified-report .progress-bar { background: #2a2535 !important; }
+    .unified-report .progress-item span { color: #a8a29e !important; }
+    .unified-report .saved-message { border-color: #5B5FC7 !important; }
+    .unified-report .saved-message .message-text { color: #d6d3d1 !important; }
+    .unified-report .keyword-label { color: #d6d3d1 !important; }
+    .unified-report .keyword-value { color: #f5f5f4 !important; }
+    .unified-report .word-text { color: #d6d3d1 !important; }
+    .unified-report .top-words-section { border-color: #5B5FC7 !important; }
+    .unified-report .top-words-section h4 { color: #f5f5f4 !important; }
+    .unified-report .breakdown-table th { color: #a8a29e !important; border-color: #3a3545 !important; }
+    .unified-report .breakdown-table td { color: #d6d3d1 !important; border-color: #2a2535 !important; }
+    .unified-report .methodology-section { border-color: #2a2535 !important; }
+    .unified-report .methodology-list li { color: #d6d3d1 !important; }
+    .unified-report .citations-section { border-color: #2a2535 !important; }
+
+    /* Safety modal */
+    #safetyModal .bg-white { background: #221f2e !important; }
+    #safetyModal .text-stone-700 { color: #d6d3d1 !important; }
+    #safetyModal .text-stone-500 { color: #a8a29e !important; }
+    #safetyModal .border-stone-200 { border-color: #2a2535 !important; }
+    #safetyModal .bg-muted { background: #1c1926 !important; }
+    #safetyModal .bg-amber-50 { background: rgba(245,158,11,0.1) !important; }
+    #safetyModal .text-amber-800, #safetyModal .text-amber-900 { color: #fcd34d !important; }
+    #safetyModal .bg-red-50 { background: rgba(239,68,68,0.1) !important; }
+    #safetyModal .text-red-900 { color: #fca5a5 !important; }
+
+    /* Text selection */
+    .message-text::selection { background: #6D28D9; color: #f5f5f4; }
+  }
 </style>
 {% endblock %}
 
@@ -63,42 +202,43 @@
 {# ── Override layout: NO sidebar, full-screen chat ── #}
 {% block layout %}
   {# ── Header bar ── #}
-  <header class="flex items-center justify-between border-b border-stone-200 bg-white px-6 py-3 shrink-0">
-    <div class="flex items-center gap-3">
+  <header class="flex items-center justify-between border-b border-stone-100 bg-white px-4 sm:px-6 py-2.5 shrink-0">
+    <div class="flex items-center gap-3 min-w-0">
       {% if readonly|default(false) %}
       <a href="/admin/dashboard#patients"
-         class="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-sm font-medium text-stone-600 transition hover:bg-stone-50">
+         class="shrink-0 inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-600 transition-colors">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Back
+      </a>
+      {% elif is_provider|default(false) %}
+      <a href="/provider/chats"
+         class="shrink-0 inline-flex items-center gap-1.5 text-sm text-stone-400 hover:text-stone-600 transition-colors">
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         Back
       </a>
       {% endif %}
-      <h2 id="conversationTitle" class="text-[15px] font-semibold text-stone-900">Loading...</h2>
+      <h2 id="conversationTitle" class="text-[15px] font-semibold text-stone-900 truncate">Loading...</h2>
     </div>
-    <div class="flex items-center gap-4">
-      <div class="flex items-center gap-2 rounded-full bg-violet-50 px-3 py-1.5 text-sm">
-        <span class="text-stone-500">Model:</span>
-        <span class="font-semibold text-stone-800" id="modelName">Loading...</span>
-      </div>
-      <div class="flex items-center gap-2 rounded-full bg-violet-50 px-3 py-1.5 text-sm" id="promptInfo">
-        <span class="text-stone-500">Prompt:</span>
-        <span class="font-semibold text-stone-800" id="promptName">Loading...</span>
-      </div>
-      <div id="timeRemaining" class="hidden flex items-center gap-2 rounded-full bg-violet-50 px-3 py-1.5 text-sm">
-        <span class="time-label text-stone-500">Time left:</span>
-        <span class="time-value font-semibold text-stone-800" id="timeValue"></span>
-      </div>
+    <div class="flex items-center gap-4 shrink-0 ml-auto">
+      {% if has_report|default(false) %}
+      <span class="hidden sm:inline"><button onclick="openReportFromTranscript()" class="text-xs text-cloze-indigo hover:text-cloze-hover transition-colors">View Report</button></span>
+      {% endif %}
+      <span id="modelName" class="text-xs text-stone-400"></span>
     </div>
+    {# Hidden elements kept for JS compatibility #}
+    <span id="promptInfo" class="hidden"><span id="promptName"></span></span>
+    <div id="timeRemaining" class="hidden"><span class="time-label"></span><span class="time-value" id="timeValue"></span></div>
   </header>
 
   {# ── Error banner ── #}
   <div id="errorBanner" class="hidden bg-red-50 text-red-700 px-6 py-3 text-center text-sm shrink-0"></div>
 
   {# ── Main chat area ── #}
-  <div class="flex flex-1 min-h-0 w-full max-w-6xl mx-auto">
+  <div class="flex flex-1 min-h-0 w-full">
     {# Chat column #}
-    <div class="flex flex-1 flex-col bg-white min-w-0">
+    <div class="flex flex-1 flex-col bg-[#F8F6FC] min-w-0">
       {# Messages #}
-      <div id="messagesContainer" class="flex-1 overflow-y-auto px-6 py-6 space-y-5">
+      <div id="messagesContainer" class="flex-1 overflow-y-auto py-4 w-full px-6 bg-[#F8F6FC]">
         <!-- Messages will be loaded here -->
       </div>
 
@@ -138,13 +278,22 @@
         </div>
       </div>
       {% else %}
-      <div class="border-t border-stone-200 bg-muted px-6 py-4 text-center shrink-0">
+      <div class="border-t border-stone-100 bg-stone-50 shrink-0">
         {% if is_provider %}
-        <div class="flex items-center justify-center gap-2 text-stone-500 text-sm">
-          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
-          </svg>
-          <span>Read-only view &mdash; Only the patient can send messages</span>
+        <div class="px-6 py-2.5 text-center">
+          <div class="flex items-center justify-center gap-2 text-stone-400 text-sm">
+            <svg class="hidden sm:block h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+              <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+            </svg>
+            <span class="hidden sm:inline">Read-only transcript &mdash; Only the participant can send messages</span>
+            <span class="sm:hidden text-center text-xs leading-relaxed">Read-only transcript<br>Only the participant can send messages</span>
+          </div>
+        </div>
+        <div class="flex items-center justify-center gap-4 border-t border-stone-100 px-6 py-2">
+          <button onclick="openQuotesSheet()" class="text-xs text-stone-400 hover:text-cloze-indigo transition-colors">Saved Quotes</button>
+          {% if has_report|default(false) %}
+          <button onclick="openReportFromTranscript()" class="sm:hidden text-xs text-stone-400 hover:text-cloze-indigo transition-colors">View Report</button>
+          {% endif %}
         </div>
         {% else %}
         <div class="text-stone-500">
@@ -167,45 +316,41 @@
       {% endif %}
     </div>
 
-    {# ── Sidebar: saved quotes + crisis resources ── #}
-    {% if not readonly|default(false) %}
-    <div class="w-72 shrink-0 border-l border-stone-200 bg-white flex flex-col">
-      <div class="flex-1 overflow-y-auto p-5">
-        <h3 class="text-sm font-semibold text-stone-900 mb-1">Your Saved Quotes</h3>
-        <p class="text-[11px] text-stone-500 leading-relaxed mb-3">Highlight meaningful text to save it for later reflection. Your saved selections are shared with your provider.</p>
+    {# ── Sidebar ── #}
+    {% if is_provider|default(false) %}
+    {# Provider view: patient's saved selections — hidden on mobile #}
+    <div id="quotesPanel" class="hidden md:flex w-60 shrink-0 border-l border-stone-100 bg-stone-50 flex-col transition-all" data-default-visible="true">
+      <div class="flex items-center justify-between px-5 py-2.5 border-b border-stone-100">
+        <h3 class="text-xs font-medium uppercase tracking-wider text-stone-300">Saved Quotes</h3>
+        <button onclick="toggleQuotesPanel()" class="text-stone-300 hover:text-stone-500 transition-colors" title="Collapse">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+      <div class="flex-1 overflow-y-auto px-5 py-3">
         <div id="savedSelections">
-          <!-- Saved quotes will be loaded here -->
         </div>
       </div>
-
-      {# Crisis resources #}
-      <div class="border-t-2 border-amber-300 bg-amber-50 px-5 py-4 shrink-0">
-        <h4 class="flex items-center gap-1.5 text-[13px] font-semibold text-amber-800 mb-2">
-          <svg class="h-4 w-4 text-amber-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-          </svg>
-          Need Immediate Help?
-        </h4>
-        <div class="text-xs text-amber-900 leading-relaxed">
-          <p class="mb-1.5 font-semibold">US:</p>
-          <ul class="list-disc pl-4 mb-2 space-y-0.5">
-            <li>Call <strong>988</strong> (Suicide &amp; Crisis Lifeline)</li>
-            <li>Call <strong>911</strong> for emergencies</li>
-          </ul>
-          <p class="mb-1.5 font-semibold">UK:</p>
-          <ul class="list-disc pl-4 mb-2 space-y-0.5">
-            <li>Call <strong>999</strong> for emergencies</li>
-            <li>Call <strong>116 123</strong> (Samaritans)</li>
-          </ul>
-          <p class="italic text-amber-800 mt-2">This is for general discussion, not clinical treatment or crisis support.</p>
+    </div>
+    <button id="quotesToggle" onclick="toggleQuotesPanel()" class="hidden shrink-0 border-l border-stone-100 bg-stone-50 px-2 py-4 text-stone-300 hover:text-stone-500 transition-colors" title="Show saved quotes">
+      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg>
+    </button>
+    {% elif not readonly|default(false) %}
+    {# Patient view: their saved quotes — hidden on mobile #}
+    <div class="hidden md:flex w-60 shrink-0 border-l border-stone-100 bg-stone-50 flex-col">
+      <div class="px-5 py-2.5 border-b border-stone-100">
+        <h3 class="text-xs font-medium uppercase tracking-wider text-stone-300">Saved Quotes</h3>
+      </div>
+      <div class="flex-1 overflow-y-auto px-5 py-3">
+        <p class="text-[11px] text-stone-400 leading-relaxed mb-3">Highlight text to save it. Shared with your provider.</p>
+        <div id="savedSelections">
         </div>
       </div>
     </div>
     {% endif %}
   </div>
 
-  {# ── Selection popup ── #}
-  {% if not readonly|default(false) %}
+  {# ── Selection popup (patients only) ── #}
+  {% if not readonly|default(false) and not is_provider|default(false) %}
   <div id="selectionPopup" class="absolute hidden z-[1000] rounded-lg border border-stone-200 bg-white p-1.5 shadow-md">
     <button onclick="saveSelection()" class="flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-emerald-700">
       <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -215,11 +360,35 @@
     </button>
   </div>
   {% endif %}
+
+  {# ── Bottom sheet for saved quotes ── #}
+  {% if is_provider|default(false) %}
+  <div id="quotesSheetOverlay" class="fixed inset-0 z-[90] hidden bg-black/20" onclick="closeQuotesSheet()"></div>
+  <div id="quotesSheet" class="fixed inset-x-0 bottom-0 z-[95] translate-y-full transition-transform duration-300 ease-out">
+    <div class="mx-auto max-w-lg bg-white rounded-t-2xl shadow-xl" style="max-height: 85vh">
+      {# Grab bar #}
+      <div class="flex justify-center pt-3 pb-2 cursor-pointer" onclick="closeQuotesSheet()">
+        <div class="w-10 h-1 rounded-full bg-stone-300"></div>
+      </div>
+      <div class="px-5 pb-2 flex items-center justify-between">
+        <h3 class="text-sm font-semibold text-stone-700">Saved Quotes</h3>
+        <button onclick="closeQuotesSheet()" class="text-stone-400 hover:text-stone-600 transition-colors">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M6 18L18 6"/></svg>
+        </button>
+      </div>
+      <div class="overflow-y-auto px-5 pb-6" style="max-height: calc(85vh - 60px)">
+        <div id="quotesSheetContent">
+          <p class="text-xs text-stone-300 py-4">Loading...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 {% endblock %}
 
 {# ── Modals ── #}
 {% block modals %}
-  {% if not readonly|default(false) %}
+  {% if not readonly|default(false) and not is_provider|default(false) %}
   {# Safety Disclaimer Modal #}
   <div id="safetyModal" class="fixed inset-0 z-[2000] hidden bg-black/50 p-4 backdrop-blur-sm">
     <div class="mx-auto mt-8 max-w-xl rounded-lg bg-white shadow-xl overflow-hidden">
@@ -284,20 +453,21 @@
   {% endif %}
 
   {# Report modal #}
-  <div id="reportModal" class="fixed inset-0 z-[1000] hidden bg-black/40 p-4 backdrop-blur-sm">
-    <div class="mx-auto flex h-full max-w-4xl items-center justify-center">
-      <div class="relative flex max-h-full w-full flex-col overflow-hidden rounded-lg bg-white shadow-xl">
-        <div class="flex items-center justify-between border-b border-stone-200 px-5 py-3.5">
-          <h2 class="text-[15px] font-semibold text-stone-900">Session Report</h2>
-          <button type="button" onclick="closeReportModal()" class="rounded-md p-1 text-stone-400 transition hover:text-stone-700">
-            <span class="sr-only">Close modal</span>
+  <div id="reportModal" class="fixed inset-0 z-[1000] hidden bg-black/30 backdrop-blur-[2px]">
+    <div class="flex h-full items-start justify-center overflow-y-auto pt-8 pb-8 px-4">
+      <div class="relative w-full max-w-3xl">
+        {# Header bar — fixed at top of modal #}
+        <div class="sticky top-0 z-10 flex items-center justify-between rounded-t-xl bg-white border-b border-stone-100 px-6 py-3">
+          <h2 class="text-sm font-semibold text-stone-900">Session Report</h2>
+          <button type="button" onclick="closeReportModal()" class="text-stone-400 hover:text-stone-600 transition-colors">
             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
               <path d="M6 6l12 12M6 18L18 6"/>
             </svg>
           </button>
         </div>
-        <div id="reportContent" class="flex-1 overflow-y-auto p-5">
-          <!-- Report content will be loaded here -->
+        {# Report content — scrolls naturally #}
+        <div id="reportContent" class="rounded-b-xl bg-white px-6 py-6 shadow-lg">
+          <div class="py-12 text-center text-stone-400">Loading report...</div>
         </div>
       </div>
     </div>
@@ -309,6 +479,8 @@
   const conversationId = {{ conversation_id }};
   const canSendMessages = {{ 'true' if can_send_messages|default(false) else 'false' }};
   const isReadonly = {{ 'true' if readonly|default(false) else 'false' }};
+  const isProvider = {{ 'true' if is_provider|default(false) else 'false' }};
+  const patientId = {{ patient_id|default(0) }};
   let selectedText = '';
   let selectedMessageIds = [];
   let conversationData = null;
@@ -366,18 +538,7 @@
       }
 
       const container = document.getElementById('messagesContainer');
-      container.innerHTML = conversationData.messages.map(msg => `
-        <div class="msg-fade-in flex gap-3 ${msg.role === 'user' ? '' : ''}" data-message-id="${msg.id}">
-          <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white select-none ${msg.role === 'user' ? 'bg-cloze-sky' : 'bg-stone-600'}">
-            ${msg.role === 'user' ? 'U' : 'AI'}
-          </div>
-          <div class="min-w-0 flex-1">
-            <div class="mb-1 text-sm font-semibold text-stone-800 select-none">${msg.role === 'user' ? 'You' : 'Assistant'}</div>
-            <div class="message-text rounded-lg px-4 py-3 text-sm leading-relaxed text-stone-700 ${msg.role === 'user' ? 'bg-cloze-indigo/5' : 'bg-muted'}">${formatMessageContent(msg.content, msg.role)}</div>
-            <div class="mt-1.5 text-xs text-stone-400 select-none">${formatDateTime(msg.timestamp)}</div>
-          </div>
-        </div>
-      `).join('');
+      container.innerHTML = conversationData.messages.map(msg => renderMessage(msg.role, msg.content, msg.id, msg.timestamp)).join('');
 
       scrollToBottom();
       if (!isReadonly) checkSafetyAcknowledgment();
@@ -432,24 +593,31 @@
     }
   }
 
+  function renderMessage(role, content, messageId, timestamp) {
+    var isUser = role === 'user';
+    var ts = timestamp || Date.now() / 1000;
+    var dataAttr = messageId ? ' data-message-id="' + messageId + '"' : '';
+
+    if (isUser) {
+      return '<div class="message-group msg-fade-in" style="text-align:right"' + dataAttr + '>' +
+        '<div class="user-bubble" style="display:inline-block;text-align:left">' +
+          '<div class="message-text">' + formatMessageContent(content, role) + '</div>' +
+        '</div>' +
+        '<div class="message-time mt-1 text-[11px] text-stone-300 select-none text-right pr-1">' + formatDateTime(ts) + '</div>' +
+      '</div>';
+    } else {
+      return '<div class="message-group ai-msg msg-fade-in"' + dataAttr + '>' +
+        '<div class="message-text">' + formatMessageContent(content, role) + '</div>' +
+        '<div class="message-time mt-1 text-[11px] text-stone-300 select-none">' + formatDateTime(ts) + '</div>' +
+      '</div>';
+    }
+  }
+
   function addMessageToUI(role, content, messageId) {
     const container = document.getElementById('messagesContainer');
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `msg-fade-in flex gap-3`;
-    if (messageId) messageDiv.dataset.messageId = messageId;
-
-    messageDiv.innerHTML = `
-      <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white select-none ${role === 'user' ? 'bg-cloze-sky' : 'bg-stone-600'}">
-        ${role === 'user' ? 'U' : 'AI'}
-      </div>
-      <div class="min-w-0 flex-1">
-        <div class="mb-1 text-sm font-semibold text-stone-800 select-none">${role === 'user' ? 'You' : 'Assistant'}</div>
-        <div class="message-text rounded-lg px-4 py-3 text-sm leading-relaxed text-stone-700 ${role === 'user' ? 'bg-cloze-indigo/5' : 'bg-muted'}">${formatMessageContent(content, role)}</div>
-        <div class="mt-1.5 text-xs text-stone-400 select-none">${formatDateTime(Date.now() / 1000)}</div>
-      </div>
-    `;
-
-    container.appendChild(messageDiv);
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = renderMessage(role, content, messageId);
+    container.appendChild(wrapper.firstChild);
     scrollToBottom();
   }
 
@@ -471,6 +639,68 @@
       event.preventDefault();
       sendMessage();
     }
+  }
+
+  function toggleQuotesPanel() {
+    var panel = document.getElementById('quotesPanel');
+    var toggle = document.getElementById('quotesToggle');
+    if (!panel) return;
+
+    var isVisible = !panel.classList.contains('quotes-hidden');
+    if (isVisible) {
+      panel.classList.add('quotes-hidden', 'hidden');
+      panel.classList.remove('md:flex', 'flex');
+      if (toggle) toggle.classList.remove('hidden');
+    } else {
+      panel.classList.remove('quotes-hidden', 'hidden');
+      panel.classList.add('flex');
+      if (toggle) toggle.classList.add('hidden');
+    }
+  }
+
+  function openQuotesSheet() {
+    // On desktop, toggle the sidebar
+    if (window.innerWidth >= 768) {
+      toggleQuotesPanel();
+      return;
+    }
+    // On mobile, open bottom sheet
+    var overlay = document.getElementById('quotesSheetOverlay');
+    var sheet = document.getElementById('quotesSheet');
+    var content = document.getElementById('quotesSheetContent');
+    if (!sheet) return;
+
+    // Render full (non-truncated) selections into the sheet
+    if (typeof sheetSelections !== 'undefined' && sheetSelections.length) {
+      content.innerHTML = sheetSelections.map(function(sel) {
+        var formatted = escapeHtml(sel.text).replace(/\n/g, '<br>');
+        return '<div class="border-l-2 border-violet-200 pl-3 py-2 mb-4">' +
+          '<div class="text-sm leading-relaxed text-stone-600">"' + formatted + '"</div>' +
+          (sel.note ? '<div class="mt-1.5 text-xs italic text-stone-400">' + escapeHtml(sel.note) + '</div>' : '') +
+        '</div>';
+      }).join('');
+    } else {
+      content.innerHTML = '<p class="text-xs text-stone-300 py-4">No saved quotes for this conversation</p>';
+    }
+
+    overlay.classList.remove('hidden');
+    requestAnimationFrame(function() {
+      sheet.classList.remove('translate-y-full');
+    });
+  }
+
+  function closeQuotesSheet() {
+    var overlay = document.getElementById('quotesSheetOverlay');
+    var sheet = document.getElementById('quotesSheet');
+    if (!sheet) return;
+    sheet.classList.add('translate-y-full');
+    setTimeout(function() {
+      overlay.classList.add('hidden');
+    }, 300);
+  }
+
+  function openReportFromTranscript() {
+    viewWindowReport();
   }
 
   function scrollToBottom() {
@@ -613,18 +843,24 @@
 
   async function loadSavedSelections() {
     try {
-      const response = await fetch('/api/selections');
+      var url = '/api/selections';
+      if (isProvider && patientId) {
+        url += '?patient_id=' + patientId;
+      }
+      const response = await fetch(url);
       const selections = await response.json();
 
       const container = document.getElementById('savedSelections');
       const conversationSelections = selections.filter(s => s.conversation_id === conversationId);
+      // Store for bottom sheet
+      window.sheetSelections = conversationSelections;
 
       if (conversationSelections.length === 0) {
-        container.innerHTML = '<p class="text-sm text-stone-400">No saved selections yet</p>';
+        container.innerHTML = '<p class="text-xs text-stone-300">No saved quotes yet</p>';
       } else {
         container.innerHTML = conversationSelections.map((sel, index) => {
           const isLong = sel.text.length > 100;
-          return `<div class="cursor-pointer rounded-lg bg-muted p-3 mb-2 text-xs transition hover:bg-stone-200/60" onclick="toggleSelection(${index})"><div class="saved-item-text leading-relaxed text-stone-700 ${isLong ? 'truncated' : ''}" id="selection-${index}" data-full-text="${escapeHtml(sel.text)}">"${escapeHtml(isLong ? sel.text.substring(0, 100) + '...' : sel.text)}"</div>${sel.note ? `<div class="mt-1 italic text-stone-500">${escapeHtml(sel.note)}</div>` : ''}</div>`;
+          return `<div class="cursor-pointer border-l-2 border-violet-200 pl-3 py-2 mb-3 transition hover:border-violet-400" onclick="toggleSelection(${index})"><div class="saved-item-text text-xs leading-relaxed text-stone-600 ${isLong ? 'truncated' : ''}" id="selection-${index}" data-full-text="${escapeHtml(sel.text)}">"${escapeHtml(isLong ? sel.text.substring(0, 100) + '...' : sel.text)}"</div>${sel.note ? `<div class="mt-1 text-[11px] italic text-stone-400">${escapeHtml(sel.note)}</div>` : ''}</div>`;
         }).join('');
       }
     } catch (error) {
@@ -674,22 +910,7 @@
       const timeLeft = endTimestamp - now;
 
       if (timeLeft <= 0 || windowStatus === 'generating_report' || windowStatus === 'report_ready') {
-        if (windowStatus === 'generating_report') {
-          timerEl.innerHTML = `<div class="flex items-center gap-2 px-3 py-1.5 text-sm text-cloze-indigo">
-            <svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Report being generated...
-          </div>`;
-        } else if (windowStatus === 'report_ready') {
-          timerEl.innerHTML = `<button onclick="viewWindowReport()" class="inline-flex items-center gap-2 rounded-lg bg-cloze-indigo px-4 py-2 text-sm font-semibold text-white transition hover:bg-cloze-hover">
-            View Report
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 5l7 7-7 7"/></svg>
-          </button>`;
-        } else {
-          timerEl.innerHTML = `<div class="flex items-center gap-2 px-3 py-1.5 text-sm text-stone-500">Window has closed</div>`;
-        }
+        timerEl.classList.add('hidden');
         timerEl.classList.remove('time-warning');
         timerEl.style.background = 'transparent';
         if (countdownInterval) clearInterval(countdownInterval);
@@ -734,9 +955,8 @@
       if (!response.ok) throw new Error('Failed to load report');
       const data = await response.json();
 
-      document.getElementById('reportContent').innerHTML = data.html || '<p class="text-stone-500">No content available.</p>';
+      document.getElementById('reportContent').innerHTML = data.html || '<p class="text-stone-400 text-center py-8">No content available.</p>';
       document.getElementById('reportModal').classList.remove('hidden');
-      document.getElementById('reportModal').style.display = 'block';
     } catch (error) {
       console.error('Error loading report:', error);
       showError('Failed to load report. Please try again.');
@@ -744,7 +964,7 @@
   }
 
   function closeReportModal() {
-    document.getElementById('reportModal').style.display = 'none';
+    document.getElementById('reportModal').classList.add('hidden');
   }
 
   // ── Title editing ─────────────────────────────────────────────
@@ -774,7 +994,7 @@
   // ── Init ──────────────────────────────────────────────────────
 
   loadConversationData();
-  if (!isReadonly) loadSavedSelections();
+  if (!isReadonly || isProvider) loadSavedSelections();
 
   // Auto-resize textarea
   const textarea = document.getElementById('messageInput');

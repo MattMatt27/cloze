@@ -1,10 +1,13 @@
 import json
+import time
 import secrets
 from flask import Blueprint, render_template, jsonify, request, abort, redirect
 from flask_login import current_user
 from ..utils.decorators import role_required
 from ..extensions import db
-from ..models import User, Conversation, ProviderPatient, ProviderSettings, ChatWindow, AuditLog, ProviderFeatureFlags, SystemPrompt
+from ..models import (User, Conversation, ProviderPatient, ProviderSettings,
+                      ChatWindow, ChatTemplate, AuditLog, ProviderFeatureFlags, SystemPrompt,
+                      StudyFlow, FlowPhase, FlowChat, FlowEnrollment)
 from ..utils.settings_resolution import get_effective_setting
 
 provider_bp = Blueprint("provider", __name__, url_prefix="")
@@ -19,13 +22,18 @@ def provider_dashboard():
 def provider_chat_windows():
     return render_template("provider_chat_windows.html")
 
+@provider_bp.route("/provider/chats")
+@role_required('provider')
+def provider_chats_page():
+    return render_template("provider_chats.html")
+
 @provider_bp.route("/provider/patient-progress")
 @role_required('provider', 'admin')
 def provider_patient_progress():
     patient_id = request.args.get('patient_id')
     if patient_id:
-        return redirect('/provider/chat-windows?patient_id=' + str(patient_id))
-    return redirect('/provider/chat-windows')
+        return redirect('/provider/chats?patient_id=' + str(patient_id))
+    return redirect('/provider/chats')
 
 @provider_bp.route("/api/provider/patients")
 @role_required('provider', 'admin')
@@ -53,6 +61,89 @@ def get_provider_patients():
         'conversation_count': visible_conversation_count(p),
         'last_active': last_active_for(p)
     } for p in patients])
+
+@provider_bp.route("/api/provider/all-conversations")
+@role_required('provider')
+def get_all_provider_conversations():
+    """Get all conversations AND unstarted templates across all patients."""
+    from ..models import Message, Model
+    patient_ids = [pp.patient_id for pp in current_user.patients]
+    if not patient_ids:
+        return jsonify([])
+
+    # Build lookup maps
+    patient_map = {p.id: p.username for p in User.query.filter(User.id.in_(patient_ids)).all()}
+
+    # Get all windows for this provider
+    windows = ChatWindow.query.filter_by(provider_id=current_user.id).all()
+    window_map = {}
+    for w in windows:
+        window_map[w.id] = {
+            'title': w.title,
+            'status': w.compute_status(),
+            'patient_id': w.patient_id,
+            'flow_name': w.flow_name,
+            'phase_label': w.phase_label,
+        }
+
+    # Get all started conversations
+    conversations = Conversation.query.filter(
+        Conversation.user_id.in_(patient_ids)
+    ).order_by(Conversation.updated_at.desc()).all()
+
+    # Track which template+patient combos have conversations
+    started = set()
+    result = []
+    for c in conversations:
+        if c.template_id:
+            started.add((c.template_id, c.user_id))
+        window = window_map.get(c.window_id, {})
+        result.append({
+            'id': c.id,
+            'title': c.title or 'Untitled',
+            'patient_id': c.user_id,
+            'patient_name': patient_map.get(c.user_id, 'Unknown'),
+            'model': c.model.name if c.model else None,
+            'message_count': c.messages.count(),
+            'created_at': c.created_at,
+            'updated_at': c.updated_at,
+            'window_title': window.get('title'),
+            'window_status': window.get('status'),
+            'flow_name': window.get('flow_name'),
+            'phase_label': window.get('phase_label'),
+            'is_started': True,
+        })
+
+    # Add unstarted templates as placeholder rows
+    for w in windows:
+        if not w.visible:
+            continue
+        templates = w.templates.filter_by(visible=True).all()
+        for t in templates:
+            if (t.id, w.patient_id) in started:
+                continue
+            ws = window_map.get(w.id, {})
+            result.append({
+                'id': None,
+                'template_id': t.id,
+                'title': t.title + ' (Not Started)',
+                'patient_id': w.patient_id,
+                'patient_name': patient_map.get(w.patient_id, 'Unknown'),
+                'model': t.model.name if t.model else None,
+                'message_count': 0,
+                'created_at': w.created_at,
+                'updated_at': None,
+                'window_title': ws.get('title'),
+                'window_status': ws.get('status'),
+                'flow_name': ws.get('flow_name'),
+                'phase_label': ws.get('phase_label'),
+                'is_started': False,
+            })
+
+    # Sort: started conversations first (by updated_at desc), then unstarted
+    result.sort(key=lambda x: (not x['is_started'], -(x['updated_at'] or x['created_at'] or 0)))
+    return jsonify(result)
+
 
 @provider_bp.route("/api/provider/patient/<int:patient_id>/conversations")
 @role_required('provider', 'admin')
@@ -240,12 +331,15 @@ def get_content_defaults():
     from prompts.registry import PromptRegistry
     registry = PromptRegistry.instance()
 
-    # Get system_context constitutional prompt content
-    system_context_default = ''
-    for prompt in registry.get_constitutional_prompts():
-        if prompt.id == 'system_context':
-            system_context_default = prompt.content
-            break
+    # Get default overridable prompt content
+    persona_default = ''
+    interaction_context_default = ''
+    default_persona = registry.get_default_prompt('default_persona')
+    if default_persona:
+        persona_default = default_persona.content
+    default_context = registry.get_default_prompt('default_interaction_context')
+    if default_context:
+        interaction_context_default = default_context.content
 
     # Default disclaimer HTML (the hardcoded modal body content)
     disclaimer_default = """<p class="mb-4 text-sm leading-relaxed text-stone-700">
@@ -281,7 +375,9 @@ def get_content_defaults():
 
     return jsonify({
         'disclaimer_default': disclaimer_default,
-        'system_context_default': system_context_default,
+        'persona_default': persona_default,
+        'interaction_context_default': interaction_context_default,
+        'system_context_default': interaction_context_default,  # backwards compat
     })
 
 
@@ -295,7 +391,7 @@ def update_my_flags():
         flags = ProviderFeatureFlags(provider_id=current_user.id)
         db.session.add(flags)
 
-    editable = ['safety_disclaimer_text', 'system_context_override']
+    editable = ['safety_disclaimer_text', 'system_context_override', 'monitoring_disclosure', 'persona_override']
     for key in editable:
         if key in data:
             setattr(flags, key, data[key] or None)
@@ -377,3 +473,383 @@ def delete_provider_prompt(prompt_id):
     _log_provider_action('prompt_deleted', 'system_prompt', prompt_id)
     db.session.commit()
     return jsonify({'status': 'success'})
+
+
+# ── Study Flows ───────────────────────────────────────────────
+
+@provider_bp.route("/provider/study-design")
+@role_required('provider')
+def study_design_page():
+    return render_template("study_design.html")
+
+
+@provider_bp.route("/api/provider/flows", methods=['GET'])
+@role_required('provider')
+def get_flows():
+    """Get all flows for the current provider. Auto-creates 'Always Available' if none exist."""
+    flows = StudyFlow.query.filter_by(provider_id=current_user.id).all()
+    if not flows:
+        default_flow = StudyFlow(
+            provider_id=current_user.id,
+            name='Always Available',
+            flow_type='always',
+        )
+        db.session.add(default_flow)
+        db.session.flush()
+        phase = FlowPhase(flow_id=default_flow.id, name='Always Available',
+                          start_day=0, end_day=None, order_index=0)
+        db.session.add(phase)
+        db.session.commit()
+        flows = [default_flow]
+    return jsonify([f.to_dict() for f in flows])
+
+
+@provider_bp.route("/api/provider/flows", methods=['POST'])
+@role_required('provider')
+def create_flow():
+    """Create a new study flow."""
+    data = request.json or {}
+    name = data.get('name', '').strip()
+    flow_type = data.get('flow_type', '')
+
+    if not name:
+        return jsonify({'error': 'Name is required'}), 400
+    if flow_type not in ('always', 'phased', 'recurring'):
+        return jsonify({'error': 'flow_type must be always, phased, or recurring'}), 400
+
+    flow = StudyFlow(
+        provider_id=current_user.id,
+        name=name,
+        flow_type=flow_type,
+        cadence_days=data.get('cadence_days'),
+        cycle_count=data.get('cycle_count'),
+        report_config=json.dumps(data.get('report_config')) if data.get('report_config') else None,
+    )
+    db.session.add(flow)
+    db.session.flush()
+
+    # For 'always' and 'recurring', auto-create a default phase
+    if flow_type == 'always':
+        phase = FlowPhase(flow_id=flow.id, name='Always Available', start_day=0, end_day=None, order_index=0)
+        db.session.add(phase)
+    elif flow_type == 'recurring':
+        phase = FlowPhase(flow_id=flow.id, name='Each Cycle', start_day=0,
+                          end_day=data.get('cadence_days', 7), order_index=0)
+        db.session.add(phase)
+
+    _log_provider_action('flow_created', 'study_flow', flow.id, {'name': name, 'type': flow_type})
+    db.session.commit()
+    return jsonify(flow.to_dict()), 201
+
+
+@provider_bp.route("/api/provider/flows/<int:flow_id>", methods=['GET'])
+@role_required('provider')
+def get_flow(flow_id):
+    """Get a single flow with full detail."""
+    flow = StudyFlow.query.get_or_404(flow_id)
+    if flow.provider_id != current_user.id:
+        abort(403)
+
+    result = flow.to_dict()
+    result['enrollments'] = [e.to_dict() for e in flow.enrollments]
+    return jsonify(result)
+
+
+@provider_bp.route("/api/provider/flows/<int:flow_id>", methods=['PUT'])
+@role_required('provider')
+def update_flow(flow_id):
+    """Update flow metadata."""
+    flow = StudyFlow.query.get_or_404(flow_id)
+    if flow.provider_id != current_user.id:
+        abort(403)
+
+    data = request.json or {}
+    if 'name' in data:
+        flow.name = data['name'].strip()
+    if 'cadence_days' in data:
+        flow.cadence_days = data['cadence_days']
+    if 'cycle_count' in data:
+        flow.cycle_count = data['cycle_count']
+    if 'report_config' in data:
+        flow.report_config = json.dumps(data['report_config']) if data['report_config'] else None
+
+    db.session.commit()
+    return jsonify(flow.to_dict())
+
+
+@provider_bp.route("/api/provider/flows/<int:flow_id>", methods=['DELETE'])
+@role_required('provider')
+def delete_flow(flow_id):
+    """Delete a flow (only if no patients are enrolled)."""
+    flow = StudyFlow.query.get_or_404(flow_id)
+    if flow.provider_id != current_user.id:
+        abort(403)
+    if flow.enrollments:
+        return jsonify({'error': 'Cannot delete a flow with enrolled patients'}), 400
+
+    _log_provider_action('flow_deleted', 'study_flow', flow_id, {'name': flow.name})
+    db.session.delete(flow)
+    db.session.commit()
+    return jsonify({'status': 'success'})
+
+
+# ── Flow Phases ───────────────────────────────────────────────
+
+@provider_bp.route("/api/provider/flows/<int:flow_id>/phases", methods=['POST'])
+@role_required('provider')
+def create_phase(flow_id):
+    """Add a phase to a flow."""
+    flow = StudyFlow.query.get_or_404(flow_id)
+    if flow.provider_id != current_user.id:
+        abort(403)
+
+    data = request.json or {}
+    max_order = max([p.order_index for p in flow.phases], default=-1)
+
+    phase = FlowPhase(
+        flow_id=flow_id,
+        name=data.get('name', 'New Phase').strip(),
+        start_day=data.get('start_day', 0),
+        end_day=data.get('end_day'),
+        order_index=max_order + 1,
+    )
+    db.session.add(phase)
+    db.session.commit()
+    return jsonify(phase.to_dict()), 201
+
+
+@provider_bp.route("/api/provider/phases/<int:phase_id>", methods=['PUT'])
+@role_required('provider')
+def update_phase(phase_id):
+    """Update a phase."""
+    phase = FlowPhase.query.get_or_404(phase_id)
+    if phase.flow.provider_id != current_user.id:
+        abort(403)
+
+    data = request.json or {}
+    if 'name' in data:
+        phase.name = data['name'].strip()
+    if 'start_day' in data:
+        phase.start_day = data['start_day']
+    if 'end_day' in data:
+        phase.end_day = data['end_day']
+    if 'order_index' in data:
+        phase.order_index = data['order_index']
+
+    db.session.commit()
+    return jsonify(phase.to_dict())
+
+
+@provider_bp.route("/api/provider/phases/<int:phase_id>", methods=['DELETE'])
+@role_required('provider')
+def delete_phase(phase_id):
+    """Delete a phase and its chats."""
+    phase = FlowPhase.query.get_or_404(phase_id)
+    if phase.flow.provider_id != current_user.id:
+        abort(403)
+
+    db.session.delete(phase)
+    db.session.commit()
+    return jsonify({'status': 'success'})
+
+
+# ── Flow Chats ────────────────────────────────────────────────
+
+@provider_bp.route("/api/provider/phases/<int:phase_id>/chats", methods=['POST'])
+@role_required('provider')
+def create_flow_chat(phase_id):
+    """Add a chat to a phase."""
+    phase = FlowPhase.query.get_or_404(phase_id)
+    if phase.flow.provider_id != current_user.id:
+        abort(403)
+
+    data = request.json or {}
+    max_order = max([c.order_index for c in phase.chats], default=-1)
+
+    chat = FlowChat(
+        phase_id=phase_id,
+        title=data.get('title', 'New Chat').strip(),
+        purpose=data.get('purpose'),
+        model_id=data['model_id'],
+        system_prompt_id=data.get('system_prompt_id'),
+        custom_system_prompt=data.get('custom_system_prompt'),
+        max_messages=data.get('max_messages'),
+        order_index=max_order + 1,
+    )
+    db.session.add(chat)
+    db.session.commit()
+    return jsonify(chat.to_dict()), 201
+
+
+@provider_bp.route("/api/provider/chats/<int:chat_id>", methods=['PUT'])
+@role_required('provider')
+def update_flow_chat(chat_id):
+    """Update a chat."""
+    chat = FlowChat.query.get_or_404(chat_id)
+    if chat.phase.flow.provider_id != current_user.id:
+        abort(403)
+
+    data = request.json or {}
+    for key in ('title', 'purpose', 'model_id', 'system_prompt_id',
+                'custom_system_prompt', 'max_messages', 'order_index'):
+        if key in data:
+            setattr(chat, key, data[key])
+
+    db.session.commit()
+    return jsonify(chat.to_dict())
+
+
+@provider_bp.route("/api/provider/chats/<int:chat_id>", methods=['DELETE'])
+@role_required('provider')
+def delete_flow_chat(chat_id):
+    """Delete a chat from a phase."""
+    chat = FlowChat.query.get_or_404(chat_id)
+    if chat.phase.flow.provider_id != current_user.id:
+        abort(403)
+
+    db.session.delete(chat)
+    db.session.commit()
+    return jsonify({'status': 'success'})
+
+
+# ── Enrollment ────────────────────────────────────────────────
+
+DAY_SECONDS = 86400
+
+
+@provider_bp.route("/api/provider/flows/<int:flow_id>/enroll", methods=['POST'])
+@role_required('provider')
+def enroll_patients(flow_id):
+    """Enroll patients in a flow. Generates ChatWindows and ChatTemplates."""
+    flow = StudyFlow.query.get_or_404(flow_id)
+    if flow.provider_id != current_user.id:
+        abort(403)
+
+    if not flow.phases or not any(p.chats for p in flow.phases):
+        return jsonify({'error': 'Flow must have at least one phase with chats before enrolling'}), 400
+
+    data = request.json or {}
+    patient_ids = data.get('patient_ids', [])
+    if not patient_ids:
+        return jsonify({'error': 'No patients specified'}), 400
+
+    enrolled = []
+    for pid in patient_ids:
+        if not current_user.can_access_patient(pid):
+            continue
+        # Skip already enrolled
+        if FlowEnrollment.query.filter_by(flow_id=flow_id, patient_id=pid).first():
+            continue
+
+        enrollment_time = time.time()
+        enrollment = FlowEnrollment(flow_id=flow_id, patient_id=pid, enrolled_at=enrollment_time)
+        db.session.add(enrollment)
+
+        _generate_windows_for_enrollment(flow, pid, enrollment_time)
+        enrolled.append(pid)
+
+    _log_provider_action('patients_enrolled', 'study_flow', flow_id,
+                         {'patient_ids': enrolled, 'count': len(enrolled)})
+    db.session.commit()
+    return jsonify({'status': 'success', 'enrolled': len(enrolled)})
+
+
+def _generate_windows_for_enrollment(flow, patient_id, enrollment_time):
+    """Generate ChatWindows and ChatTemplates for a patient enrollment."""
+    if flow.flow_type == 'always':
+        for phase in flow.phases:
+            _create_window_from_phase(flow, phase, patient_id,
+                                     start=enrollment_time,
+                                     end=enrollment_time + (365 * DAY_SECONDS),
+                                     phase_label=None)
+
+    elif flow.flow_type == 'phased':
+        for phase in flow.phases:
+            start = enrollment_time + (phase.start_day * DAY_SECONDS)
+            end = enrollment_time + (phase.end_day * DAY_SECONDS) if phase.end_day else start + (365 * DAY_SECONDS)
+            _create_window_from_phase(flow, phase, patient_id, start=start, end=end,
+                                     phase_label=phase.name)
+
+    elif flow.flow_type == 'recurring':
+        cadence = flow.cadence_days or 7
+        cycles = flow.cycle_count or 1
+        phase = flow.phases[0] if flow.phases else None
+        if not phase:
+            return
+        for cycle in range(cycles):
+            start = enrollment_time + (cycle * cadence * DAY_SECONDS)
+            end = enrollment_time + ((cycle + 1) * cadence * DAY_SECONDS)
+            _create_window_from_phase(flow, phase, patient_id, start=start, end=end,
+                                     title_suffix=f" - Cycle {cycle + 1}",
+                                     phase_label=f"Cycle {cycle + 1} of {cycles}")
+
+
+def _create_window_from_phase(flow, phase, patient_id, start, end, title_suffix='', phase_label=None):
+    """Create a ChatWindow with ChatTemplates from a FlowPhase."""
+    window = ChatWindow(
+        patient_id=patient_id,
+        provider_id=flow.provider_id,
+        title=phase.name + title_suffix,
+        start_date=start,
+        end_date=end,
+        report_config=flow.report_config,
+        flow_name=flow.name,
+        phase_label=phase_label,
+    )
+    db.session.add(window)
+    db.session.flush()
+
+    for chat in phase.chats:
+        template = ChatTemplate(
+            window_id=window.id,
+            title=chat.title,
+            purpose=chat.purpose,
+            model_id=chat.model_id,
+            system_prompt_id=chat.system_prompt_id,
+            custom_system_prompt=chat.custom_system_prompt,
+            max_messages=chat.max_messages,
+            order_index=chat.order_index,
+        )
+        db.session.add(template)
+
+
+@provider_bp.route("/api/provider/flows/<int:flow_id>/enrollments", methods=['GET'])
+@role_required('provider')
+def get_enrollments(flow_id):
+    """Get all enrollments for a flow with progress info."""
+    flow = StudyFlow.query.get_or_404(flow_id)
+    if flow.provider_id != current_user.id:
+        abort(403)
+
+    enrollments = FlowEnrollment.query.filter_by(flow_id=flow_id).all()
+    result = []
+    for e in enrollments:
+        # Count total and completed chats for this patient in this flow's windows
+        windows = ChatWindow.query.filter_by(
+            patient_id=e.patient_id, provider_id=flow.provider_id
+        ).all()
+        total_chats = 0
+        completed_chats = 0
+        current_phase = None
+        now = time.time()
+        for w in windows:
+            templates = w.templates.all()
+            total_chats += len(templates)
+            for t in templates:
+                conv = Conversation.query.filter_by(
+                    user_id=e.patient_id, window_id=w.id, template_id=t.id
+                ).first()
+                if conv and conv.messages.count() > 0:
+                    completed_chats += 1
+            status = w.compute_status(now)
+            if status == 'active':
+                current_phase = w.title
+
+        result.append({
+            **e.to_dict(),
+            'total_chats': total_chats,
+            'completed_chats': completed_chats,
+            'current_phase': current_phase,
+        })
+
+    return jsonify(result)

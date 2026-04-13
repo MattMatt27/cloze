@@ -4,7 +4,7 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>{% block title %}Cloze{% endblock %}</title>
-  <link rel="icon" type="image/png" href="/static/images/logo.png">
+  <link rel="icon" type="image/svg+xml" href="/static/images/logo.svg">
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -26,35 +26,201 @@
   </script>
   {% block head %}{% endblock %}
   {% block styles %}{% endblock %}
+  {% if current_user.is_authenticated and current_user.role == 'admin' %}
+  <style>
+    /* Dark mode overrides for admin active nav */
+    #sidebar a.bg-cloze-lavender { background: rgba(255,255,255,0.08) !important; }
+    #sidebar a.text-cloze-indigo { color: #c4b5fd !important; }
+    #sidebar a.text-cloze-indigo svg { color: #c4b5fd !important; }
+  </style>
+  {% endif %}
+  {% if current_user.is_authenticated and current_user.role == 'provider' %}
+  <style>
+    @media (prefers-color-scheme: dark) {
+      /* ── Provider auto dark mode ── */
+
+      /* Body */
+      body { background: #1c1926 !important; color: #d6d3d1 !important; }
+
+      /* Logo swap */
+      #sidebar img[alt="Cloze"] { content: url('/static/images/logo-dark.svg'); }
+
+      /* Sidebar */
+      #sidebar { background: #15121e !important; border-color: #2a2535 !important; }
+      #sidebar .border-b, #sidebar .border-t, #sidebar .border-stone-100 { border-color: #2a2535 !important; }
+      #sidebar span.text-stone-900 { color: #f5f5f4 !important; }
+      #sidebar .text-stone-600 { color: #a8a29e !important; }
+      #sidebar .text-stone-400 { color: #78716c !important; }
+      #sidebar button:hover, #sidebar a:hover { background: rgba(255,255,255,0.05) !important; }
+      #sidebar a.bg-cloze-lavender { background: rgba(255,255,255,0.08) !important; }
+      #sidebar a.text-cloze-indigo { color: #c4b5fd !important; }
+      #sidebar a.text-cloze-indigo svg { color: #c4b5fd !important; }
+      #sidebar svg.text-stone-400 { color: #78716c !important; }
+
+      /* Header */
+      header { background: rgba(28,25,38,0.9) !important; border-color: #2a2535 !important; }
+      header h1 { color: #f5f5f4 !important; }
+      header .text-stone-400 { color: #a8a29e !important; }
+
+      /* Overlay */
+      #overlay { background: rgba(0,0,0,0.5) !important; }
+
+      /* ── Main content ── */
+
+      /* Headings */
+      main .text-stone-900 { color: #f5f5f4 !important; }
+      main .text-stone-800 { color: #e7e5e4 !important; }
+      main .text-stone-700 { color: #d6d3d1 !important; }
+      main .text-stone-600 { color: #a8a29e !important; }
+      main .text-stone-500 { color: #a8a29e !important; }
+      main .text-stone-400 { color: #78716c !important; }
+      main .text-stone-300 { color: #78716c !important; }
+
+      /* Cards and sections */
+      main .bg-white { background: #221f2e !important; }
+      main .bg-stone-50 { background: #1c1926 !important; }
+      main .bg-violet-50\/40 { background: #2a2535 !important; }
+      main .bg-muted { background: #2a2535 !important; }
+
+      /* Borders and dividers */
+      main .border-stone-200 { border-color: #2a2535 !important; }
+      main .border-stone-100 { border-color: #2a2535 !important; }
+      main .divide-stone-100 > * + * { border-color: #2a2535 !important; }
+      main .divide-stone-50 > * + * { border-color: #2a2535 !important; }
+      main hr { border-color: #2a2535 !important; }
+
+      /* Inputs */
+      main input, main select, main textarea {
+        background: #1c1926 !important;
+        border-color: #3a3545 !important;
+        color: #e7e5e4 !important;
+      }
+      main input::placeholder, main textarea::placeholder { color: #57534e !important; }
+      main input:focus, main select:focus, main textarea:focus { border-color: #5B5FC7 !important; }
+
+      /* Filter inputs (borderless style) */
+      main .filter-input { border-color: #3a3545 !important; color: #d6d3d1 !important; background: transparent !important; }
+      main .filter-input:focus { border-color: #c4b5fd !important; }
+
+      /* Tables */
+      main table th { color: #a8a29e !important; }
+      main table td { color: #d6d3d1 !important; }
+
+      /* Dashed empty states */
+      main .border-dashed { border-color: #3a3545 !important; }
+
+      /* Hover states */
+      main .hover\:bg-stone-50:hover { background: #2a2535 !important; }
+      main .hover\:bg-stone-100:hover { background: #2a2535 !important; }
+      main .hover\:bg-violet-50:hover { background: #2a2535 !important; }
+
+      /* Badges */
+      main .bg-emerald-50 { background: rgba(16,185,129,0.15) !important; }
+      main .bg-amber-50 { background: rgba(245,158,11,0.1) !important; }
+      main .bg-amber-100 { background: rgba(245,158,11,0.15) !important; }
+      main .text-amber-700 { color: #fcd34d !important; }
+      main .text-amber-800 { color: #fcd34d !important; }
+      main .bg-red-50 { background: rgba(239,68,68,0.1) !important; }
+      main .bg-violet-50 { background: rgba(139,92,246,0.12) !important; }
+      main .bg-stone-100 { background: #2a2535 !important; }
+
+      /* Status dots stay as-is (they're colored) */
+
+      /* Chat list rows */
+      main .chat-list-row:hover { color: #c4b5fd !important; }
+      main .chat-list-row.unstarted:hover { color: #a8a29e !important; }
+
+      /* Tabs */
+      main .window-tab-btn { color: #a8a29e !important; }
+      main .window-tab-btn[data-tab].border-cloze-indigo { color: #f5f5f4 !important; }
+      main .border-b.border-stone-200 { border-color: #2a2535 !important; }
+
+      /* Prompt form */
+      main #promptForm { background: #2a2535 !important; }
+
+      /* Disclaimer block editor */
+      main .border-amber-300 { border-color: rgba(245,158,11,0.3) !important; }
+      main .bg-amber-50\/50 { background: rgba(245,158,11,0.08) !important; }
+      main .border-red-300 { border-color: rgba(239,68,68,0.3) !important; }
+      main .bg-red-50\/50 { background: rgba(239,68,68,0.08) !important; }
+      main .border-violet-300 { border-color: rgba(139,92,246,0.3) !important; }
+      main .bg-violet-50\/50 { background: rgba(139,92,246,0.08) !important; }
+
+      /* Disclaimer preview */
+      main #disclaimerPreview { color: #d6d3d1 !important; }
+      main #disclaimerPreview .text-stone-700 { color: #d6d3d1 !important; }
+      main #disclaimerPreview .bg-amber-50 { background: rgba(245,158,11,0.1) !important; }
+      main #disclaimerPreview .text-amber-800,
+      main #disclaimerPreview .text-amber-900 { color: #fcd34d !important; }
+      main #disclaimerPreview .bg-red-50 { background: rgba(239,68,68,0.1) !important; }
+      main #disclaimerPreview .text-red-900 { color: #fca5a5 !important; }
+
+      /* Modals */
+      .modal .bg-white, .modal .rounded-xl.bg-white { background: #221f2e !important; }
+      .modal .bg-stone-50 { background: #1c1926 !important; }
+      .modal .text-stone-900 { color: #f5f5f4 !important; }
+      .modal .text-stone-800 { color: #e7e5e4 !important; }
+      .modal .text-stone-700 { color: #d6d3d1 !important; }
+      .modal .text-stone-600 { color: #a8a29e !important; }
+      .modal .text-stone-500 { color: #a8a29e !important; }
+      .modal .text-stone-400 { color: #78716c !important; }
+      .modal .border-stone-200 { border-color: #3a3545 !important; }
+      .modal .border-stone-100 { border-color: #2a2535 !important; }
+      .modal .bg-amber-50 { background: rgba(245,158,11,0.1) !important; }
+      .modal .text-amber-800 { color: #fcd34d !important; }
+      .modal input, .modal select, .modal textarea {
+        background: #1c1926 !important;
+        border-color: #3a3545 !important;
+        color: #e7e5e4 !important;
+      }
+
+      /* Global dialog (from shared.js) */
+      #globalDialog .bg-white { background: #221f2e !important; }
+      #globalDialog .text-stone-900 { color: #f5f5f4 !important; }
+      #globalDialog .text-stone-600 { color: #a8a29e !important; }
+      #globalDialog .border-stone-200 { border-color: #3a3545 !important; }
+      #globalDialog input { background: #1c1926 !important; border-color: #3a3545 !important; color: #e7e5e4 !important; }
+    }
+  </style>
+  {% endif %}
 </head>
 
 {% block body_tag %}
+{% if current_user.is_authenticated and current_user.role == 'admin' %}
+<body class="min-h-screen bg-[#1c1926] text-stone-300 antialiased">
+{% else %}
 <body class="min-h-screen bg-page text-stone-900 antialiased">
+{% endif %}
 {% endblock %}
 
 {% block layout %}
   <div class="flex min-h-screen">
 
     {# ── Sidebar ─────────────────────────────────────────── #}
+    {% if current_user.is_authenticated and current_user.role == 'admin' %}
     <aside id="sidebar"
-           class="fixed inset-y-0 left-0 z-40 w-64 -translate-x-full border-r border-violet-100 bg-[#F8F6FC] px-3 py-5 transition-transform lg:static lg:translate-x-0">
+           class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col border-r border-stone-800 bg-[#15121e] px-3 py-4 transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0">
+    {% else %}
+    <aside id="sidebar"
+           class="fixed inset-y-0 left-0 z-40 flex w-64 -translate-x-full flex-col border-r border-stone-200 bg-stone-50 px-3 py-4 transition-transform lg:sticky lg:top-0 lg:h-screen lg:translate-x-0">
+    {% endif %}
 
       {# Logo + brand #}
-      <div class="mb-6 flex items-center gap-3 px-3">
-        <img src="/static/images/logo.png" alt="Cloze" class="h-8 w-8 rounded-md">
-        <span class="text-base font-semibold text-stone-900">Cloze</span>
+      <div class="mb-4 flex items-center gap-2 px-3">
+        <img src="{% if current_user.is_authenticated and current_user.role == 'admin' %}/static/images/logo-dark.svg{% else %}/static/images/logo.svg{% endif %}" alt="Cloze" class="h-7 w-7">
+        <span class="text-base font-semibold {% if current_user.role == 'admin' %}text-white{% else %}text-stone-900{% endif %}">Cloze</span>
       </div>
 
-      <nav class="space-y-6 overflow-y-auto px-1">
+      <nav class="flex-1 min-h-0 space-y-6 overflow-y-auto px-1">
         <div>
-          <p class="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wider text-stone-400">Menu</p>
+          <p class="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wider {% if current_user.role == 'admin' %}text-stone-500{% else %}text-stone-400{% endif %}">Menu</p>
           <ul class="space-y-0.5">
 
             {# ── Patient nav ── #}
             {% if current_user.role == 'user' %}
             <li>
               <a href="/dashboard"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50">
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-100">
                 <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6"/>
                 </svg>
@@ -63,7 +229,7 @@
             </li>
             <li>
               <a href="/chat-windows"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50"
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-100"
                  title="View and manage all your conversation windows">
                 <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M8 10h8M8 14h5"/><path d="M21 12a8.5 8.5 0 01-1.6 5l.6 3-3-1a8.5 8.5 0 11-2-14.5"/>
@@ -73,7 +239,7 @@
             </li>
             <li>
               <a href="/my-reports"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50"
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-100"
                  title="Review reports from completed conversations">
                 <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -84,7 +250,7 @@
             <li>
               <button type="button"
                       onclick="typeof toggleSelections === 'function' && toggleSelections()"
-                      class="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-stone-600 transition hover:bg-violet-50"
+                      class="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-stone-600 transition hover:bg-stone-100"
                       title="Quotes and insights you've saved from your conversations">
                 <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M6 4h12a1 1 0 011 1v16l-7-3-7 3V5a1 1 0 011-1z"/>
@@ -98,7 +264,7 @@
             {% if current_user.role == 'provider' %}
             <li>
               <a href="/provider/dashboard"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50">
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-100">
                 <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6"/>
                 </svg>
@@ -106,17 +272,26 @@
               </a>
             </li>
             <li>
-              <a href="/provider/chat-windows"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50">
+              <a href="/provider/study-design"
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-100">
+                <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                  <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                <span>Study Design</span>
+              </a>
+            </li>
+            <li>
+              <a href="/provider/chats"
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-100">
                 <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M8 10h8M8 14h5"/><path d="M21 12a8.5 8.5 0 01-1.6 5l.6 3-3-1a8.5 8.5 0 11-2-14.5"/>
                 </svg>
-                <span>Chat Windows</span>
+                <span>Chats</span>
               </a>
             </li>
             <li>
               <a href="/provider/settings"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50">
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-stone-100">
                 <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M12.22 2h-.44a2 2 0 00-2 2v.18a2 2 0 01-1 1.73l-.43.25a2 2 0 01-2 0l-.15-.08a2 2 0 00-2.73.73l-.22.38a2 2 0 00.73 2.73l.15.1a2 2 0 011 1.72v.51a2 2 0 01-1 1.74l-.15.09a2 2 0 00-.73 2.73l.22.38a2 2 0 002.73.73l.15-.08a2 2 0 012 0l.43.25a2 2 0 011 1.73V20a2 2 0 002 2h.44a2 2 0 002-2v-.18a2 2 0 011-1.73l.43-.25a2 2 0 012 0l.15.08a2 2 0 002.73-.73l.22-.39a2 2 0 00-.73-2.73l-.15-.08a2 2 0 01-1-1.74v-.5a2 2 0 011-1.74l.15-.09a2 2 0 00.73-2.73l-.22-.38a2 2 0 00-2.73-.73l-.15.08a2 2 0 01-2 0l-.43-.25a2 2 0 01-1-1.73V4a2 2 0 00-2-2z"/>
                   <circle cx="12" cy="12" r="3"/>
@@ -130,8 +305,8 @@
             {% if current_user.role == 'admin' %}
             <li>
               <a href="/admin/dashboard#overview"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50">
-                <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-400 transition hover:bg-white/5 hover:text-white">
+                <svg class="h-[18px] w-[18px] text-stone-500 group-hover:text-stone-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0h6"/>
                 </svg>
                 <span>Dashboard</span>
@@ -139,17 +314,17 @@
             </li>
             <li>
               <a href="/admin/dashboard#patients"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50">
-                <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-400 transition hover:bg-white/5 hover:text-white">
+                <svg class="h-[18px] w-[18px] text-stone-500 group-hover:text-stone-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
                 </svg>
-                <span>Patients</span>
+                <span>Participants</span>
               </a>
             </li>
             <li>
               <a href="/admin/dashboard#providers"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50">
-                <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-400 transition hover:bg-white/5 hover:text-white">
+                <svg class="h-[18px] w-[18px] text-stone-500 group-hover:text-stone-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
                 </svg>
                 <span>Providers</span>
@@ -157,8 +332,8 @@
             </li>
             <li>
               <a href="/admin/dashboard#settings"
-                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-600 transition hover:bg-violet-50">
-                <svg class="h-[18px] w-[18px] text-stone-400 group-hover:text-stone-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                 class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-stone-400 transition hover:bg-white/5 hover:text-white">
+                <svg class="h-[18px] w-[18px] text-stone-500 group-hover:text-stone-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
                   <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
                   <circle cx="12" cy="12" r="3"/>
                 </svg>
@@ -172,16 +347,14 @@
       </nav>
 
       {# Sidebar footer #}
-      <div class="mt-auto border-t border-violet-100 pt-4 px-3">
-        <div class="text-xs text-stone-500">
-          {% if current_user.role == 'user' %}
-          {{ current_user.username }}
-          {% elif current_user.role == 'provider' %}
-          Provider
-          {% elif current_user.role == 'admin' %}
-          Admin
-          {% endif %}
-        </div>
+      <div class="shrink-0 mt-auto border-t {% if current_user.role == 'admin' %}border-stone-800{% else %}border-stone-100{% endif %} pt-2 px-2">
+        <button onclick="logout()"
+                class="flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm {% if current_user.role == 'admin' %}text-stone-500 hover:bg-white/5 hover:text-stone-300{% else %}text-stone-400 hover:bg-stone-100 hover:text-stone-600{% endif %} transition">
+          <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+          </svg>
+          Log out
+        </button>
       </div>
     </aside>
 
@@ -192,33 +365,45 @@
     <div class="flex min-w-0 flex-1 flex-col">
 
       {# Top bar #}
-      <header class="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-stone-200 bg-white/90 px-4 backdrop-blur-sm">
+      {% if current_user.is_authenticated and current_user.role == 'admin' %}
+      <header class="sticky top-0 z-20 flex items-center gap-3 border-b border-stone-800 bg-[#1c1926]/90 px-4 py-2 backdrop-blur-sm">
+      {% else %}
+      <header class="sticky top-0 z-20 flex items-center gap-3 border-b border-stone-100 bg-white/90 px-4 py-2 backdrop-blur-sm">
+      {% endif %}
         <button id="menuBtn"
-                class="inline-flex items-center gap-2 rounded-lg border border-stone-200 px-2.5 py-1.5 text-sm lg:hidden">
-          <svg class="h-4 w-4 text-stone-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                class="p-1 {% if current_user.role == 'admin' %}text-stone-500 hover:text-stone-300{% else %}text-stone-400 hover:text-stone-600{% endif %} transition-colors lg:hidden">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
             <path d="M4 6h16M4 12h16M4 18h16"/>
           </svg>
-          Menu
         </button>
 
-        <h1 class="text-[15px] font-semibold text-stone-900">{% block page_title %}{% endblock %}</h1>
+        <h1 class="text-[15px] font-semibold {% if current_user.role == 'admin' %}text-white{% else %}text-stone-900{% endif %}">{% block page_title %}{% endblock %}</h1>
 
         <div class="ml-auto flex items-center gap-3">
           {% block header_actions %}{% endblock %}
-          <button onclick="logout()"
-                  class="rounded-md border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:bg-stone-50">
-            Log out
-          </button>
         </div>
       </header>
 
       {# Page content #}
-      <main class="w-full flex-1 p-6">
+      <main class="w-full flex-1 px-4 py-5 sm:px-6">
         {% block content %}{% endblock %}
       </main>
     </div>
   </div>
 {% endblock %}
+
+  {# Global dialog (used by showDialog() in shared.js) #}
+  <div id="dialogOverlay" class="fixed inset-0 z-[100] hidden items-center justify-center bg-black/30 backdrop-blur-[2px]">
+    <div class="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg mx-4">
+      <h3 id="dialogTitle" class="text-base font-semibold text-stone-900 mb-2"></h3>
+      <p id="dialogMessage" class="text-sm text-stone-500 mb-4"></p>
+      <input type="text" id="dialogInput" class="hidden w-full rounded-lg border border-stone-200 px-3 py-2 text-sm mb-4 focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo/30">
+      <div class="flex justify-end gap-2">
+        <button id="dialogCancel" class="rounded-lg px-4 py-2 text-sm font-medium text-stone-500 hover:bg-stone-50 transition-colors">Cancel</button>
+        <button id="dialogConfirm" class="rounded-lg px-4 py-2 text-sm font-medium text-white bg-cloze-indigo hover:bg-cloze-hover transition-colors"></button>
+      </div>
+    </div>
+  </div>
 
   {% block modals %}{% endblock %}
 

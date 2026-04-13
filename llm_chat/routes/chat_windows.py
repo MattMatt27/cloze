@@ -299,6 +299,35 @@ def delete_chat_window(window_id):
     db.session.commit()
     return jsonify({'message': 'Window deleted'})
 
+@window_bp.route("/<int:window_id>/templates", methods=["POST"])
+@login_required
+def add_template_to_window(window_id):
+    """Add a single template to an existing window (provider only)."""
+    if not current_user.is_provider():
+        abort(403)
+
+    window = ChatWindow.query.get_or_404(window_id)
+    if window.provider_id != current_user.id:
+        abort(403)
+
+    data = request.json or {}
+    max_order = max([t.order_index for t in window.templates.all()], default=-1)
+
+    template = ChatTemplate(
+        window_id=window_id,
+        title=data.get('title', 'New Chat'),
+        purpose=data.get('purpose'),
+        model_id=data['model_id'],
+        system_prompt_id=data.get('system_prompt_id'),
+        custom_system_prompt=data.get('custom_system_prompt'),
+        max_messages=data.get('max_messages'),
+        order_index=max_order + 1,
+    )
+    db.session.add(template)
+    db.session.commit()
+    return jsonify(template.to_dict()), 201
+
+
 @window_bp.route("/start_conversation", methods=["POST"])
 @login_required
 def start_conversation_from_template():

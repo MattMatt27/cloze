@@ -1,0 +1,754 @@
+{% extends "base.html" %}
+
+{% block title %}Study Design — Cloze{% endblock %}
+{% block page_title %}Study Design{% endblock %}
+
+{% block styles %}
+<style>
+  /* Sidebar items — no containers, just text with accent */
+  .flow-item { transition: all 0.12s; padding: 0.5rem 0.75rem; border-radius: 0.375rem; cursor: pointer; white-space: nowrap; }
+  .flow-item:hover { color: #4338CA; }
+  .flow-item.active { color: #4338CA; background: rgba(139, 92, 246, 0.06); }
+
+  /* Phase accent line */
+  .phase-accent { width: 3px; border-radius: 2px; background: #E5E7EB; transition: background 0.2s; flex-shrink: 0; }
+  .phase-group:hover .phase-accent { background: #A78BFA; }
+
+  /* Chat rows — no container, just content */
+  .chat-row { padding: 0.5rem 0; cursor: pointer; transition: color 0.1s; }
+  .chat-row:hover { color: #4338CA; }
+  .chat-row:hover .chat-meta { opacity: 1; }
+  .chat-meta { opacity: 0; transition: opacity 0.15s; }
+
+  /* Expandable details */
+  .chat-details { max-height: 0; overflow: hidden; transition: max-height 0.25s ease; }
+  .chat-details.open { max-height: 500px; }
+
+  /* Inline inputs — borderless, just text */
+  .inline-input { border: none; background: transparent; outline: none; width: 100%;
+    border-bottom: 1px solid transparent; transition: border-color 0.15s; }
+  .inline-input:focus { border-bottom-color: #A78BFA; }
+  .inline-input::placeholder { color: #D1D5DB; }
+
+  /* Add triggers — minimal */
+  .add-trigger { color: #D1D5DB; transition: color 0.15s; cursor: pointer; }
+  .add-trigger:hover { color: #7C3AED; }
+
+  /* Hide native number spinners */
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type=number] { -moz-appearance: textfield; }
+
+  /* Timeline */
+  .timeline-bar { height: 6px; border-radius: 3px; }
+  .timeline-bar > div { transition: all 0.2s ease; }
+
+  /* Type picker */
+  .type-option { transition: all 0.15s; cursor: pointer; }
+  .type-option:hover { padding-left: 1rem; color: #4338CA; }
+  .type-option:hover .type-dot { background: #7C3AED; }
+  .type-dot { width: 8px; height: 8px; border-radius: 50%; background: #D1D5DB; transition: background 0.15s; flex-shrink: 0; }
+
+  @media (prefers-color-scheme: dark) {
+    .flow-item:hover { color: #c4b5fd; }
+    .flow-item.active { color: #c4b5fd; background: rgba(139,92,246,0.12); }
+    .phase-accent { background: #3a3545; }
+    .phase-group:hover .phase-accent { background: #A78BFA; }
+    .chat-row:hover { color: #c4b5fd; }
+    .inline-input { color: #e7e5e4; }
+    .inline-input:focus { border-bottom-color: #A78BFA; }
+    .inline-input::placeholder { color: #57534e; }
+    .add-trigger { color: #78716c; }
+    .add-trigger:hover { color: #c4b5fd; }
+    .type-option:hover { color: #c4b5fd; }
+    .type-dot { background: #57534e; }
+    .timeline-bar { background: #2a2535; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="flex flex-col lg:flex-row gap-4 min-h-[400px] lg:min-h-[600px]">
+  {# ── Sidebar: flow list ── #}
+  <div class="w-full lg:w-48 shrink-0 pt-1 lg:pr-4 lg:border-r border-stone-100 pb-3 lg:pb-0 border-b lg:border-b-0">
+    <div class="mb-4 flex items-center justify-between">
+      <h3 class="text-[11px] font-medium uppercase tracking-wider text-stone-300">Flows</h3>
+      <button onclick="showNewFlowPicker()" class="add-trigger p-0.5" title="New flow">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+    </div>
+    <div id="flowList" class="flex lg:flex-col gap-1 lg:gap-0.5 overflow-x-auto lg:overflow-visible">
+      <div class="py-8 text-center text-xs text-stone-300">Loading...</div>
+    </div>
+  </div>
+
+  {# ── Main workspace — document surface ── #}
+  <div class="flex-1 min-w-0 max-w-2xl rounded-xl bg-white shadow-sm px-5 py-5 sm:px-10 sm:py-8 border border-stone-100">
+    {# Empty state #}
+    <div id="emptyState" class="flex items-center justify-center h-full">
+      <div class="text-center">
+        <p class="text-stone-300 mb-1">Select a flow or create a new one</p>
+      </div>
+    </div>
+
+    {# New flow type picker #}
+    <div id="flowTypePicker" class="hidden pt-2">
+      <h2 class="text-2xl font-bold text-stone-900 mb-1">New flow</h2>
+      <p class="text-stone-400 mb-8">What structure fits your study?</p>
+
+      <div class="space-y-5 max-w-md">
+        <button onclick="createFlow('always')" class="type-option flex items-start gap-3 w-full text-left py-2 pl-0">
+          <div class="type-dot mt-2"></div>
+          <div>
+            <div class="font-semibold text-stone-900">Always Available</div>
+            <div class="text-sm text-stone-400 mt-0.5">Chats with no time limits</div>
+          </div>
+        </button>
+        <button onclick="createFlow('phased')" class="type-option flex items-start gap-3 w-full text-left py-2 pl-0">
+          <div class="type-dot mt-2"></div>
+          <div>
+            <div class="font-semibold text-stone-900">Phased</div>
+            <div class="text-sm text-stone-400 mt-0.5">Structured modules that unlock over time</div>
+          </div>
+        </button>
+        <button onclick="createFlow('recurring')" class="type-option flex items-start gap-3 w-full text-left py-2 pl-0">
+          <div class="type-dot mt-2"></div>
+          <div>
+            <div class="font-semibold text-stone-900">Recurring</div>
+            <div class="text-sm text-stone-400 mt-0.5">Same chats repeating on a cycle</div>
+          </div>
+        </button>
+      </div>
+
+      <button onclick="hideFlowTypePicker()" class="mt-6 text-xs text-stone-300 hover:text-stone-500">Cancel</button>
+    </div>
+
+    {# Flow editor workspace #}
+    <div id="flowWorkspace" class="hidden pt-2">
+      {# Flow header #}
+      <div class="mb-3">
+        <div class="flex items-start justify-between">
+          <h2 id="flowName" class="text-2xl font-bold text-stone-900 cursor-pointer hover:text-cloze-indigo transition-colors" onclick="editFlowName()" title="Click to rename"></h2>
+          <button onclick="deleteCurrentFlow()" class="p-1.5 text-stone-300 hover:text-red-500 transition-colors rounded-lg hover:bg-red-50" title="Delete flow">
+            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+              <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z"/>
+              <path d="M10 11v6M14 11v6"/>
+            </svg>
+          </button>
+        </div>
+        <div class="mt-2 flex items-center gap-3">
+          <span id="flowMeta" class="text-sm text-stone-400"></span>
+          <span class="text-stone-200">·</span>
+          <button onclick="showEnrollPanel()" class="text-sm font-medium text-cloze-indigo hover:text-cloze-hover transition-colors">Enroll participants</button>
+        </div>
+      </div>
+
+      {# Recurring settings — readable sentence with interactive values #}
+      <div id="recurringSettings" class="hidden mb-3 rounded-lg bg-stone-50 px-5 py-4">
+        <div class="flex items-center gap-1.5 text-[15px] text-stone-600 flex-wrap">
+          <span>Repeats every</span>
+          <span class="inline-flex items-center gap-1">
+            <button onclick="adjustValue('cadenceDays', -1)" class="text-stone-300 hover:text-cloze-indigo transition-colors">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <input type="number" id="cadenceDays" min="1" value="7" onchange="updateRecurringSettings()" class="w-10 text-center font-bold text-stone-900 bg-transparent border-b-2 border-violet-200 focus:border-cloze-indigo outline-none">
+            <button onclick="adjustValue('cadenceDays', 1)" class="text-stone-300 hover:text-cloze-indigo transition-colors">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </span>
+          <span>days for</span>
+          <span class="inline-flex items-center gap-1">
+            <button onclick="adjustValue('cycleCount', -1)" class="text-stone-300 hover:text-cloze-indigo transition-colors">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <input type="number" id="cycleCount" min="1" value="6" onchange="updateRecurringSettings()" class="w-10 text-center font-bold text-stone-900 bg-transparent border-b-2 border-violet-200 focus:border-cloze-indigo outline-none">
+            <button onclick="adjustValue('cycleCount', 1)" class="text-stone-300 hover:text-cloze-indigo transition-colors">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </span>
+          <span>cycles</span>
+        </div>
+        <p id="recurringExplain" class="text-xs text-stone-400 mt-2"></p>
+      </div>
+
+      {# Timeline bar (phased only) #}
+      <div id="timelineBar" class="hidden mb-8"></div>
+
+      {# Phases and chats #}
+      <div id="phasesContainer"></div>
+
+      {# Add phase — just text #}
+      <div id="addPhaseArea" class="hidden mt-6">
+        <button onclick="addPhase()" class="add-trigger text-sm">+ Add phase</button>
+      </div>
+    </div>
+
+    {# Enrollment panel #}
+    <div id="enrollPanel" class="hidden pt-2">
+      <div class="mb-6">
+        <h2 class="text-2xl font-bold text-stone-900">Enroll participants</h2>
+        <button onclick="hideEnrollPanel()" class="text-sm text-stone-300 hover:text-stone-500 mt-1">Back to flow</button>
+      </div>
+      <div id="enrollList" class="space-y-1 mb-6"></div>
+      <div class="flex items-center gap-4">
+        <button onclick="enrollSelected()" class="text-sm font-medium text-cloze-indigo hover:text-cloze-hover transition-colors">Enroll selected</button>
+        <span id="enrollStatus" class="text-xs text-stone-400"></span>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  var flows = [];
+  var currentFlow = null;
+  var patients = [];
+  var models = [];
+  var systemPrompts = [];
+
+  // ── Init ──────────────────────────────────────────────────
+
+  async function init() {
+    var results = await Promise.all([
+      fetch('/api/provider/flows').then(r => r.json()),
+      fetch('/api/provider/patients').then(r => r.json()),
+      fetch('/api/models').then(r => r.json()),
+      fetch('/api/system_prompts').then(r => r.json()),
+    ]);
+    flows = results[0];
+    patients = results[1];
+    models = results[2];
+    systemPrompts = results[3];
+    renderFlowList();
+  }
+
+  // ── Flow list sidebar ─────────────────────────────────────
+
+  function renderFlowList() {
+    var container = document.getElementById('flowList');
+    if (!flows.length) {
+      container.innerHTML = '<div class="py-4 text-xs text-stone-300">No flows yet</div>';
+      return;
+    }
+    container.innerHTML = flows.map(function(f) {
+      var active = currentFlow && currentFlow.id === f.id;
+      var typeIndicator = { always: '∞', phased: '◆', recurring: '↻' }[f.flow_type] || '';
+      return '<div class="flow-item ' + (active ? 'active' : '') + '" onclick="selectFlow(' + f.id + ')">' +
+        '<div class="text-sm font-medium">' + escapeHtml(f.name) + '</div>' +
+        '<div class="text-[11px] text-stone-300 mt-0.5">' +
+          '<span class="mr-1">' + typeIndicator + '</span>' +
+          f.enrollment_count + ' enrolled' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  // ── Flow selection ────────────────────────────────────────
+
+  async function selectFlow(flowId) {
+    var resp = await fetch('/api/provider/flows/' + flowId);
+    currentFlow = await resp.json();
+
+    document.getElementById('emptyState').classList.add('hidden');
+    document.getElementById('flowTypePicker').classList.add('hidden');
+    document.getElementById('enrollPanel').classList.add('hidden');
+    document.getElementById('flowWorkspace').classList.remove('hidden');
+
+    renderFlowList();
+    renderWorkspace();
+  }
+
+  var PHASE_COLORS = ['#8B5CF6', '#38BDF8', '#34D399', '#FBBF24', '#FB7185', '#6366F1'];
+
+  function renderWorkspace() {
+    var f = currentFlow;
+    document.getElementById('flowName').textContent = f.name;
+
+    // Subtle meta — just enrollment count + type badge
+    var enrollText = f.enrollment_count ? f.enrollment_count + ' enrolled' : 'No participants enrolled';
+    document.getElementById('flowMeta').textContent = enrollText;
+
+    // Show config bar for all types
+    document.getElementById('recurringSettings').classList.toggle('hidden', f.flow_type !== 'recurring');
+    document.getElementById('addPhaseArea').classList.toggle('hidden', f.flow_type !== 'phased');
+
+    if (f.flow_type === 'recurring') {
+      document.getElementById('cadenceDays').value = f.cadence_days || 7;
+      document.getElementById('cycleCount').value = f.cycle_count || 6;
+      var total = (f.cadence_days || 7) * (f.cycle_count || 6);
+      var explain = document.getElementById('recurringExplain');
+      if (explain) explain.textContent = total + ' days total · each participant gets ' + (f.cycle_count || 6) + ' windows of ' + (f.cadence_days || 7) + ' days each';
+    }
+
+    // Timeline/config bar for all types
+    renderTimelineBar(f);
+
+    renderPhases();
+  }
+
+  // ── Timeline bar ───────────────────────────────────────────
+
+  function renderTimelineBar(f) {
+    var bar = document.getElementById('timelineBar');
+
+    if (f.flow_type === 'phased' && f.phases.length > 0) {
+      var maxDay = Math.max.apply(null, f.phases.map(function(p) { return p.end_day || p.start_day + 7; }));
+      if (maxDay <= 0) maxDay = 28;
+      bar.classList.remove('hidden');
+      var segments = '';
+      f.phases.forEach(function(p, i) {
+        var start = p.start_day || 0;
+        var end = p.end_day || start + 7;
+        var width = ((end - start) / maxDay * 100);
+        segments += '<div class="h-full transition-all duration-200 cursor-pointer" ' +
+          'style="width:' + width + '%;background:' + PHASE_COLORS[i % PHASE_COLORS.length] + '" ' +
+          'title="' + escapeHtml(p.name) + ' (Day ' + start + '–' + end + ')" ' +
+          'data-phase-index="' + i + '" ' +
+          'onmouseenter="highlightPhase(' + i + ')" ' +
+          'onmouseleave="unhighlightPhase(' + i + ')"></div>';
+      });
+      bar.innerHTML = '<div class="flex items-center gap-3 mb-2">' +
+        '<div class="flex-1 flex rounded-full timeline-bar bg-stone-100 overflow-hidden" id="timelineSegments">' + segments + '</div>' +
+        '<span class="text-[11px] text-stone-300 shrink-0">Day ' + maxDay + '</span></div>';
+      return;
+    }
+
+    bar.classList.add('hidden');
+  }
+
+  function highlightPhase(index) {
+    // Expand the segment slightly
+    var segments = document.querySelectorAll('#timelineSegments > div');
+    segments.forEach(function(seg, i) {
+      if (i === index) {
+        seg.style.opacity = '1';
+        seg.style.height = '10px';
+        seg.style.marginTop = '-2px';
+      } else {
+        seg.style.opacity = '0.2';
+      }
+    });
+    // Highlight matching phase section
+    var phases = document.querySelectorAll('.phase-group');
+    phases.forEach(function(pg, i) {
+      if (i === index) {
+        var accent = pg.querySelector('.phase-accent');
+        if (accent) accent.style.background = PHASE_COLORS[i % PHASE_COLORS.length];
+      }
+    });
+  }
+
+  function unhighlightPhase(index) {
+    var segments = document.querySelectorAll('#timelineSegments > div');
+    segments.forEach(function(seg, i) {
+      seg.style.opacity = '';
+      seg.style.height = '';
+      seg.style.marginTop = '';
+    });
+    var phases = document.querySelectorAll('.phase-group');
+    phases.forEach(function(pg) {
+      var accent = pg.querySelector('.phase-accent');
+      if (accent) accent.style.background = '';
+    });
+  }
+
+  // ── Phases and chats ──────────────────────────────────────
+
+  function renderPhases() {
+    var container = document.getElementById('phasesContainer');
+    var f = currentFlow;
+
+    if (!f.phases.length) {
+      container.innerHTML = '<div class="py-8 text-stone-300">No phases yet</div>';
+      return;
+    }
+
+    // For always/recurring — flat chat list, no phase headers
+    if (f.flow_type !== 'phased') {
+      var allChats = [];
+      f.phases.forEach(function(p) { allChats = allChats.concat(p.chats); });
+      var phaseId = f.phases[0] ? f.phases[0].id : null;
+
+      var html = '<div class="space-y-1">';
+      if (allChats.length) {
+        html += allChats.map(function(chat) {
+          return renderChatRow(chat, true);
+        }).join('');
+      } else {
+        html += '<div class="py-4 text-stone-300">No chats yet</div>';
+      }
+      if (phaseId) {
+        html += '<div class="mt-3"><button onclick="addChat(' + phaseId + ')" class="add-trigger text-sm">+ Add chat</button></div>';
+      }
+      html += '</div>';
+      container.innerHTML = html;
+      return;
+    }
+
+    // Phased — full phase headers with accent bars
+    container.innerHTML = f.phases.map(function(phase, pi) {
+      var color = PHASE_COLORS[pi % PHASE_COLORS.length];
+      var timing = '<span class="text-stone-300 ml-2 text-sm font-normal">Day ' + phase.start_day + (phase.end_day ? '–' + phase.end_day : '+') + '</span>';
+
+      var html = '<div class="phase-group flex gap-3 mb-8" data-phase-index="' + pi + '" onmouseenter="highlightPhase(' + pi + ')" onmouseleave="unhighlightPhase(' + pi + ')">';
+      html += '<div class="phase-accent mt-1"></div>';
+      html += '<div class="flex-1 min-w-0">';
+
+      html += '<div class="flex items-baseline justify-between mb-3 group">';
+      html += '<h3 class="text-base font-semibold text-stone-900 cursor-pointer hover:text-cloze-indigo transition-colors" onclick="editPhase(' + phase.id + ')">' + escapeHtml(phase.name) + timing + '</h3>';
+      html += '<button onclick="deletePhase(' + phase.id + ')" class="opacity-0 group-hover:opacity-100 text-stone-300 hover:text-red-400 transition-all text-xs">remove</button>';
+      html += '</div>';
+
+      if (phase.chats.length) {
+        html += phase.chats.map(function(chat) {
+          return renderChatRow(chat, false);
+        }).join('');
+      }
+
+      html += '<div class="mt-2"><button onclick="addChat(' + phase.id + ')" class="add-trigger text-sm">+ Add chat</button></div>';
+      html += '</div></div>';
+      return html;
+    }).join('');
+  }
+
+  function renderChatRow(chat, prominent) {
+    var titleClass = prominent ? 'text-[15px] font-medium text-stone-900' : 'text-sm text-stone-800';
+    var paddingClass = prominent ? 'py-2.5' : 'py-1.5';
+
+    return '<div class="chat-row group ' + paddingClass + '" id="chat-' + chat.id + '" onclick="toggleChatDetails(' + chat.id + ')">' +
+      '<div class="flex items-center justify-between">' +
+        '<div class="flex items-center gap-2">' +
+          '<svg class="h-3.5 w-3.5 text-stone-300 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>' +
+          '<span class="' + titleClass + '">' + escapeHtml(chat.title) + '</span>' +
+        '</div>' +
+        '<div class="flex items-center gap-3">' +
+          '<span class="text-xs text-stone-300">' +
+            (chat.model_name || '') + (chat.max_messages ? ' · ' + chat.max_messages + ' turns' : '') +
+          '</span>' +
+          '<button onclick="event.stopPropagation(); deleteChat(' + chat.id + ')" class="chat-meta text-stone-300 hover:text-red-400 transition-colors text-lg leading-none px-1 -mt-0.5">×</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="chat-details" id="chat-details-' + chat.id + '" onclick="event.stopPropagation()">' +
+        renderChatEditForm(chat, null) +
+      '</div>' +
+    '</div>';
+  }
+
+  function renderChatEditForm(chat, phaseId) {
+    var formId = 'chat-form-' + chat.id;
+    return '<div class="mt-3 pb-3 pl-1 border-l-2 border-violet-100 ml-1" id="' + formId + '">' +
+      '<div class="pl-4 space-y-2">' +
+        '<div class="grid grid-cols-2 gap-4">' +
+          '<div><span class="text-[11px] text-stone-300">Title</span>' +
+          '<input type="text" data-field="title" value="' + escapeHtml(chat.title) + '" onfocus="this.select()" class="inline-input text-sm font-medium text-stone-900 py-1"></div>' +
+          '<div><span class="text-[11px] text-stone-300">Model</span>' +
+          '<select data-field="model_id" class="inline-input text-sm text-stone-700 py-1 cursor-pointer">' +
+            models.map(function(m) { return '<option value="' + m.id + '"' + (m.id === chat.model_id ? ' selected' : '') + '>' + escapeHtml(m.name) + '</option>'; }).join('') +
+          '</select></div>' +
+        '</div>' +
+        '<div class="grid grid-cols-2 gap-4">' +
+          '<div><span class="text-[11px] text-stone-300">System Prompt</span>' +
+          '<select data-field="system_prompt_id" class="inline-input text-sm text-stone-700 py-1 cursor-pointer">' +
+            '<option value="">General (default)</option>' +
+            systemPrompts.map(function(p) { return '<option value="' + p.id + '"' + (p.id === chat.system_prompt_id ? ' selected' : '') + '>' + escapeHtml(p.name) + '</option>'; }).join('') +
+          '</select></div>' +
+          '<div><span class="text-[11px] text-stone-300">Max Turns</span>' +
+          '<input type="number" min="1" data-field="max_messages" value="' + (chat.max_messages || '') + '" placeholder="No limit" class="inline-input text-sm text-stone-700 py-1"></div>' +
+        '</div>' +
+        '<div><span class="text-[11px] text-stone-300">Purpose</span>' +
+        '<input type="text" data-field="purpose" value="' + escapeHtml(chat.purpose || '') + '" placeholder="Brief description..." class="inline-input text-sm text-stone-500 py-1"></div>' +
+        '<div class="flex items-center gap-3 pt-1">' +
+          '<button onclick="saveChat(' + chat.id + ')" class="text-sm font-medium text-cloze-indigo hover:text-cloze-hover transition-colors">Save</button>' +
+          '<span id="chat-save-status-' + chat.id + '" class="text-xs text-stone-400"></span>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function toggleChatDetails(chatId) {
+    var el = document.getElementById('chat-details-' + chatId);
+    el.classList.toggle('open');
+  }
+
+  // ── CRUD operations ───────────────────────────────────────
+
+  function showNewFlowPicker() {
+    document.getElementById('emptyState').classList.add('hidden');
+    document.getElementById('flowWorkspace').classList.add('hidden');
+    document.getElementById('enrollPanel').classList.add('hidden');
+    document.getElementById('flowTypePicker').classList.remove('hidden');
+  }
+
+  function hideFlowTypePicker() {
+    document.getElementById('flowTypePicker').classList.add('hidden');
+    if (currentFlow) {
+      document.getElementById('flowWorkspace').classList.remove('hidden');
+    } else {
+      document.getElementById('emptyState').classList.remove('hidden');
+    }
+  }
+
+  async function createFlow(type) {
+    var name = await showDialog({ title: 'New flow', input: '', placeholder: 'Flow name', confirmText: 'Create' });
+    if (!name) return;
+
+    var payload = { name: name, flow_type: type };
+    if (type === 'recurring') {
+      payload.cadence_days = 7;
+      payload.cycle_count = 6;
+    }
+
+    var resp = await fetch('/api/provider/flows', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    var flow = await resp.json();
+    flows.push(flow);
+    document.getElementById('flowTypePicker').classList.add('hidden');
+    selectFlow(flow.id);
+  }
+
+  async function editFlowName() {
+    var name = await showDialog({ title: 'Rename flow', input: currentFlow.name, confirmText: 'Save' });
+    if (!name || name === currentFlow.name) return;
+    await fetch('/api/provider/flows/' + currentFlow.id, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name })
+    });
+    currentFlow.name = name;
+    document.getElementById('flowName').textContent = name;
+    flows = flows.map(function(f) { return f.id === currentFlow.id ? { ...f, name: name } : f; });
+    renderFlowList();
+  }
+
+  async function deleteCurrentFlow() {
+    var ok = await showDialog({ title: 'Delete flow', message: 'Delete "' + currentFlow.name + '"? This cannot be undone.', confirmText: 'Delete', danger: true });
+    if (!ok) return;
+    var resp = await fetch('/api/provider/flows/' + currentFlow.id, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
+    var result = await resp.json();
+    if (result.error) { showDialog({ title: 'Cannot delete', message: result.error, confirmText: 'OK' }); return; }
+    flows = flows.filter(function(f) { return f.id !== currentFlow.id; });
+    currentFlow = null;
+    document.getElementById('flowWorkspace').classList.add('hidden');
+    document.getElementById('emptyState').classList.remove('hidden');
+    renderFlowList();
+  }
+
+  function adjustValue(inputId, delta) {
+    var el = document.getElementById(inputId);
+    var val = parseInt(el.value) || 1;
+    el.value = Math.max(1, val + delta);
+    updateRecurringSettings();
+  }
+
+  async function updateRecurringSettings() {
+    var cadence = parseInt(document.getElementById('cadenceDays').value) || 7;
+    var cycles = parseInt(document.getElementById('cycleCount').value) || 1;
+    var totalDays = cadence * cycles;
+    var explain = document.getElementById('recurringExplain');
+    if (explain) explain.textContent = totalDays + ' days total · each participant gets ' + cycles + ' windows of ' + cadence + ' days each';
+
+    await fetch('/api/provider/flows/' + currentFlow.id, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cadence_days: cadence, cycle_count: cycles })
+    });
+    currentFlow.cadence_days = cadence;
+    currentFlow.cycle_count = cycles;
+  }
+
+  async function addPhase() {
+    var name = await showDialog({ title: 'New phase', input: '', placeholder: 'Phase name', confirmText: 'Add' });
+    if (!name) return;
+
+    var lastPhase = currentFlow.phases[currentFlow.phases.length - 1];
+    var startDay = lastPhase ? (lastPhase.end_day || lastPhase.start_day + 7) : 0;
+
+    var resp = await fetch('/api/provider/flows/' + currentFlow.id + '/phases', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name, start_day: startDay, end_day: startDay + 7 })
+    });
+    var phase = await resp.json();
+    currentFlow.phases.push(phase);
+    renderWorkspace();
+  }
+
+  async function editPhase(phaseId) {
+    var phase = currentFlow.phases.find(function(p) { return p.id === phaseId; });
+    if (!phase) return;
+
+    var name = await showDialog({ title: 'Rename phase', input: phase.name, confirmText: 'Save' });
+    if (!name || name === phase.name) return;
+    await fetch('/api/provider/phases/' + phaseId, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name })
+    });
+    phase.name = name;
+    renderPhases();
+  }
+
+  async function deletePhase(phaseId) {
+    var ok = await showDialog({ title: 'Delete phase', message: 'This will remove the phase and all its chats.', confirmText: 'Delete', danger: true });
+    if (!ok) return;
+    await fetch('/api/provider/phases/' + phaseId, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
+    currentFlow.phases = currentFlow.phases.filter(function(p) { return p.id !== phaseId; });
+    renderWorkspace();
+  }
+
+  async function addChat(phaseId) {
+    if (!models.length) { showDialog({ title: 'No models', message: 'No models are available. Check your admin settings.', confirmText: 'OK' }); return; }
+    var resp = await fetch('/api/provider/phases/' + phaseId + '/chats', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: 'New Chat', model_id: models[0].id })
+    });
+    var chat = await resp.json();
+    var phase = currentFlow.phases.find(function(p) { return p.id === phaseId; });
+    if (phase) phase.chats.push(chat);
+    renderPhases();
+    // Auto-expand the new chat for editing
+    setTimeout(function() { toggleChatDetails(chat.id); }, 50);
+  }
+
+  async function saveChat(chatId) {
+    var form = document.getElementById('chat-form-' + chatId);
+    if (!form) return;
+
+    var payload = {};
+    form.querySelectorAll('[data-field]').forEach(function(el) {
+      var field = el.dataset.field;
+      var val = el.value;
+      if (field === 'model_id') {
+        payload[field] = parseInt(val);
+      } else if (field === 'system_prompt_id') {
+        payload[field] = val ? parseInt(val) : null;
+      } else if (field === 'max_messages') {
+        payload[field] = val ? parseInt(val) : null;
+      } else {
+        payload[field] = val;
+      }
+    });
+
+    var statusEl = document.getElementById('chat-save-status-' + chatId);
+    statusEl.textContent = 'Saving...';
+
+    await fetch('/api/provider/chats/' + chatId, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    // Update local state
+    currentFlow.phases.forEach(function(p) {
+      p.chats.forEach(function(c) {
+        if (c.id === chatId) {
+          Object.assign(c, payload);
+          if (payload.model_id) {
+            var m = models.find(function(mo) { return mo.id === payload.model_id; });
+            c.model_name = m ? m.name : '';
+          }
+          if (payload.title) {
+            // Update the title in the row above the form
+            var row = document.getElementById('chat-' + chatId);
+            if (row) {
+              var titleSpan = row.querySelector('.text-stone-800');
+              if (titleSpan) titleSpan.textContent = payload.title;
+            }
+          }
+        }
+      });
+    });
+
+    statusEl.textContent = 'Saved';
+    statusEl.classList.add('text-emerald-600');
+    setTimeout(function() {
+      renderPhases();
+    }, 600);
+  }
+
+  async function deleteChat(chatId) {
+    var chatName = '';
+    currentFlow.phases.forEach(function(p) {
+      p.chats.forEach(function(c) { if (c.id === chatId) chatName = c.title; });
+    });
+    var ok = await showDialog({ title: 'Delete chat', message: 'Delete "' + chatName + '"?', confirmText: 'Delete', danger: true });
+    if (!ok) return;
+
+    await fetch('/api/provider/chats/' + chatId, { method: 'DELETE', headers: { 'Content-Type': 'application/json' } });
+    currentFlow.phases.forEach(function(p) {
+      p.chats = p.chats.filter(function(c) { return c.id !== chatId; });
+    });
+    renderPhases();
+  }
+
+  // ── Enrollment ────────────────────────────────────────────
+
+  async function showEnrollPanel() {
+    document.getElementById('flowWorkspace').classList.add('hidden');
+    document.getElementById('enrollPanel').classList.remove('hidden');
+
+    // Get existing enrollments
+    var resp = await fetch('/api/provider/flows/' + currentFlow.id + '/enrollments');
+    var enrollments = await resp.json();
+    var enrolledIds = new Set(enrollments.map(function(e) { return e.patient_id; }));
+
+    var html = patients.map(function(p) {
+      var enrolled = enrolledIds.has(p.id);
+      return '<label class="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-stone-50 cursor-pointer">' +
+        '<input type="checkbox" class="enroll-check h-4 w-4 rounded border-stone-300 text-cloze-indigo" data-patient-id="' + p.id + '"' + (enrolled ? ' checked disabled' : '') + '>' +
+        '<div>' +
+          '<span class="text-sm text-stone-800">' + escapeHtml(p.username) + '</span>' +
+          (enrolled ? '<span class="ml-2 text-xs text-emerald-600">Enrolled</span>' : '') +
+        '</div>' +
+      '</label>';
+    }).join('');
+
+    if (!patients.length) html = '<div class="py-4 text-center text-sm text-stone-400">No participants. Create participants on the Dashboard first.</div>';
+    document.getElementById('enrollList').innerHTML = html;
+    document.getElementById('enrollStatus').textContent = '';
+  }
+
+  function hideEnrollPanel() {
+    document.getElementById('enrollPanel').classList.add('hidden');
+    document.getElementById('flowWorkspace').classList.remove('hidden');
+  }
+
+  async function enrollSelected() {
+    var checkboxes = document.querySelectorAll('.enroll-check:not(:disabled)');
+    var ids = [];
+    checkboxes.forEach(function(cb) {
+      if (cb.checked) ids.push(parseInt(cb.dataset.patientId));
+    });
+    if (!ids.length) { showDialog({ title: 'No selection', message: 'Select at least one participant to enroll.', confirmText: 'OK' }); return; }
+
+    var statusEl = document.getElementById('enrollStatus');
+    statusEl.textContent = 'Enrolling...';
+
+    var resp = await fetch('/api/provider/flows/' + currentFlow.id + '/enroll', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ patient_ids: ids })
+    });
+    var result = await resp.json();
+    statusEl.textContent = result.enrolled + ' participant(s) enrolled';
+    statusEl.classList.add('text-emerald-600');
+    setTimeout(function() {
+      statusEl.classList.remove('text-emerald-600');
+      hideEnrollPanel();
+      // Refresh flow data
+      selectFlow(currentFlow.id);
+      // Update flows list enrollment count
+      var fl = flows.find(function(f) { return f.id === currentFlow.id; });
+      if (fl) fl.enrollment_count += result.enrolled;
+      renderFlowList();
+    }, 1500);
+  }
+
+  init();
+</script>
+{% endblock %}

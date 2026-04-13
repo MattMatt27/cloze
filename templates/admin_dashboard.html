@@ -3,6 +3,89 @@
 {% block title %}Dashboard — Cloze{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
 
+{% block styles %}
+<style>
+  /* Admin dark theme for dashboard content */
+  .tab-panel { color: #d6d3d1; }
+
+  /* Cards and sections */
+  .tab-panel section { border-color: #2a2535 !important; }
+  .tab-panel .bg-white { background: #221f2e !important; }
+  .tab-panel .bg-violet-50\/40, .tab-panel .bg-violet-50\/60 { background: #2a2535 !important; }
+  .tab-panel .bg-muted { background: #2a2535 !important; }
+
+  /* Borders */
+  .tab-panel .border-stone-200, .tab-panel .border-stone-100,
+  .tab-panel .border-violet-100 { border-color: #2a2535 !important; }
+  .tab-panel .divide-stone-100 > * + * { border-color: #2a2535 !important; }
+
+  /* Text */
+  .tab-panel .text-stone-900 { color: #f5f5f4 !important; }
+  .tab-panel .text-stone-800 { color: #e7e5e4 !important; }
+  .tab-panel .text-stone-700 { color: #d6d3d1 !important; }
+  .tab-panel .text-stone-600 { color: #a8a29e !important; }
+  .tab-panel .text-stone-500 { color: #a8a29e !important; }
+
+  /* Stat cards */
+  .tab-panel .bg-violet-50\/40 { background: #2a2535 !important; }
+  .tab-panel .border-violet-100 { border-color: #3a3545 !important; }
+
+  /* Tables */
+  .tab-panel table { color: #d6d3d1; }
+  .tab-panel thead tr { background: #2a2535 !important; border-color: #3a3545 !important; }
+  .tab-panel th { color: #a8a29e !important; }
+  .tab-panel tbody tr { border-color: #2a2535 !important; }
+  .tab-panel tbody tr:hover { background: #2a2535 !important; }
+
+  /* Inputs and selects */
+  .tab-panel input, .tab-panel select, .tab-panel textarea {
+    background: #1c1926 !important;
+    border-color: #3a3545 !important;
+    color: #d6d3d1 !important;
+  }
+  .tab-panel input:focus, .tab-panel select:focus, .tab-panel textarea:focus {
+    border-color: #5B5FC7 !important;
+  }
+  .tab-panel input::placeholder { color: #4a4555 !important; }
+
+  /* Buttons */
+  .tab-panel .bg-cloze-indigo { background: #5B5FC7 !important; }
+  .tab-panel .hover\:bg-stone-50:hover { background: #2a2535 !important; }
+
+  /* Badges */
+  .tab-panel .bg-emerald-50 { background: rgba(16, 185, 129, 0.15) !important; }
+  .tab-panel .bg-red-50 { background: rgba(239, 68, 68, 0.15) !important; }
+  .tab-panel .bg-amber-100 { background: rgba(251, 191, 36, 0.15) !important; }
+  .tab-panel .bg-stone-100 { background: #2a2535 !important; }
+
+  /* Drill-down panels */
+  .tab-panel .bg-stone-50 { background: #1c1926 !important; }
+
+  /* Provider feature flags */
+  .tab-panel .rounded-lg.border { border-color: #2a2535 !important; }
+
+  /* Modals stay light — they float above */
+  .modal .bg-white { background: #2a2535 !important; }
+  .modal .text-stone-900 { color: #f5f5f4 !important; }
+  .modal .text-stone-700 { color: #d6d3d1 !important; }
+  .modal .text-stone-600 { color: #a8a29e !important; }
+  .modal .text-stone-500 { color: #a8a29e !important; }
+  .modal .border-stone-200 { border-color: #3a3545 !important; }
+  .modal input, .modal select, .modal textarea {
+    background: #1c1926 !important;
+    border-color: #3a3545 !important;
+    color: #d6d3d1 !important;
+  }
+
+  /* Prompt editor */
+  .tab-panel #promptsListPanel { background: #1c1926 !important; }
+  .tab-panel #promptsListPanel > div:hover { background: #2a2535 !important; }
+
+  /* Checkboxes */
+  .tab-panel input[type="checkbox"] { accent-color: #5B5FC7; }
+</style>
+{% endblock %}
+
 {% block content %}
   {# ══════════════════════════════════════════════════════════════
      TAB 1 — OVERVIEW
@@ -12,7 +95,7 @@
     <section class="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
       <div class="rounded-lg border border-violet-100 bg-violet-50/40 px-4 py-4">
         <div class="text-2xl font-semibold text-cloze-indigo" id="statPatients">0</div>
-        <div class="mt-0.5 text-xs text-stone-500">Patients</div>
+        <div class="mt-0.5 text-xs text-stone-500">Participants</div>
       </div>
       <div class="rounded-lg border border-violet-100 bg-violet-50/40 px-4 py-4">
         <div class="text-2xl font-semibold text-cloze-indigo" id="statProviders">0</div>
@@ -51,7 +134,7 @@
       {# Patients missing plans #}
       <section class="overflow-hidden rounded-lg border border-stone-200 bg-white">
         <div class="flex items-center justify-between border-b border-stone-100 bg-cloze-indigo px-5 py-3">
-          <h2 class="text-sm font-semibold text-white">Patients Without Active Safety Plan</h2>
+          <h2 class="text-sm font-semibold text-white">Participants Without Active Safety Plan</h2>
         </div>
         <div class="max-h-[320px] divide-y divide-stone-100 overflow-y-auto" id="missingPlansList">
           <div class="py-6 text-center text-sm text-stone-400">Loading...</div>
@@ -88,14 +171,14 @@
     <div class="mb-4 flex items-center justify-between gap-4">
       <div class="relative flex-1 max-w-md">
         <svg class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input type="text" id="patientSearch" placeholder="Search patients..."
+        <input type="text" id="patientSearch" placeholder="Search participants..."
                oninput="filterPatients()"
                class="w-full rounded-lg border border-stone-200 py-2 pl-10 pr-4 text-sm focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo">
       </div>
       <button onclick="showCreatePatientModal()"
               class="inline-flex items-center gap-1.5 rounded-lg bg-cloze-indigo px-4 py-2 text-sm font-medium text-white transition hover:bg-cloze-hover">
         <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-        Add Patient
+        Add Participant
       </button>
     </div>
 
@@ -124,7 +207,7 @@
     <div id="patientDrillDown" class="mt-6 hidden">
       <div class="rounded-lg border border-stone-200 bg-white">
         <div class="flex items-center justify-between border-b border-stone-100 bg-violet-50/60 px-5 py-3">
-          <h3 class="text-sm font-semibold text-stone-900" id="drillDownTitle">Patient Details</h3>
+          <h3 class="text-sm font-semibold text-stone-900" id="drillDownTitle">Participant Details</h3>
           <button onclick="closePatientDrillDown()" class="rounded-md p-1 text-stone-400 transition hover:text-stone-700">
             <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M6 18L18 6"/></svg>
           </button>
@@ -208,7 +291,7 @@
         <label class="flex cursor-pointer items-center justify-between px-5 py-4 transition hover:bg-stone-50">
           <div>
             <div class="text-sm font-medium text-stone-800">Users can save text selections</div>
-            <div class="mt-0.5 text-xs text-stone-500">Whether patients see the bookmark/save-quote UI in conversations</div>
+            <div class="mt-0.5 text-xs text-stone-500">Whether participants see the bookmark/save-quote UI in conversations</div>
           </div>
           <input type="checkbox" id="toggle_users_can_save_selections" class="accent-cloze-indigo h-4 w-4"
                  onchange="updateGlobalSetting('users_can_save_selections', this.checked)">
@@ -216,15 +299,15 @@
         <label class="flex cursor-pointer items-center justify-between px-5 py-4 transition hover:bg-stone-50">
           <div>
             <div class="text-sm font-medium text-stone-800">Require safety plan</div>
-            <div class="mt-0.5 text-xs text-stone-500">Whether patients must have an active safety plan to start conversations</div>
+            <div class="mt-0.5 text-xs text-stone-500">Whether participants must have an active safety plan to start conversations</div>
           </div>
           <input type="checkbox" id="toggle_require_safety_plan" class="accent-cloze-indigo h-4 w-4"
                  onchange="updateGlobalSetting('require_safety_plan', this.checked)">
         </label>
         <label class="flex cursor-pointer items-center justify-between px-5 py-4 transition hover:bg-stone-50">
           <div>
-            <div class="text-sm font-medium text-stone-800">Allow patient anti-patterns</div>
-            <div class="mt-0.5 text-xs text-stone-500">Whether patients can add their own anti-patterns to their safety plan</div>
+            <div class="text-sm font-medium text-stone-800">Allow participant anti-patterns</div>
+            <div class="mt-0.5 text-xs text-stone-500">Whether participants can add their own anti-patterns to their safety plan</div>
           </div>
           <input type="checkbox" id="toggle_allow_patient_anti_patterns" class="accent-cloze-indigo h-4 w-4"
                  onchange="updateGlobalSetting('allow_patient_anti_patterns', this.checked)">
@@ -321,7 +404,7 @@
     <section class="rounded-lg border border-stone-200 bg-white">
       <div class="border-b border-stone-100 bg-violet-50/60 px-5 py-3">
         <h3 class="text-sm font-semibold text-stone-900">Provider Assignments</h3>
-        <p class="mt-0.5 text-xs text-stone-500">Patients are created by their provider. Use provider drill-down to view details.</p>
+        <p class="mt-0.5 text-xs text-stone-500">Participants are created by their provider. Use provider drill-down to view details.</p>
       </div>
       <div class="max-h-[400px] divide-y divide-stone-100 overflow-y-auto" id="assignmentsList">
         <div class="py-6 text-center text-sm text-stone-400">Loading...</div>
@@ -362,21 +445,6 @@
     </div>
   </div>
 
-  {# ── User Settings Modal ───────────────────────────────────── #}
-  <div class="modal fixed inset-0 z-50 hidden items-center justify-center bg-black/40" id="userSettingsModal">
-    <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
-      <h3 class="mb-5 text-base font-semibold text-stone-900" id="userSettingsModalTitle">User Settings</h3>
-      <form onsubmit="saveUserSettingsModal(event)">
-        <div id="userSettingsForm"></div>
-        <div class="flex items-center justify-end gap-3">
-          <button type="button" onclick="hideModal('userSettingsModal')"
-                  class="rounded-md border border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 transition hover:bg-stone-50">Cancel</button>
-          <button type="submit"
-                  class="rounded-md bg-cloze-indigo px-4 py-2 text-sm font-medium text-white transition hover:bg-cloze-hover">Save Settings</button>
-        </div>
-      </form>
-    </div>
-  </div>
 
   {# ── Reset Password Modal ──────────────────────────────────── #}
   <div class="modal fixed inset-0 z-50 hidden items-center justify-center bg-black/40" id="resetPasswordModal">
@@ -518,7 +586,7 @@
     }
 
     // Update page title in header
-    var titleMap = { overview: 'Dashboard', patients: 'Patients', providers: 'Providers', settings: 'Settings' };
+    var titleMap = { overview: 'Dashboard', patients: 'Participants', providers: 'Providers', settings: 'Settings' };
     var headerTitle = document.querySelector('header h1');
     if (headerTitle) headerTitle.textContent = titleMap[tabId] || 'Dashboard';
 
@@ -585,7 +653,7 @@
       var missing = await missingRes.json();
       var missingEl = document.getElementById('missingPlansList');
       if (missing.length === 0) {
-        missingEl.innerHTML = '<div class="py-6 text-center text-sm text-emerald-600">All patients with windows have active plans</div>';
+        missingEl.innerHTML = '<div class="py-6 text-center text-sm text-emerald-600">All participants with windows have active plans</div>';
       } else {
         missingEl.innerHTML = missing.map(function(m) {
           return '<div class="flex items-center justify-between px-5 py-3">' +
@@ -660,7 +728,7 @@
 
     var tbody = document.getElementById('patientsTableBody');
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-stone-400">' + (query ? 'No matching patients' : 'No patients yet') + '</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-stone-400">' + (query ? 'No matching participants' : 'No participants yet') + '</td></tr>';
       return;
     }
 
@@ -674,7 +742,6 @@
         '<td class="px-4 py-3 text-stone-600">' + p.window_count + (p.active_windows > 0 ? ' <span class="text-emerald-600">(' + p.active_windows + ' active)</span>' : '') + '</td>' +
         '<td class="px-4 py-3 text-stone-500 text-xs">' + (p.last_activity ? formatRelativeTime(p.last_activity) : 'Never') + '</td>' +
         '<td class="px-4 py-3">' + (p.visible ? '<span class="text-emerald-600 text-xs font-medium">Active</span>' : '<span class="text-red-500 text-xs font-medium">Disabled</span>') + '</td>' +
-        '<td class="px-4 py-3"><button onclick="event.stopPropagation(); showUserSettingsModal(' + p.id + ', \'user\')" class="rounded-md border border-stone-200 px-2 py-1 text-xs text-stone-600 hover:bg-stone-50">Settings</button></td>' +
       '</tr>';
     }).join('');
   }
@@ -785,7 +852,7 @@
 
   function showCreatePatientModal() {
     document.getElementById('newRole').value = 'user';
-    document.getElementById('createUserTitle').textContent = 'Create New Patient';
+    document.getElementById('createUserTitle').textContent = 'Create New Participant';
     document.getElementById('newUsername').value = '';
     document.getElementById('newEmail').value = '';
     document.getElementById('newPassword').value = '';
@@ -825,7 +892,6 @@
         '<td class="px-4 py-3 text-stone-600">' + p.patient_count + '</td>' +
         '<td class="px-4 py-3 text-stone-600">' + p.active_windows + '</td>' +
         '<td class="px-4 py-3 text-stone-500 text-xs">' + (p.last_activity ? formatRelativeTime(p.last_activity) : 'Never') + '</td>' +
-        '<td class="px-4 py-3"><button onclick="event.stopPropagation(); showUserSettingsModal(' + p.id + ', \'provider\')" class="rounded-md border border-stone-200 px-2 py-1 text-xs text-stone-600 hover:bg-stone-50">Settings</button></td>' +
       '</tr>';
     }).join('');
   }
@@ -919,15 +985,15 @@
   // ── Provider Feature Flags ────────────────────────────────────
 
   var FLAG_DEFS = [
+    { key: 'is_clinical_use', label: 'Clinical use', desc: 'Loads clinical safety prompt (no diagnosis, no treatment, provider redirects). Turn off for non-clinical studies.', type: 'bool' },
     { key: 'require_safety_plan', label: 'Require safety plan', desc: 'Must have an active safety plan to start conversations', type: 'bool' },
-    { key: 'allow_patient_anti_patterns', label: 'Allow patient anti-patterns', desc: 'Patients can add their own anti-patterns to safety plans', type: 'bool' },
+    { key: 'allow_patient_anti_patterns', label: 'Allow participant anti-patterns', desc: 'Patients can add their own anti-patterns to safety plans', type: 'bool' },
     { key: 'enable_nlp_report', label: 'Enable NLP reports', desc: 'Generate NLP analysis reports when chat windows expire', type: 'bool' },
     { key: 'allow_custom_prompts', label: 'Allow custom prompts', desc: 'Provider can write custom system prompt text in templates', type: 'bool' },
     { key: 'max_turns_per_conversation', label: 'Max turns per conversation', desc: 'Maximum user exchanges per conversation (blank = unlimited)', type: 'int' },
     { key: 'allowed_models', label: 'Allowed models', desc: 'Restrict this provider to specific models (blank = all models)', type: 'models' },
     { key: 'allowed_prompts', label: 'System prompts', desc: 'Select which prompts this provider can use. None selected = general prompt only.', type: 'prompts' },
     { key: 'default_system_prompt_id', label: 'Default system prompt', desc: 'Prompt used when templates don\'t specify one', type: 'prompt' },
-    { key: 'system_context_override', label: 'System context override', desc: 'Replace the default platform context prompt', type: 'text' },
     { key: 'safety_disclaimer_text', label: 'Safety disclaimer override', desc: 'Custom safety disclaimer modal text (HTML allowed)', type: 'text' },
   ];
 
@@ -1621,125 +1687,7 @@
 
   // ── Per-user settings modal ────────────────────────────────────
 
-  var currentUserSettings = {};
 
-  async function showUserSettingsModal(userId, userRole) {
-    // Try to find user from existing data
-    var user = allUsers.find(function(u) { return u.id === userId; })
-      || patientsData.find(function(u) { return u.id === userId; })
-      || providersData.find(function(u) { return u.id === userId; });
-    var userName = user ? user.username : 'User #' + userId;
-
-    document.getElementById('userSettingsModalTitle').textContent = 'Settings for ' + userName + ' (' + userRole + ')';
-
-    try {
-      var response = await fetch('/api/admin/user/' + userId + '/settings');
-      currentUserSettings = await response.json();
-      currentUserSettings.userId = userId;
-      currentUserSettings.userRole = userRole;
-
-      populateUserSettingsForm(userRole);
-      showModal('userSettingsModal');
-    } catch (error) {
-      console.error('Error loading user settings:', error);
-      alert('Error loading user settings');
-    }
-  }
-
-  function populateUserSettingsForm(userRole) {
-    var form = document.getElementById('userSettingsForm');
-    var formHTML = '';
-
-    var inputCls = 'w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo';
-    var numCls = 'w-24 rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo';
-    var labelCls = 'mb-1.5 block text-sm font-medium text-stone-700';
-    var checkLabelCls = 'flex items-center gap-2 text-sm text-stone-700 cursor-pointer';
-
-    if (userRole === 'provider') {
-      formHTML =
-        '<div class="mb-4">' +
-          '<label class="' + labelCls + '">Max Conversations per Day</label>' +
-          '<input type="number" id="maxConversationsProvider" min="1" max="1000" value="' + (currentUserSettings.max_conversations_per_day || '') + '" placeholder="Unlimited" class="' + numCls + '">' +
-        '</div>' +
-        '<div class="mb-4">' +
-          '<label class="' + checkLabelCls + '">' +
-            '<input type="checkbox" id="canUseCustomPromptsProvider" class="accent-cloze-indigo"' + (currentUserSettings.can_use_custom_prompts ? ' checked' : '') + '>' +
-            'Can create custom prompts for patients' +
-          '</label>' +
-        '</div>' +
-        '<div class="mb-6">' +
-          '<label class="' + checkLabelCls + '">' +
-            '<input type="checkbox" id="canSaveSelectionsProvider" class="accent-cloze-indigo"' + (currentUserSettings.can_save_selections ? ' checked' : '') + '>' +
-            'Can save text selections' +
-          '</label>' +
-        '</div>';
-    } else if (userRole === 'user') {
-      formHTML =
-        '<div class="mb-4">' +
-          '<label class="' + labelCls + '">Max Conversations per Day</label>' +
-          '<input type="number" id="maxConversationsUser" min="1" max="100" value="' + (currentUserSettings.max_conversations_per_day || '') + '" placeholder="Unlimited" class="' + numCls + '">' +
-        '</div>' +
-        '<div class="mb-4">' +
-          '<label class="' + labelCls + '">Max Messages per Conversation</label>' +
-          '<input type="number" id="maxMessagesUser" min="1" max="1000" value="' + (currentUserSettings.max_messages_per_conversation || '') + '" placeholder="Unlimited" class="' + numCls + '">' +
-        '</div>' +
-        '<div class="mb-6">' +
-          '<label class="' + checkLabelCls + '">' +
-            '<input type="checkbox" id="canSaveSelectionsUser" class="accent-cloze-indigo"' + (currentUserSettings.can_save_selections ? ' checked' : '') + '>' +
-            'Can save text selections' +
-          '</label>' +
-        '</div>';
-    } else if (userRole === 'admin') {
-      formHTML =
-        '<div class="mb-6">' +
-          '<p class="text-sm italic text-stone-400">Admin accounts have full system access and cannot be restricted.</p>' +
-        '</div>';
-    }
-
-    form.innerHTML = formHTML;
-  }
-
-  async function saveUserSettingsModal(event) {
-    event.preventDefault();
-    if (!currentUserSettings.userId) return;
-
-    var settings = {};
-    var userRole = currentUserSettings.userRole;
-
-    if (userRole === 'provider') {
-      var maxConvEl = document.getElementById('maxConversationsProvider');
-      settings = {
-        max_conversations_per_day: maxConvEl.value ? parseInt(maxConvEl.value) : null,
-        can_use_custom_prompts: document.getElementById('canUseCustomPromptsProvider').checked,
-        can_save_selections: document.getElementById('canSaveSelectionsProvider').checked
-      };
-    } else if (userRole === 'user') {
-      var maxConvUserEl = document.getElementById('maxConversationsUser');
-      var maxMsgEl = document.getElementById('maxMessagesUser');
-      settings = {
-        max_conversations_per_day: maxConvUserEl.value ? parseInt(maxConvUserEl.value) : null,
-        max_messages_per_conversation: maxMsgEl.value ? parseInt(maxMsgEl.value) : null,
-        can_save_selections: document.getElementById('canSaveSelectionsUser').checked
-      };
-    }
-
-    try {
-      var response = await fetch('/api/admin/user/' + currentUserSettings.userId + '/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings)
-      });
-
-      if (response.ok) {
-        hideModal('userSettingsModal');
-      } else {
-        alert('Failed to save user settings');
-      }
-    } catch (error) {
-      console.error('Error saving user settings:', error);
-      alert('Error saving user settings');
-    }
-  }
 
   // ── Init ───────────────────────────────────────────────────────
   loadOverview();

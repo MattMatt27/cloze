@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Something went wrong — Cloze</title>
+  <link rel="icon" type="image/svg+xml" href="/static/images/logo.svg">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #FAF9F7;
+      color: #44403c;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      text-align: center;
+      padding: 2rem;
+    }
+
+    .code {
+      font-size: 5rem;
+      font-weight: 700;
+      color: #1c1917;
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+
+    .message {
+      margin-top: 0.75rem;
+      font-size: 1.0625rem;
+      color: #78716c;
+    }
+
+    .link {
+      display: inline-block;
+      margin-top: 2rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #5B5FC7;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .link:hover { color: #4E51B0; }
+
+    .logo {
+      width: 96px;
+      height: 96px;
+      margin-bottom: 0.375rem;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body { background: #1c1926; color: #d6d3d1; }
+      .code { color: #f5f5f4; }
+      .message { color: #a8a29e; }
+      .link { color: #c4b5fd; }
+      .link:hover { color: #ddd6fe; }
+      .logo { content: url('/static/images/logo-dark.svg'); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="/static/images/logo.svg" alt="Cloze" class="logo">
+    <div class="code">500</div>
+    <p class="message">Something went wrong on our end.</p>
+    <a href="/" class="link">← Back to Cloze</a>
+  </div>
+</body>
+</html>
