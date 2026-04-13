@@ -97,6 +97,21 @@ def create_app():
     app.register_blueprint(reports_bp)
     app.register_blueprint(safety_bp)
 
+    # Error pages
+    from flask import render_template as _rt
+
+    @app.errorhandler(403)
+    def forbidden(e):
+        return _rt('403.html'), 403
+
+    @app.errorhandler(404)
+    def not_found(e):
+        return _rt('404.html'), 404
+
+    @app.errorhandler(500)
+    def server_error(e):
+        return _rt('500.html'), 500
+
     # Start report scheduler (5-minute interval)
     from .services.report_scheduler import report_scheduler
     report_scheduler.init_app(app)
