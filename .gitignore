@@ -50,6 +50,8 @@ report*.html
 # Docs
 .docs/
 docs/
+.claude/
+static/images/logo-concepts/
 
 # AWS deployment files (ignore for now)
 .aws/

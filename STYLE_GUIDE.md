@@ -443,6 +443,100 @@ All use `fill="none" stroke="currentColor"` and inherit color from `text-*` clas
 
 ---
 
+## Admin Dark Mode
+
+The admin interface uses a dark theme built from deep purple-grays. Dark mode is activated via Jinja2 conditionals in `base.html` when `current_user.role == 'admin'`, applying alternate classes to the body, sidebar, header, and nav elements. Page-level overrides live in a `<style>` block within `admin_dashboard.html`.
+
+### Dark Mode Color Tokens
+
+| Token | Hex | Usage |
+|---|---|---|
+| Body bg | `#1c1926` | Page background — dark purple-gray |
+| Sidebar bg | `#15121e` | Sidebar — deeper than body |
+| Card / surface | `#221f2e` | Cards, table wrappers, modals |
+| Elevated surface | `#2a2535` | Borders, dividers, subtle lifts |
+| Input bg | `#1c1926` | Form inputs — matches body |
+| Input border | `#3a3545` | Input borders, secondary dividers |
+| Heading text | `white` | H1, H2, card titles |
+| Body text | `stone-300` | Primary readable text |
+| Secondary text | `stone-400` | Captions, labels, timestamps |
+| Muted text | `stone-500` | Placeholders, disabled text |
+| Nav default | `stone-400` | Sidebar links at rest |
+| Nav hover bg | `white/5` | Sidebar link hover fill |
+| Nav hover text | `white` | Sidebar link hover text |
+| Nav active bg | `rgba(255,255,255,0.08)` | Current page highlight |
+| Nav active text | `#c4b5fd` | Violet-300 for active nav |
+| Active icon | `#c4b5fd` | Nav icon when active |
+
+### Dark Mode Components
+
+**Sidebar:**
+```
+bg-[#15121e] border-r border-[#2a2535]
+```
+Section labels: `text-stone-500`. Nav items: `text-stone-400 hover:bg-white/5 hover:text-white`.
+
+**Header:**
+```
+bg-[#1c1926]/90 border-b border-[#2a2535] backdrop-blur-sm
+```
+Title text: `text-white`.
+
+**Cards:**
+```css
+.rounded-lg.border { background: #221f2e; border-color: #2a2535; }
+```
+
+**Tables:**
+```css
+thead tr { background: rgba(91,95,199,0.08); }       /* indigo tint */
+thead th  { color: #c4b5fd; }                         /* violet-300 */
+tbody td  { color: #d6d3d1; border-color: #2a2535; }  /* stone-300 */
+tr:hover  { background: rgba(255,255,255,0.03); }
+```
+
+**Inputs (dark):**
+```css
+input, select, textarea {
+  background: #1c1926;
+  border-color: #3a3545;
+  color: #e7e5e4;       /* stone-200 */
+}
+```
+
+**Badges:** Same semantic colors as light mode but adjusted for contrast:
+```css
+/* Example: active badge */
+.bg-emerald-50  { background: rgba(16,185,129,0.1); color: #6ee7b7; }
+.bg-amber-50    { background: rgba(245,158,11,0.1);  color: #fcd34d; }
+.bg-red-50      { background: rgba(239,68,68,0.1);   color: #fca5a5; }
+.bg-blue-50     { background: rgba(59,130,246,0.1);   color: #93c5fd; }
+.bg-violet-50   { background: rgba(139,92,246,0.1);   color: #c4b5fd; }
+.bg-stone-100   { background: rgba(255,255,255,0.05); color: #a8a29e; }
+```
+
+**Modals:**
+```css
+.bg-white (modal panel) { background: #221f2e; }
+.bg-black\/40 (backdrop) { background: rgba(0,0,0,0.6); }  /* darker backdrop */
+```
+
+### Applying Dark Mode
+
+Dark mode is **not** toggled by the user — it is role-based. The conditional pattern in `base.html`:
+
+```jinja
+{% if current_user.is_authenticated and current_user.role == 'admin' %}
+  <body class="min-h-screen bg-[#1c1926] text-stone-300 antialiased">
+{% else %}
+  <body class="min-h-screen bg-page text-stone-900 antialiased">
+{% endif %}
+```
+
+The same conditional switches sidebar, header, and nav link classes. Component-level overrides (tables, cards, badges, inputs) live in a `<style>` block at the top of `admin_dashboard.html` using CSS selectors rather than Tailwind classes, since the dashboard markup is shared infrastructure.
+
+---
+
 ## Key Principles
 
 1. **Warm neutrals** — `stone-*` palette, never `slate-*` or `gray-*`
