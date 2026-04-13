@@ -301,6 +301,38 @@ def reset_patient_password(patient_id):
     })
 
 
+@provider_bp.route("/api/provider/patients/<int:patient_id>/rename", methods=['POST'])
+@role_required('provider')
+def rename_patient(patient_id):
+    """Provider changes a patient's username."""
+    if not current_user.can_access_patient(patient_id):
+        abort(403)
+
+    patient = User.query.get_or_404(patient_id)
+    if not patient.is_patient():
+        return jsonify({'error': 'User is not a patient'}), 400
+
+    data = request.json or {}
+    new_username = (data.get('username') or '').strip()
+    if not new_username:
+        return jsonify({'error': 'Username is required'}), 400
+    if len(new_username) < 3:
+        return jsonify({'error': 'Username must be at least 3 characters'}), 400
+
+    existing = User.query.filter_by(username=new_username).first()
+    if existing and existing.id != patient_id:
+        return jsonify({'error': 'Username already taken'}), 409
+
+    old_username = patient.username
+    patient.username = new_username
+
+    _log_provider_action('rename_patient', 'user', patient_id,
+                         {'from': old_username, 'to': new_username})
+    db.session.commit()
+
+    return jsonify({'status': 'success', 'username': new_username})
+
+
 # ── Provider settings page ────────────────────────────────────
 
 @provider_bp.route("/provider/settings")
