@@ -735,6 +735,11 @@
       body: JSON.stringify({ patient_ids: ids })
     });
     var result = await resp.json();
+    if (!resp.ok) {
+      showDialog({ title: 'Cannot enroll', message: result.error || 'Enrollment failed', confirmText: 'OK' });
+      statusEl.textContent = '';
+      return;
+    }
     statusEl.textContent = result.enrolled + ' participant(s) enrolled';
     statusEl.classList.add('text-emerald-600');
     setTimeout(function() {
