@@ -362,21 +362,6 @@
     </div>
   </div>
 
-  {# ── User Settings Modal ───────────────────────────────────── #}
-  <div class="modal fixed inset-0 z-50 hidden items-center justify-center bg-black/40" id="userSettingsModal">
-    <div class="w-full max-w-md rounded-lg bg-white p-6 shadow-lg">
-      <h3 class="mb-5 text-base font-semibold text-stone-900" id="userSettingsModalTitle">User Settings</h3>
-      <form onsubmit="saveUserSettingsModal(event)">
-        <div id="userSettingsForm"></div>
-        <div class="flex items-center justify-end gap-3">
-          <button type="button" onclick="hideModal('userSettingsModal')"
-                  class="rounded-md border border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 transition hover:bg-stone-50">Cancel</button>
-          <button type="submit"
-                  class="rounded-md bg-cloze-indigo px-4 py-2 text-sm font-medium text-white transition hover:bg-cloze-hover">Save Settings</button>
-        </div>
-      </form>
-    </div>
-  </div>
 
   {# ── Reset Password Modal ──────────────────────────────────── #}
   <div class="modal fixed inset-0 z-50 hidden items-center justify-center bg-black/40" id="resetPasswordModal">
@@ -674,7 +659,6 @@
         '<td class="px-4 py-3 text-stone-600">' + p.window_count + (p.active_windows > 0 ? ' <span class="text-emerald-600">(' + p.active_windows + ' active)</span>' : '') + '</td>' +
         '<td class="px-4 py-3 text-stone-500 text-xs">' + (p.last_activity ? formatRelativeTime(p.last_activity) : 'Never') + '</td>' +
         '<td class="px-4 py-3">' + (p.visible ? '<span class="text-emerald-600 text-xs font-medium">Active</span>' : '<span class="text-red-500 text-xs font-medium">Disabled</span>') + '</td>' +
-        '<td class="px-4 py-3"><button onclick="event.stopPropagation(); showUserSettingsModal(' + p.id + ', \'user\')" class="rounded-md border border-stone-200 px-2 py-1 text-xs text-stone-600 hover:bg-stone-50">Settings</button></td>' +
       '</tr>';
     }).join('');
   }
@@ -825,7 +809,6 @@
         '<td class="px-4 py-3 text-stone-600">' + p.patient_count + '</td>' +
         '<td class="px-4 py-3 text-stone-600">' + p.active_windows + '</td>' +
         '<td class="px-4 py-3 text-stone-500 text-xs">' + (p.last_activity ? formatRelativeTime(p.last_activity) : 'Never') + '</td>' +
-        '<td class="px-4 py-3"><button onclick="event.stopPropagation(); showUserSettingsModal(' + p.id + ', \'provider\')" class="rounded-md border border-stone-200 px-2 py-1 text-xs text-stone-600 hover:bg-stone-50">Settings</button></td>' +
       '</tr>';
     }).join('');
   }
@@ -1621,125 +1604,7 @@
 
   // ── Per-user settings modal ────────────────────────────────────
 
-  var currentUserSettings = {};
 
-  async function showUserSettingsModal(userId, userRole) {
-    // Try to find user from existing data
-    var user = allUsers.find(function(u) { return u.id === userId; })
-      || patientsData.find(function(u) { return u.id === userId; })
-      || providersData.find(function(u) { return u.id === userId; });
-    var userName = user ? user.username : 'User #' + userId;
-
-    document.getElementById('userSettingsModalTitle').textContent = 'Settings for ' + userName + ' (' + userRole + ')';
-
-    try {
-      var response = await fetch('/api/admin/user/' + userId + '/settings');
-      currentUserSettings = await response.json();
-      currentUserSettings.userId = userId;
-      currentUserSettings.userRole = userRole;
-
-      populateUserSettingsForm(userRole);
-      showModal('userSettingsModal');
-    } catch (error) {
-      console.error('Error loading user settings:', error);
-      alert('Error loading user settings');
-    }
-  }
-
-  function populateUserSettingsForm(userRole) {
-    var form = document.getElementById('userSettingsForm');
-    var formHTML = '';
-
-    var inputCls = 'w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo';
-    var numCls = 'w-24 rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo';
-    var labelCls = 'mb-1.5 block text-sm font-medium text-stone-700';
-    var checkLabelCls = 'flex items-center gap-2 text-sm text-stone-700 cursor-pointer';
-
-    if (userRole === 'provider') {
-      formHTML =
-        '<div class="mb-4">' +
-          '<label class="' + labelCls + '">Max Conversations per Day</label>' +
-          '<input type="number" id="maxConversationsProvider" min="1" max="1000" value="' + (currentUserSettings.max_conversations_per_day || '') + '" placeholder="Unlimited" class="' + numCls + '">' +
-        '</div>' +
-        '<div class="mb-4">' +
-          '<label class="' + checkLabelCls + '">' +
-            '<input type="checkbox" id="canUseCustomPromptsProvider" class="accent-cloze-indigo"' + (currentUserSettings.can_use_custom_prompts ? ' checked' : '') + '>' +
-            'Can create custom prompts for patients' +
-          '</label>' +
-        '</div>' +
-        '<div class="mb-6">' +
-          '<label class="' + checkLabelCls + '">' +
-            '<input type="checkbox" id="canSaveSelectionsProvider" class="accent-cloze-indigo"' + (currentUserSettings.can_save_selections ? ' checked' : '') + '>' +
-            'Can save text selections' +
-          '</label>' +
-        '</div>';
-    } else if (userRole === 'user') {
-      formHTML =
-        '<div class="mb-4">' +
-          '<label class="' + labelCls + '">Max Conversations per Day</label>' +
-          '<input type="number" id="maxConversationsUser" min="1" max="100" value="' + (currentUserSettings.max_conversations_per_day || '') + '" placeholder="Unlimited" class="' + numCls + '">' +
-        '</div>' +
-        '<div class="mb-4">' +
-          '<label class="' + labelCls + '">Max Messages per Conversation</label>' +
-          '<input type="number" id="maxMessagesUser" min="1" max="1000" value="' + (currentUserSettings.max_messages_per_conversation || '') + '" placeholder="Unlimited" class="' + numCls + '">' +
-        '</div>' +
-        '<div class="mb-6">' +
-          '<label class="' + checkLabelCls + '">' +
-            '<input type="checkbox" id="canSaveSelectionsUser" class="accent-cloze-indigo"' + (currentUserSettings.can_save_selections ? ' checked' : '') + '>' +
-            'Can save text selections' +
-          '</label>' +
-        '</div>';
-    } else if (userRole === 'admin') {
-      formHTML =
-        '<div class="mb-6">' +
-          '<p class="text-sm italic text-stone-400">Admin accounts have full system access and cannot be restricted.</p>' +
-        '</div>';
-    }
-
-    form.innerHTML = formHTML;
-  }
-
-  async function saveUserSettingsModal(event) {
-    event.preventDefault();
-    if (!currentUserSettings.userId) return;
-
-    var settings = {};
-    var userRole = currentUserSettings.userRole;
-
-    if (userRole === 'provider') {
-      var maxConvEl = document.getElementById('maxConversationsProvider');
-      settings = {
-        max_conversations_per_day: maxConvEl.value ? parseInt(maxConvEl.value) : null,
-        can_use_custom_prompts: document.getElementById('canUseCustomPromptsProvider').checked,
-        can_save_selections: document.getElementById('canSaveSelectionsProvider').checked
-      };
-    } else if (userRole === 'user') {
-      var maxConvUserEl = document.getElementById('maxConversationsUser');
-      var maxMsgEl = document.getElementById('maxMessagesUser');
-      settings = {
-        max_conversations_per_day: maxConvUserEl.value ? parseInt(maxConvUserEl.value) : null,
-        max_messages_per_conversation: maxMsgEl.value ? parseInt(maxMsgEl.value) : null,
-        can_save_selections: document.getElementById('canSaveSelectionsUser').checked
-      };
-    }
-
-    try {
-      var response = await fetch('/api/admin/user/' + currentUserSettings.userId + '/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings)
-      });
-
-      if (response.ok) {
-        hideModal('userSettingsModal');
-      } else {
-        alert('Failed to save user settings');
-      }
-    } catch (error) {
-      console.error('Error saving user settings:', error);
-      alert('Error saving user settings');
-    }
-  }
 
   // ── Init ───────────────────────────────────────────────────────
   loadOverview();
