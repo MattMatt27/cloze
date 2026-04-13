@@ -438,7 +438,7 @@
     var name = document.getElementById('promptName').value.trim();
     var content = document.getElementById('promptContent').value.trim();
 
-    if (!name) { alert('Prompt name is required'); return; }
+    if (!name) { showDialog({ title: 'Missing name', message: 'Prompt name is required.', confirmText: 'OK' }); return; }
 
     try {
       if (id) {
@@ -460,20 +460,29 @@
       myPrompts = await resp.json();
       renderPrompts();
     } catch (e) {
-      alert('Error saving prompt');
+      showDialog({ title: 'Error', message: 'Error saving prompt', confirmText: 'OK' });
       console.error(e);
     }
   }
 
   async function deletePrompt(id, name) {
-    if (!confirm('Delete prompt "' + name + '"? It will no longer appear in the System Prompt dropdown.')) return;
+    var ok = await showDialog({
+      title: 'Delete Prompt',
+      message: 'Delete "' + name + '"? It will no longer appear in the System Prompt dropdown.',
+      confirmText: 'Delete',
+      danger: true,
+    });
+    if (!ok) return;
     try {
-      await fetch('/api/provider/prompts/' + id, { method: 'DELETE' });
+      await fetch('/api/provider/prompts/' + id, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      });
       var resp = await fetch('/api/provider/prompts');
       myPrompts = await resp.json();
       renderPrompts();
     } catch (e) {
-      alert('Error deleting prompt');
+      showDialog({ title: 'Error', message: 'Error deleting prompt', confirmText: 'OK' });
     }
   }
 

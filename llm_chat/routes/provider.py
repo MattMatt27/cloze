@@ -347,12 +347,15 @@ def get_my_flags():
     """Provider reads their own feature flags (admin-set + editable content)."""
     flags = ProviderFeatureFlags.query.filter_by(provider_id=current_user.id).first()
     return jsonify({
+        'is_clinical_use': get_effective_setting('is_clinical_use', current_user.id, True),
         'require_safety_plan': get_effective_setting('require_safety_plan', current_user.id, True),
         'enable_nlp_report': get_effective_setting('enable_nlp_report', current_user.id, True),
         'allow_custom_prompts': get_effective_setting('allow_custom_prompts', current_user.id, True),
         'max_turns_per_conversation': get_effective_setting('max_turns_per_conversation', current_user.id, None),
         'safety_disclaimer_text': flags.safety_disclaimer_text if flags else None,
         'system_context_override': flags.system_context_override if flags else None,
+        'monitoring_disclosure': flags.monitoring_disclosure if flags else None,
+        'persona_override': flags.persona_override if flags else None,
     })
 
 
