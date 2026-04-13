@@ -591,7 +591,8 @@ def get_system_prompts():
 
     if current_user.is_provider():
         prompts = SystemPrompt.query.filter(
-            or_(SystemPrompt.visible == True, SystemPrompt.created_by == current_user.id)
+            SystemPrompt.visible == True,
+            or_(SystemPrompt.created_by == None, SystemPrompt.created_by == current_user.id)
         ).all()
         flags = ProviderFeatureFlags.query.filter_by(provider_id=current_user.id).first()
         prompts = _filter_by_allowed(prompts, flags, include_own=True)
