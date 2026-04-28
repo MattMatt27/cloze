@@ -186,8 +186,6 @@ class LLMInterface:
                         role = 'model' if msg['role'] == 'assistant' else 'user'
                         gemini_messages.append({'role': role, 'parts': [{'text': msg['content']}]})
 
-                # Safety filters — OFF is available on Gemini 2.5+ models.
-                # Fall back to BLOCK_ONLY_HIGH if OFF isn't supported.
                 safety_settings = [
                     SafetySetting(category=HarmCategory.HARM_CATEGORY_HARASSMENT, threshold=HarmBlockThreshold.OFF),
                     SafetySetting(category=HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold=HarmBlockThreshold.OFF),
@@ -195,19 +193,34 @@ class LLMInterface:
                     SafetySetting(category=HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold=HarmBlockThreshold.OFF),
                 ]
 
-                response = client.models.generate_content(
-                    model=model.model_identifier,
-                    contents=gemini_messages,
-                    config=GenerateContentConfig(
-                        system_instruction=system_instruction,
-                        temperature=config.get('temperature', 0.7),
-                        max_output_tokens=config.get('max_tokens', 1000),
-                        safety_settings=safety_settings,
-                    ),
+                gen_config = GenerateContentConfig(
+                    system_instruction=system_instruction,
+                    temperature=config.get('temperature', 0.7),
+                    max_output_tokens=config.get('max_tokens', 8192),
+                    safety_settings=safety_settings,
                 )
 
+                # Retry with exponential backoff for transient errors (503, rate limits)
+                max_retries = 3
+                response = None
+                for attempt in range(max_retries):
+                    try:
+                        response = client.models.generate_content(
+                            model=model.model_identifier,
+                            contents=gemini_messages,
+                            config=gen_config,
+                        )
+                        break
+                    except Exception as retry_err:
+                        err_str = str(retry_err)
+                        if attempt < max_retries - 1 and ('503' in err_str or 'UNAVAILABLE' in err_str or '429' in err_str or 'RESOURCE_EXHAUSTED' in err_str):
+                            wait = (2 ** attempt) + 1  # 1s, 3s, 5s
+                            time.sleep(wait)
+                            continue
+                        raise
+
                 # Handle blocked or empty responses
-                if not response.candidates:
+                if not response or not response.candidates:
                     cls._dump_gemini_safety_block(model, formatted_messages, response, config)
                     raise RuntimeError("Gemini returned no response candidates.")
 
@@ -249,8 +262,17 @@ class LLMInterface:
                 raise ValueError(f"Unknown provider: {model.provider}")
 
         except Exception as e:
-            result = f"Error calling {model.provider}: {str(e)}"
             cls._dump_error_debug(model, formatted_messages, e, config)
+            # Show a friendly message to the user, not the raw error
+            err_str = str(e)
+            if '503' in err_str or 'UNAVAILABLE' in err_str:
+                result = "I'm temporarily unavailable due to high demand. Please try sending your message again in a moment."
+            elif '429' in err_str or 'RESOURCE_EXHAUSTED' in err_str:
+                result = "I'm receiving too many requests right now. Please wait a moment and try again."
+            elif 'SAFETY' in err_str or 'blocked' in err_str.lower():
+                result = "I wasn't able to generate a response to that. Could you try rephrasing?"
+            else:
+                result = "Something went wrong on my end. Please try again, and if the problem persists, let your provider know."
 
         response_time = time.time() - start_time
         return result, response_time
