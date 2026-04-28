@@ -70,16 +70,20 @@ def compose_system_prompt(
             f"## Conversation Monitoring\n\n{monitoring_disclosure.strip()}"
         )
 
-    # Layer 4: Persona (overridable)
-    if persona_override and persona_override.strip():
+    # Layer 4: Persona (overridable, '__disabled__' = skip entirely)
+    if persona_override == '__disabled__':
+        pass  # Provider explicitly disabled this layer
+    elif persona_override and persona_override.strip():
         sections.append(persona_override.strip())
     else:
         default_persona = registry.get_default_prompt('default_persona')
         if default_persona:
             sections.append(default_persona.content)
 
-    # Layer 5: Interaction context (overridable)
-    if interaction_context_override and interaction_context_override.strip():
+    # Layer 5: Interaction context (overridable, '__disabled__' = skip entirely)
+    if interaction_context_override == '__disabled__':
+        pass  # Provider explicitly disabled this layer
+    elif interaction_context_override and interaction_context_override.strip():
         sections.append(interaction_context_override.strip())
     else:
         default_context = registry.get_default_prompt('default_interaction_context')

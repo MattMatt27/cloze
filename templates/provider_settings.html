@@ -25,10 +25,14 @@
       <p class="mt-0.5 text-xs text-stone-500">Defines the AI's tone, communication style, and role. Edit the default or replace it entirely for your study.</p>
     </div>
     <div class="p-5">
+      <label class="flex items-center gap-2 mb-2 cursor-pointer select-none">
+        <input type="checkbox" id="personaDisabled" onchange="togglePromptField('persona')" class="h-4 w-4 rounded border-stone-300 accent-cloze-indigo">
+        <span class="text-xs text-stone-500">Disable this prompt layer</span>
+      </label>
       <textarea id="personaOverride"
                 class="auto-resize w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-mono focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo"
                 placeholder="Loading default..."></textarea>
-      <button onclick="resetPersona()" class="mt-2 text-xs text-stone-400 hover:text-cloze-indigo">Reset to default</button>
+      <button onclick="resetPersona()" id="personaResetBtn" class="mt-2 text-xs text-stone-400 hover:text-cloze-indigo">Reset to default</button>
     </div>
   </section>
 
@@ -39,10 +43,14 @@
       <p class="mt-0.5 text-xs text-stone-500">Defines what conversations are for — their purpose, scope, and boundaries. This is the primary prompt that shapes the interaction.</p>
     </div>
     <div class="p-5">
+      <label class="flex items-center gap-2 mb-2 cursor-pointer select-none">
+        <input type="checkbox" id="contextDisabled" onchange="togglePromptField('context')" class="h-4 w-4 rounded border-stone-300 accent-cloze-indigo">
+        <span class="text-xs text-stone-500">Disable this prompt layer</span>
+      </label>
       <textarea id="contextOverride"
                 class="auto-resize w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-mono focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo"
                 placeholder="Loading default..."></textarea>
-      <button onclick="resetContext()" class="mt-2 text-xs text-stone-400 hover:text-cloze-indigo">Reset to default</button>
+      <button onclick="resetContext()" id="contextResetBtn" class="mt-2 text-xs text-stone-400 hover:text-cloze-indigo">Reset to default</button>
     </div>
   </section>
 
@@ -185,10 +193,22 @@
       renderDisclaimerPreview();
 
       var personaEl = document.getElementById('personaOverride');
-      personaEl.value = myFlags.persona_override || defaults.persona_default || '';
+      if (myFlags.persona_override === '__disabled__') {
+        document.getElementById('personaDisabled').checked = true;
+        personaEl.value = '';
+        togglePromptField('persona');
+      } else {
+        personaEl.value = myFlags.persona_override || defaults.persona_default || '';
+      }
 
       var contextEl = document.getElementById('contextOverride');
-      contextEl.value = myFlags.system_context_override || defaults.interaction_context_default || '';
+      if (myFlags.system_context_override === '__disabled__') {
+        document.getElementById('contextDisabled').checked = true;
+        contextEl.value = '';
+        togglePromptField('context');
+      } else {
+        contextEl.value = myFlags.system_context_override || defaults.interaction_context_default || '';
+      }
 
       var monitoringEl = document.getElementById('monitoringDisclosure');
       monitoringEl.value = myFlags.monitoring_disclosure || '';
@@ -344,11 +364,31 @@
     renderDisclaimerPreview();
   }
 
+  function togglePromptField(field) {
+    var disabled, textarea, resetBtn;
+    if (field === 'persona') {
+      disabled = document.getElementById('personaDisabled').checked;
+      textarea = document.getElementById('personaOverride');
+      resetBtn = document.getElementById('personaResetBtn');
+    } else {
+      disabled = document.getElementById('contextDisabled').checked;
+      textarea = document.getElementById('contextOverride');
+      resetBtn = document.getElementById('contextResetBtn');
+    }
+    textarea.disabled = disabled;
+    textarea.classList.toggle('opacity-40', disabled);
+    resetBtn.classList.toggle('hidden', disabled);
+  }
+
   function resetPersona() {
+    document.getElementById('personaDisabled').checked = false;
+    togglePromptField('persona');
     document.getElementById('personaOverride').value = defaults.persona_default || '';
   }
 
   function resetContext() {
+    document.getElementById('contextDisabled').checked = false;
+    togglePromptField('context');
     document.getElementById('contextOverride').value = defaults.interaction_context_default || '';
   }
 
@@ -356,14 +396,21 @@
     var statusEl = document.getElementById('contentSaveStatus');
     statusEl.textContent = 'Saving...';
 
-    // If the value matches the default, save null (inherit) to avoid storing a copy
     var disclaimerVal = document.getElementById('disclaimerText').value;
-    var personaVal = document.getElementById('personaOverride').value;
-    var contextVal = document.getElementById('contextOverride').value;
     var monitoringVal = document.getElementById('monitoringDisclosure').value;
     if (disclaimerVal.trim() === (defaults.disclaimer_default || '').trim()) disclaimerVal = null;
-    if (personaVal.trim() === (defaults.persona_default || '').trim()) personaVal = null;
-    if (contextVal.trim() === (defaults.interaction_context_default || '').trim()) contextVal = null;
+
+    // Handle disabled state — save sentinel value
+    var personaVal = document.getElementById('personaDisabled').checked
+      ? '__disabled__'
+      : document.getElementById('personaOverride').value;
+    var contextVal = document.getElementById('contextDisabled').checked
+      ? '__disabled__'
+      : document.getElementById('contextOverride').value;
+
+    // If matches default, save null (inherit)
+    if (personaVal && personaVal !== '__disabled__' && personaVal.trim() === (defaults.persona_default || '').trim()) personaVal = null;
+    if (contextVal && contextVal !== '__disabled__' && contextVal.trim() === (defaults.interaction_context_default || '').trim()) contextVal = null;
 
     try {
       var resp = await fetch('/api/provider/my-flags', {
