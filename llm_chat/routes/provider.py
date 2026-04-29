@@ -325,6 +325,8 @@ def rename_patient(patient_id):
 
     old_username = patient.username
     patient.username = new_username
+    # Keep email in sync to avoid unique constraint collisions on future patient creation
+    patient.email = f'{new_username}@study.cloze.uk'
 
     _log_provider_action('rename_patient', 'user', patient_id,
                          {'from': old_username, 'to': new_username})
