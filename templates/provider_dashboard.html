@@ -154,7 +154,8 @@
 
     list.innerHTML = safetyAlerts.map(function(ev) {
       var when = ev.created_at ? formatRelativeTime(ev.created_at) : 'Recently';
-      var href = '/provider/chats?patient_id=' + ev.patient_id;
+      var cid = ev.context && ev.context.conversation_id;
+      var href = cid ? ('/conversation/' + cid) : ('/provider/chats?patient_id=' + ev.patient_id);
       return '<li class="flex items-center gap-4 py-3">' +
         '<span class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-600">' + alertIcon + '</span>' +
         '<div class="flex-1 min-w-0">' +

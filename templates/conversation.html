@@ -897,45 +897,13 @@
   // ── Countdown timer ───────────────────────────────────────────
 
   function startCountdown(endTimestamp, windowStatus) {
+    // The header countdown was removed in a redesign; #timeRemaining is a
+    // vestigial element kept hidden for JS compatibility. Keep it hidden so
+    // it never renders as unstyled text in the (read-only) conversation view.
     const timerEl = document.getElementById('timeRemaining');
-    const timeValueEl = document.getElementById('timeValue');
     const promptInfoEl = document.getElementById('promptInfo');
-
     if (promptInfoEl) promptInfoEl.classList.add('hidden');
-    timerEl.classList.remove('hidden');
-    timerEl.style.display = 'flex';
-
-    function updateTimer() {
-      const now = Date.now() / 1000;
-      const timeLeft = endTimestamp - now;
-
-      if (timeLeft <= 0 || windowStatus === 'generating_report' || windowStatus === 'report_ready') {
-        timerEl.classList.add('hidden');
-        timerEl.classList.remove('time-warning');
-        timerEl.style.background = 'transparent';
-        if (countdownInterval) clearInterval(countdownInterval);
-        return;
-      }
-
-      const days = Math.floor(timeLeft / 86400);
-      const hours = Math.floor((timeLeft % 86400) / 3600);
-      const minutes = Math.floor((timeLeft % 3600) / 60);
-      const seconds = Math.floor(timeLeft % 60);
-
-      let displayText = '';
-      if (days > 0)        displayText = `${days}d ${hours}h`;
-      else if (hours > 0)  displayText = `${hours}h ${minutes}m`;
-      else if (minutes > 0) displayText = `${minutes}m ${seconds}s`;
-      else                  displayText = `${seconds}s`;
-
-      timeValueEl.textContent = displayText;
-
-      if (timeLeft < 3600) timerEl.classList.add('time-warning');
-      else                 timerEl.classList.remove('time-warning');
-    }
-
-    updateTimer();
-    countdownInterval = setInterval(updateTimer, 1000);
+    if (timerEl) timerEl.classList.add('hidden');
   }
 
   // ── Report viewing ────────────────────────────────────────────
