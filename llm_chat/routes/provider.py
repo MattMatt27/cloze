@@ -6,7 +6,7 @@ from flask_login import current_user
 from ..utils.decorators import role_required
 from ..extensions import db
 from ..models import (User, Conversation, ProviderPatient, ProviderSettings,
-                      ChatWindow, ChatTemplate, AuditLog, ProviderFeatureFlags, SystemPrompt,
+                      ChatWindow, ChatTemplate, AuditLog, EscalationEvent, ProviderFeatureFlags, SystemPrompt,
                       StudyFlow, FlowPhase, FlowChat, FlowEnrollment)
 from ..utils.settings_resolution import get_effective_setting
 
@@ -358,7 +358,27 @@ def get_my_flags():
         'system_context_override': flags.system_context_override if flags else None,
         'monitoring_disclosure': flags.monitoring_disclosure if flags else None,
         'persona_override': flags.persona_override if flags else None,
+        # CLOZE-Guard v0
+        'guard_enabled': bool(flags.guard_enabled) if flags else False,
+        'guard_keywords': _json_list(flags.guard_keywords if flags else None),
+        'guard_notify_email': flags.guard_notify_email if flags else None,
+        'access_hours_enabled': bool(flags.access_hours_enabled) if flags else False,
+        'access_hours_start': flags.access_hours_start if flags else None,
+        'access_hours_end': flags.access_hours_end if flags else None,
+        'access_hours_timezone': (flags.access_hours_timezone if flags else None) or 'America/New_York',
+        'access_hours_days': _json_list(flags.access_hours_days if flags else None),
     })
+
+
+def _json_list(raw):
+    """Parse a JSON-array column into a Python list; [] on anything unparseable."""
+    if not raw:
+        return []
+    try:
+        val = json.loads(raw)
+        return val if isinstance(val, list) else []
+    except (TypeError, ValueError):
+        return []
 
 
 @provider_bp.route("/api/provider/content-defaults", methods=['GET'])
@@ -428,13 +448,68 @@ def update_my_flags():
         flags = ProviderFeatureFlags(provider_id=current_user.id)
         db.session.add(flags)
 
-    editable = ['safety_disclaimer_text', 'system_context_override', 'monitoring_disclosure', 'persona_override']
+    editable = ['safety_disclaimer_text', 'system_context_override', 'monitoring_disclosure', 'persona_override',
+                'guard_notify_email', 'access_hours_start', 'access_hours_end', 'access_hours_timezone']
     for key in editable:
         if key in data:
             setattr(flags, key, data[key] or None)
 
+    # Booleans: store explicit True/False (None only when absent)
+    for key in ('guard_enabled', 'access_hours_enabled'):
+        if key in data:
+            setattr(flags, key, bool(data[key]))
+
+    # JSON-array fields: accept a list, store as JSON string (None when empty)
+    for key in ('guard_keywords', 'access_hours_days'):
+        if key in data:
+            val = data[key]
+            if isinstance(val, list) and val:
+                setattr(flags, key, json.dumps(val))
+            else:
+                setattr(flags, key, None)
+
     _log_provider_action('update_provider_content', 'provider_feature_flags', current_user.id,
-                         {k: data[k] for k in editable if k in data})
+                         {k: data[k] for k in data if k in editable
+                          or k in ('guard_enabled', 'access_hours_enabled', 'guard_keywords', 'access_hours_days')})
+    db.session.commit()
+    return jsonify({'status': 'success'})
+
+
+# ── CLOZE-Guard: escalation events (provider-scoped) ──────────
+
+@provider_bp.route("/api/provider/escalation-events", methods=['GET'])
+@role_required('provider')
+def get_provider_escalation_events():
+    """Provider reads escalation events for their own patients."""
+    query = EscalationEvent.query.filter_by(provider_id=current_user.id)
+    status_filter = request.args.get('status')
+    if status_filter:
+        query = query.filter_by(status=status_filter)
+    events = query.order_by(
+        db.case(
+            (EscalationEvent.severity == 'critical', 0),
+            (EscalationEvent.severity == 'warning', 1),
+            else_=2,
+        ),
+        EscalationEvent.created_at.desc(),
+    ).all()
+    return jsonify([e.to_dict() for e in events])
+
+
+@provider_bp.route("/api/provider/escalation-events/<int:event_id>/acknowledge", methods=['POST'])
+@role_required('provider')
+def acknowledge_provider_escalation(event_id):
+    """Provider acknowledges/resolves an event for one of their own patients."""
+    event = EscalationEvent.query.get_or_404(event_id)
+    if event.provider_id != current_user.id:
+        abort(403)
+    data = request.json or {}
+    new_status = data.get('status', 'acknowledged')
+    event.status = new_status
+    if new_status == 'acknowledged':
+        event.acknowledged_by = current_user.id
+        event.acknowledged_at = time.time()
+    _log_provider_action('escalation_acknowledged', 'escalation_event', event_id, {'status': new_status})
     db.session.commit()
     return jsonify({'status': 'success'})
 

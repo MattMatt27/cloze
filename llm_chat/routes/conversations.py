@@ -1,7 +1,7 @@
 import json
 import time
 from datetime import datetime
-from flask import Blueprint, render_template, jsonify, request, abort, redirect, url_for
+from flask import Blueprint, render_template, jsonify, request, abort, redirect, url_for, current_app
 from flask_login import login_required, current_user
 from ..extensions import db
 from ..models import (
@@ -11,6 +11,7 @@ from ..models import (
 from ..services.llm_interface import LLMInterface
 from ..models import AdminSettings, ProviderFeatureFlags
 from ..utils.settings_resolution import get_effective_setting, get_provider_id_for_patient
+from ..utils.access_hours import within_access_window
 
 conv_bp = Blueprint("conversations", __name__, url_prefix="")
 
@@ -70,6 +71,35 @@ def get_provider_settings_for_current_user():
         'max_messages_per_day': settings.max_messages_per_day,
         'custom_instructions': settings.custom_instructions
     })
+
+@conv_bp.route("/api/access-window")
+@login_required
+def get_access_window():
+    """Current participant's access-hours status — drives the 'snoozing' takeover."""
+    if not current_user.is_patient():
+        return jsonify({'enabled': False})
+
+    provider_id = get_provider_id_for_patient(current_user.id)
+    if not get_effective_setting('access_hours_enabled', provider_id, False):
+        return jsonify({'enabled': False})
+
+    start = get_effective_setting('access_hours_start', provider_id)
+    end = get_effective_setting('access_hours_end', provider_id)
+    if not start or not end:
+        return jsonify({'enabled': False})
+
+    tz = get_effective_setting('access_hours_timezone', provider_id, 'America/New_York')
+    days_raw = get_effective_setting('access_hours_days', provider_id)
+    try:
+        days = json.loads(days_raw) if days_raw else None
+    except (TypeError, ValueError):
+        days = None
+
+    from ..utils.access_hours import window_status
+    status = window_status(start, end, tz, days)
+    status['enabled'] = True
+    return jsonify(status)
+
 
 @conv_bp.route("/conversation/<int:conversation_id>")
 @login_required
@@ -363,6 +393,24 @@ def send_message(conversation_id):
                     'max_turns': max_turns,
                 }), 403
 
+    # CLOZE-Guard v0: study-wide access-hours restriction (per-provider)
+    if current_user.is_patient():
+        provider_id = get_provider_id_for_patient(current_user.id)
+        if get_effective_setting('access_hours_enabled', provider_id, False):
+            start = get_effective_setting('access_hours_start', provider_id)
+            end = get_effective_setting('access_hours_end', provider_id)
+            tz = get_effective_setting('access_hours_timezone', provider_id, 'America/New_York')
+            days_raw = get_effective_setting('access_hours_days', provider_id)
+            try:
+                days = json.loads(days_raw) if days_raw else None
+            except (TypeError, ValueError):
+                days = None
+            if not within_access_window(start, end, tz, days):
+                return jsonify({
+                    'error': f'Chat is available {start}–{end} ({tz}).',
+                    'outside_access_hours': True,
+                }), 403
+
     # Time window and limits for patients
     if current_user.is_patient():
         provider_assignment = ProviderPatient.query.filter_by(patient_id=current_user.id).first()
@@ -398,6 +446,14 @@ def send_message(conversation_id):
         timestamp=time.time()
     )
     db.session.add(user_message)
+
+    # CLOZE-Guard v0: keyword pre-classifier. Best-effort — must never block chat.
+    if current_user.is_patient():
+        try:
+            from ..services.guard import scan_and_escalate
+            scan_and_escalate(current_user, conversation, data['message'])
+        except Exception:
+            current_app.logger.exception("CLOZE-Guard scan failed")
 
     # Generate title if first message
     if conversation.messages.count() == 0:

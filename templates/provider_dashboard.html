@@ -10,6 +10,17 @@
     <p class="text-sm text-stone-500">Manage your participants' chat sessions and conversations</p>
   </section>
 
+  {# Safety alerts — CLOZE-Guard keyword flags #}
+  <section id="safetyAlertsSection" class="hidden mb-8 rounded-lg border border-red-200 bg-red-50/40">
+    <div class="border-b border-red-100 px-5 py-3 flex items-center justify-between">
+      <h3 class="text-sm font-semibold text-red-900">Safety Alerts</h3>
+      <span id="safetyAlertCount" class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-semibold text-red-700"></span>
+    </div>
+    <div class="px-5 py-4">
+      <ul id="safetyAlertsList" role="list" class="divide-y divide-red-100"></ul>
+    </div>
+  </section>
+
   {# Patient table #}
   <section class="mb-8">
     <div class="flex items-baseline justify-between mb-3">
@@ -103,6 +114,7 @@
   var allReports = [];
 
   var pendingReviews = [];
+  var safetyAlerts = [];
 
   async function loadDashboard() {
     try {
@@ -110,17 +122,62 @@
         fetch('/api/provider/patients').then(function(r) { return r.json(); }),
         fetch('/api/windows/').then(function(r) { return r.json(); }),
         fetch('/api/reports/').then(function(r) { return r.json(); }),
-        fetch('/api/safety-plan/pending-reviews').then(function(r) { return r.ok ? r.json() : []; })
+        fetch('/api/safety-plan/pending-reviews').then(function(r) { return r.ok ? r.json() : []; }),
+        fetch('/api/provider/escalation-events?status=new').then(function(r) { return r.ok ? r.json() : []; })
       ]);
       allPatients = results[0];
       allWindows = results[1];
       allReports = results[2];
       pendingReviews = results[3];
+      safetyAlerts = results[4];
 
       renderPatientTable();
       renderRecentReports();
       renderActionItems();
+      renderSafetyAlerts();
     } catch (e) { console.error('Error loading dashboard data:', e); }
+  }
+
+  function renderSafetyAlerts() {
+    var section = document.getElementById('safetyAlertsSection');
+    var list = document.getElementById('safetyAlertsList');
+    var countEl = document.getElementById('safetyAlertCount');
+
+    if (!safetyAlerts || !safetyAlerts.length) {
+      section.classList.add('hidden');
+      return;
+    }
+    section.classList.remove('hidden');
+    countEl.textContent = safetyAlerts.length + ' new';
+
+    var alertIcon = '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>';
+
+    list.innerHTML = safetyAlerts.map(function(ev) {
+      var when = ev.created_at ? formatRelativeTime(ev.created_at) : 'Recently';
+      var href = '/provider/chats?patient_id=' + ev.patient_id;
+      return '<li class="flex items-center gap-4 py-3">' +
+        '<span class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-600">' + alertIcon + '</span>' +
+        '<div class="flex-1 min-w-0">' +
+          '<p class="text-sm text-stone-700"><span class="font-medium">' + escapeHtml(ev.patient_name) + '</span> — ' + escapeHtml(ev.description) + '</p>' +
+          '<p class="text-xs text-stone-400">' + when + '</p>' +
+        '</div>' +
+        '<div class="flex items-center gap-2 shrink-0">' +
+          '<a href="' + href + '" class="inline-flex items-center gap-1 text-xs font-medium text-cloze-indigo hover:text-cloze-hover">Review chat</a>' +
+          '<button onclick="acknowledgeAlert(' + ev.id + ')" class="rounded-md border border-red-200 bg-white px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50">Acknowledge</button>' +
+        '</div>' +
+      '</li>';
+    }).join('');
+  }
+
+  async function acknowledgeAlert(eventId) {
+    try {
+      await fetch('/api/provider/escalation-events/' + eventId + '/acknowledge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'acknowledged' })
+      });
+      loadDashboard();
+    } catch (e) { console.error('Error acknowledging alert:', e); }
   }
 
   function renderPatientTable() {

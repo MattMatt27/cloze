@@ -100,6 +100,18 @@ class ProviderFeatureFlags(db.Model):
     safety_disclaimer_text = db.Column(db.Text, nullable=True)
     system_context_override = db.Column(db.Text, nullable=True)   # Replaces defaults/interaction_context.md
 
+    # CLOZE-Guard v0 — keyword pre-classifier (None/False = off)
+    guard_enabled = db.Column(db.Boolean, nullable=True)
+    guard_keywords = db.Column(db.Text, nullable=True)            # JSON list[str]
+    guard_notify_email = db.Column(db.Text, nullable=True)        # comma-separated recipients
+
+    # CLOZE-Guard v0 — access-hours restriction (None/False = always available)
+    access_hours_enabled = db.Column(db.Boolean, nullable=True)
+    access_hours_start = db.Column(db.String(5), nullable=True)   # "09:00"
+    access_hours_end = db.Column(db.String(5), nullable=True)     # "17:30"
+    access_hours_timezone = db.Column(db.String(64), nullable=True)  # IANA, e.g. "America/New_York"
+    access_hours_days = db.Column(db.Text, nullable=True)         # JSON list of weekday ints 0=Mon..6=Sun; NULL/empty = all days
+
     created_at = db.Column(db.Float, default=lambda: time.time())
     updated_at = db.Column(db.Float, onupdate=lambda: time.time())
 
