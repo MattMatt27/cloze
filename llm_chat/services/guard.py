@@ -71,10 +71,12 @@ def scan_and_escalate(patient, conversation, text):
     db.session.commit()
 
     # Email is best-effort and must never raise into the request path.
+    # The notification is intentionally generic — no patient/keyword/conversation
+    # data leaves the app; staff review details in the dashboard.
     if flags.guard_notify_email:
         try:
             from .notifications import send_guard_email
-            send_guard_email(flags.guard_notify_email, patient, hits, conversation)
+            send_guard_email(flags.guard_notify_email, patient_id=patient.id)
         except Exception:
             current_app.logger.exception("CLOZE-Guard: email notification failed")
 
