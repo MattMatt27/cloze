@@ -5,6 +5,7 @@ from flask import Blueprint, render_template, jsonify, request, abort, redirect
 from flask_login import current_user
 from sqlalchemy.exc import IntegrityError
 from ..utils.decorators import role_required
+from ..utils.passwords import validate_password
 from ..extensions import db
 from ..models import (User, Conversation, ProviderPatient, ProviderSettings,
                       ChatWindow, ChatTemplate, AuditLog, ProviderFeatureFlags, SystemPrompt,
@@ -320,10 +321,20 @@ def reset_patient_password(patient_id):
     if not patient.is_patient():
         return jsonify({'error': 'User is not a patient'}), 400
 
-    password = secrets.token_hex(16)
+    # Optional provider-chosen password; blank/omitted -> auto-generate.
+    data = request.get_json(silent=True) or {}
+    custom = (data.get('password') or '').strip()
+    if custom:
+        err = validate_password(custom)
+        if err:
+            return jsonify({'status': 'error', 'error': err}), 400
+        password = custom
+    else:
+        password = secrets.token_hex(16)
+
     patient.set_password(password)
 
-    _log_provider_action('password_reset', 'user', patient_id)
+    _log_provider_action('password_reset', 'user', patient_id, {'custom': bool(custom)})
     db.session.commit()
 
     return jsonify({

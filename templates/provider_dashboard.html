@@ -333,12 +333,21 @@
   }
 
   async function resetPatientPassword(patientId, username) {
-    var ok = await showDialog({ title: 'Reset Password', message: 'Reset password for ' + username + '? The old password will stop working immediately.', confirmText: 'Reset', danger: true });
-    if (!ok) return;
+    var entered = await showDialog({
+      title: 'Reset Password',
+      message: 'Set a new password for ' + username + ' (min 12 characters with uppercase, lowercase, and a number), or leave blank to auto-generate one. The old password stops working immediately.',
+      input: '',
+      placeholder: 'Leave blank to auto-generate',
+      confirmText: 'Reset',
+      danger: true
+    });
+    if (entered === null) return;  // cancelled
+    var custom = (entered || '').trim();
     try {
       var response = await fetch('/api/provider/patients/' + patientId + '/reset-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(custom ? { password: custom } : {})
       });
       var result = await response.json();
       if (result.status === 'success') {

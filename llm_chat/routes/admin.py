@@ -3,6 +3,7 @@ import time
 from flask import Blueprint, render_template, jsonify, request
 from flask_login import current_user
 from ..utils.decorators import role_required
+from ..utils.passwords import validate_password
 from ..extensions import db
 from ..models import (
     User, ProviderPatient, Conversation, Message,
@@ -28,15 +29,8 @@ def _get_admin_setting(name, default=None):
 
 
 def _validate_password(password):
-    """Return an error message if password is too weak, or None if acceptable."""
-    if not password or len(password) < 12:
-        return 'Password must be at least 12 characters'
-    has_upper = any(c.isupper() for c in password)
-    has_lower = any(c.islower() for c in password)
-    has_digit = any(c.isdigit() for c in password)
-    if not (has_upper and has_lower and has_digit):
-        return 'Password must contain uppercase, lowercase, and a number'
-    return None
+    """Shared complexity policy (see utils.passwords.validate_password)."""
+    return validate_password(password)
 
 
 def _log_action(action, target_type, target_id=None, details=None):
