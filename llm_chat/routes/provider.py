@@ -3,6 +3,7 @@ import time
 import secrets
 from flask import Blueprint, render_template, jsonify, request, abort, redirect
 from flask_login import current_user
+from sqlalchemy.exc import IntegrityError
 from ..utils.decorators import role_required
 from ..extensions import db
 from ..models import (User, Conversation, ProviderPatient, ProviderSettings,
@@ -218,11 +219,22 @@ def _log_provider_action(action, target_type, target_id=None, details=None):
     db.session.add(entry)
 
 
-def _next_patient_username(provider):
-    """Generate the next sequential de-identified username for this provider."""
+def _next_patient_identity(provider):
+    """Return the next sequential de-identified (username, email) for this
+    provider, guaranteed free of both username *and* email collisions.
+
+    Checking the email too is essential: a patient renamed before the
+    email-sync fix can still hold a stale auto-generated email
+    (e.g. ``<provider>User01@study.cloze.uk``) while no longer occupying that
+    username. Generating purely from the next free username would then collide
+    with that stale email on insert and raise IntegrityError.
+    """
     prefix = provider.username + 'User'
+    # `_` and `%` are LIKE wildcards, and provider usernames contain
+    # underscores, so escape them to avoid over-matching unrelated accounts.
+    escaped = prefix.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
     existing = User.query.filter(
-        User.username.like(prefix + '%'),
+        User.username.like(escaped + '%', escape='\\'),
         User.role == 'user',
     ).all()
     max_num = 0
@@ -230,7 +242,17 @@ def _next_patient_username(provider):
         suffix = u.username[len(prefix):]
         if suffix.isdigit():
             max_num = max(max_num, int(suffix))
-    return f'{prefix}{max_num + 1:02d}'
+
+    n = max_num + 1
+    while True:
+        username = f'{prefix}{n:02d}'
+        email = f'{username}@study.cloze.uk'
+        clash = User.query.filter(
+            (User.username == username) | (User.email == email)
+        ).first()
+        if clash is None:
+            return username, email
+        n += 1
 
 
 @provider_bp.route("/api/provider/patients", methods=['POST'])
@@ -241,39 +263,49 @@ def create_patient():
     count = min(int(data.get('count', 1)), 50)  # Cap at 50 per request
 
     created = []
-    for _ in range(count):
-        username = _next_patient_username(current_user)
-        password = secrets.token_hex(16)
-        email = f'{username}@study.cloze.uk'
+    try:
+        for _ in range(count):
+            username, email = _next_patient_identity(current_user)
+            password = secrets.token_hex(16)
 
-        user = User(
-            username=username,
-            email=email,
-            role='user',
-            created_by=current_user.id,
-        )
-        user.set_password(password)
-        db.session.add(user)
-        db.session.flush()  # Get the user ID
+            user = User(
+                username=username,
+                email=email,
+                role='user',
+                created_by=current_user.id,
+            )
+            user.set_password(password)
+            db.session.add(user)
+            db.session.flush()  # Get the user ID and surface any unique clash now
 
-        assignment = ProviderPatient(
-            provider_id=current_user.id,
-            patient_id=user.id,
-            assigned_by=current_user.id,
-        )
-        db.session.add(assignment)
+            assignment = ProviderPatient(
+                provider_id=current_user.id,
+                patient_id=user.id,
+                assigned_by=current_user.id,
+            )
+            db.session.add(assignment)
 
-        _log_provider_action('patient_created', 'user', user.id, {
-            'username': username,
-        })
+            _log_provider_action('patient_created', 'user', user.id, {
+                'username': username,
+            })
 
-        created.append({
-            'id': user.id,
-            'username': username,
-            'password': password,
-        })
+            created.append({
+                'id': user.id,
+                'username': username,
+                'password': password,
+            })
 
-    db.session.commit()
+        db.session.commit()
+    except IntegrityError:
+        # A concurrent create grabbed the same username/email between our check
+        # and commit. Roll back rather than returning a 500 HTML page (which the
+        # frontend would fail to parse as JSON).
+        db.session.rollback()
+        return jsonify({
+            'status': 'error',
+            'error': 'Could not allocate participant credentials, please try again.',
+        }), 409
+
     return jsonify({'status': 'success', 'patients': created}), 201
 
 
