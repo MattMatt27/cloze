@@ -28,3 +28,7 @@ matplotlib==3.7.2
 openai>=1.54.0
 anthropic>=0.39.0
 google-genai>=1.0.0
+
+# AWS SES (CLOZE-Guard email notifications). On EC2 the instance IAM role
+# provides credentials; locally set CLOZE_GUARD_AWS_PROFILE to a named profile.
+boto3>=1.38.0

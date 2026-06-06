@@ -67,6 +67,76 @@
     </div>
   </section>
 
+  {# CLOZE-Guard — Keyword Alerts #}
+  <section class="mb-8 rounded-lg border border-stone-200 bg-white">
+    <div class="border-b border-stone-100 px-5 py-3">
+      <h3 class="text-sm font-semibold text-stone-900">Safety Keyword Alerts (CLOZE-Guard)</h3>
+      <p class="mt-0.5 text-xs text-stone-500">Flagged words in a participant message raise a dashboard alert and email research staff.</p>
+    </div>
+    <div class="p-5">
+      <label class="flex items-center gap-2 mb-2 cursor-pointer select-none">
+        <input type="checkbox" id="guardEnabled" class="h-4 w-4 rounded border-stone-300 accent-cloze-indigo">
+        <span class="text-sm font-medium text-stone-700">Enable keyword alerts</span>
+      </label>
+      <p class="mb-2 text-xs text-stone-500">When a participant's message contains any of these words, an alert appears on your dashboard and an email is sent to the address(es) below.</p>
+      <label class="mb-1 block text-xs font-medium text-stone-500 uppercase tracking-wide">Keywords (one per line)</label>
+      <textarea id="guardKeywords" rows="5"
+                class="auto-resize w-full rounded-lg border border-stone-200 px-3 py-2 text-sm font-mono focus:border-cloze-indigo focus:outline-none focus:ring-1 focus:ring-cloze-indigo"
+                placeholder="suicide&#10;overdose&#10;kill myself"></textarea>
+      <label class="mt-3 mb-1 block text-xs font-medium text-stone-500 uppercase tracking-wide">Notification email(s)</label>
+      <input type="text" id="guardNotifyEmail"
+             class="w-full rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none"
+             placeholder="ra@example.edu, pi@example.edu">
+      <p class="mt-1 text-xs text-stone-400">Comma-separated. Emails contain no participant information — only that a flag occurred.</p>
+      <div class="mt-4 flex items-center gap-3">
+        <button onclick="saveKeywordAlerts()" class="rounded-lg bg-cloze-indigo px-4 py-2 text-sm font-medium text-white hover:bg-cloze-hover">Save</button>
+        <span id="guardSaveStatus" class="text-xs text-stone-400"></span>
+      </div>
+    </div>
+  </section>
+
+  {# CLOZE-Guard — Chat Availability Hours #}
+  <section class="mb-8 rounded-lg border border-stone-200 bg-white">
+    <div class="border-b border-stone-100 px-5 py-3">
+      <h3 class="text-sm font-semibold text-stone-900">Chat Availability Hours (CLOZE-Guard)</h3>
+      <p class="mt-0.5 text-xs text-stone-500">Restrict when participants can chat. Outside the window they see a "resting" screen until it reopens.</p>
+    </div>
+    <div class="p-5">
+      <label class="flex items-center gap-2 mb-2 cursor-pointer select-none">
+        <input type="checkbox" id="accessHoursEnabled" class="h-4 w-4 rounded border-stone-300 accent-cloze-indigo">
+        <span class="text-sm font-medium text-stone-700">Restrict chat to specific hours</span>
+      </label>
+      <p class="mb-3 text-xs text-stone-500">Participants can only send messages during the window below, in the selected timezone (daylight saving is handled automatically).</p>
+      <div class="flex flex-wrap items-end gap-3">
+        <div>
+          <label class="mb-1 block text-xs font-medium text-stone-500">Open</label>
+          <input type="time" id="accessHoursStart" onchange="onAccessTimeChange()" class="rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none">
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-medium text-stone-500">Close</label>
+          <input type="time" id="accessHoursEnd" onchange="onAccessTimeChange()" class="rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none">
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-medium text-stone-500">Timezone</label>
+          <select id="accessHoursTimezone" class="rounded-lg border border-stone-200 px-3 py-2 text-sm focus:border-cloze-indigo focus:outline-none">
+            <option value="America/New_York">Eastern (America/New_York)</option>
+            <option value="America/Chicago">Central (America/Chicago)</option>
+            <option value="America/Denver">Mountain (America/Denver)</option>
+            <option value="America/Los_Angeles">Pacific (America/Los_Angeles)</option>
+            <option value="Europe/London">UK (Europe/London)</option>
+            <option value="UTC">UTC</option>
+          </select>
+        </div>
+      </div>
+      <label class="mt-3 mb-1 block text-xs font-medium text-stone-500 uppercase tracking-wide">Days available</label>
+      <div id="accessHoursDays" class="flex flex-wrap gap-2"></div>
+      <div class="mt-4 flex items-center gap-3">
+        <button onclick="saveAccessHours()" class="rounded-lg bg-cloze-indigo px-4 py-2 text-sm font-medium text-white hover:bg-cloze-hover">Save</button>
+        <span id="accessSaveStatus" class="text-xs text-stone-400"></span>
+      </div>
+    </div>
+  </section>
+
   {# 3. Custom System Prompts #}
   <section id="promptsSection" class="mb-8 rounded-lg border border-stone-200 bg-white">
     <div class="border-b border-stone-100 px-5 py-3 flex items-center justify-between">
@@ -212,6 +282,18 @@
 
       var monitoringEl = document.getElementById('monitoringDisclosure');
       monitoringEl.value = myFlags.monitoring_disclosure || '';
+
+      // CLOZE-Guard
+      document.getElementById('guardEnabled').checked = !!myFlags.guard_enabled;
+      document.getElementById('guardKeywords').value = (myFlags.guard_keywords || []).join('\n');
+      document.getElementById('guardNotifyEmail').value = myFlags.guard_notify_email || '';
+      document.getElementById('accessHoursEnabled').checked = !!myFlags.access_hours_enabled;
+      document.getElementById('accessHoursStart').value = myFlags.access_hours_start || '';
+      document.getElementById('accessHoursEnd').value = myFlags.access_hours_end || '';
+      if (myFlags.access_hours_timezone) {
+        document.getElementById('accessHoursTimezone').value = myFlags.access_hours_timezone;
+      }
+      renderAccessDays(myFlags.access_hours_days || []);
 
       if (myFlags.allow_custom_prompts === false) {
         document.getElementById('promptsSection').classList.add('hidden');
@@ -531,6 +613,77 @@
     } catch (e) {
       showDialog({ title: 'Error', message: 'Error deleting prompt', confirmText: 'OK' });
     }
+  }
+
+  // ── CLOZE-Guard settings ──────────────────────────────────
+
+  var DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  // Setting a window auto-enables the restriction, so hours can't silently
+  // be configured but left off. Unchecking the box still turns it off.
+  function onAccessTimeChange() {
+    var s = document.getElementById('accessHoursStart').value;
+    var e = document.getElementById('accessHoursEnd').value;
+    if (s && e) document.getElementById('accessHoursEnabled').checked = true;
+  }
+
+  function renderAccessDays(selected) {
+    var sel = (selected || []).map(Number);
+    var container = document.getElementById('accessHoursDays');
+    container.innerHTML = DAY_LABELS.map(function(lbl, i) {
+      var checked = sel.length === 0 || sel.indexOf(i) !== -1;  // empty = all days
+      return '<label class="flex items-center gap-1.5 rounded-md border border-stone-200 px-2.5 py-1.5 text-xs cursor-pointer select-none">' +
+        '<input type="checkbox" class="access-day h-3.5 w-3.5 rounded border-stone-300 accent-cloze-indigo" value="' + i + '"' + (checked ? ' checked' : '') + '>' +
+        lbl + '</label>';
+    }).join('');
+  }
+
+  async function _saveFlags(payload, statusEl) {
+    statusEl.textContent = 'Saving...';
+    statusEl.classList.remove('text-emerald-600', 'text-red-500');
+    try {
+      var resp = await fetch('/api/provider/my-flags', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      var result = await resp.json();
+      if (result.status === 'success') {
+        statusEl.textContent = 'Saved';
+        statusEl.classList.add('text-emerald-600');
+        setTimeout(function() { statusEl.textContent = ''; statusEl.classList.remove('text-emerald-600'); }, 2000);
+      } else {
+        statusEl.textContent = 'Error saving';
+        statusEl.classList.add('text-red-500');
+      }
+    } catch (e) {
+      statusEl.textContent = 'Error saving';
+      statusEl.classList.add('text-red-500');
+      console.error(e);
+    }
+  }
+
+  function saveKeywordAlerts() {
+    var keywords = document.getElementById('guardKeywords').value
+      .split('\n').map(function(s) { return s.trim(); }).filter(Boolean);
+    _saveFlags({
+      guard_enabled: document.getElementById('guardEnabled').checked,
+      guard_keywords: keywords,
+      guard_notify_email: document.getElementById('guardNotifyEmail').value.trim() || null,
+    }, document.getElementById('guardSaveStatus'));
+  }
+
+  function saveAccessHours() {
+    var dayBoxes = Array.prototype.slice.call(document.querySelectorAll('.access-day'));
+    var checkedDays = dayBoxes.filter(function(b) { return b.checked; }).map(function(b) { return parseInt(b.value, 10); });
+    var days = (checkedDays.length === 7) ? [] : checkedDays;  // all 7 = no restriction
+    _saveFlags({
+      access_hours_enabled: document.getElementById('accessHoursEnabled').checked,
+      access_hours_start: document.getElementById('accessHoursStart').value || null,
+      access_hours_end: document.getElementById('accessHoursEnd').value || null,
+      access_hours_timezone: document.getElementById('accessHoursTimezone').value || null,
+      access_hours_days: days,
+    }, document.getElementById('accessSaveStatus'));
   }
 
   function renderFlagsSummary() {

@@ -118,12 +118,8 @@
         var data = await response.json();
 
         if (response.ok) {
-          if (data.role !== selectedRole) {
-            errorDiv.textContent = 'This account has the ' + data.role + ' role, not ' + selectedRole;
-            errorDiv.classList.remove('hidden');
-            loginBtn.disabled = false;
-            return;
-          }
+          // Route to the account's actual dashboard. The role tabs are a UI
+          // hint only — never disclose an account's role on a mismatch.
           window.location.href = data.redirect;
         } else {
           errorDiv.textContent = data.message || 'Invalid credentials';

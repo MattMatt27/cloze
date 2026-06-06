@@ -36,6 +36,15 @@ COLUMN_ADDITIONS = [
     ('provider_feature_flags', 'is_clinical_use', 'BOOLEAN'),
     ('provider_feature_flags', 'monitoring_disclosure', 'TEXT'),
     ('provider_feature_flags', 'persona_override', 'TEXT'),
+    # CLOZE-Guard v0
+    ('provider_feature_flags', 'guard_enabled', 'BOOLEAN'),
+    ('provider_feature_flags', 'guard_keywords', 'TEXT'),
+    ('provider_feature_flags', 'guard_notify_email', 'TEXT'),
+    ('provider_feature_flags', 'access_hours_enabled', 'BOOLEAN'),
+    ('provider_feature_flags', 'access_hours_start', 'VARCHAR(5)'),
+    ('provider_feature_flags', 'access_hours_end', 'VARCHAR(5)'),
+    ('provider_feature_flags', 'access_hours_timezone', 'VARCHAR(64)'),
+    ('provider_feature_flags', 'access_hours_days', 'TEXT'),
 ]
 
 

@@ -281,6 +281,24 @@
 {% endblock %}
 
 {% block layout %}
+{# ── Access-hours "snoozing" takeover — shown when outside the participant's window ── #}
+<div id="accessClosedOverlay" class="fixed inset-0 z-[60] hidden flex-col items-center justify-center bg-gradient-to-b from-indigo-950 via-indigo-900 to-stone-900 px-6 text-center">
+  <div class="relative">
+    <svg class="h-24 w-24 text-indigo-200" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/>
+    </svg>
+    <span class="absolute -right-7 -top-1 select-none font-semibold text-indigo-300/80" aria-hidden="true">z<span class="text-lg">z</span><span class="text-xl">z</span></span>
+  </div>
+  <h1 class="mt-8 text-2xl font-semibold text-white">Chat is resting</h1>
+  <p id="accessClosedSchedule" class="mt-3 max-w-md text-sm text-indigo-200/90"></p>
+  <p id="accessClosedReopen" class="mt-1 text-base font-medium text-indigo-50"></p>
+  <p class="mt-8 text-xs text-indigo-300/70">Your conversations will be here when the window opens.</p>
+  <a href="/logout" class="absolute bottom-5 left-5 inline-flex items-center gap-1.5 text-xs text-indigo-300/70 transition-colors hover:text-indigo-100">
+    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+    Log out
+  </a>
+</div>
+
 <div class="flex h-screen">
 
   {# ── Left Sidebar ── #}
@@ -718,7 +736,8 @@ async function loadAllData() {
       fetch('/api/windows/current').then(function(r) { return r.ok ? r.json() : []; }),
       fetch('/api/reports/').then(function(r) { return r.ok ? r.json() : []; }),
       fetch('/api/safety-plan/').then(function(r) { return r.ok ? r.json() : null; }),
-      fetch('/api/user/settings-flags').then(function(r) { return r.ok ? r.json() : {}; })
+      fetch('/api/user/settings-flags').then(function(r) { return r.ok ? r.json() : {}; }),
+      fetch('/api/access-window').then(function(r) { return r.ok ? r.json() : { enabled: false }; })
     ]);
     allConversations = results[0];
     currentWindows = results[1];
@@ -727,11 +746,27 @@ async function loadAllData() {
     featureFlags = results[4];
     hasActivePlan = !!(safetyPlanData && safetyPlanData.active);
 
+    applyAccessWindow(results[5]);
     renderSidebar();
     renderSafetyPlan();
     renderHomeView();
   } catch (e) {
     console.error('Error loading data:', e);
+  }
+}
+
+/* ── Access-hours "snoozing" takeover ── */
+function applyAccessWindow(aw) {
+  var ov = document.getElementById('accessClosedOverlay');
+  if (!ov) return;
+  if (aw && aw.enabled && aw.open === false) {
+    document.getElementById('accessClosedSchedule').textContent = aw.schedule || '';
+    document.getElementById('accessClosedReopen').textContent = aw.reopen || '';
+    ov.classList.remove('hidden');
+    ov.classList.add('flex');
+  } else {
+    ov.classList.add('hidden');
+    ov.classList.remove('flex');
   }
 }
 
