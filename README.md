@@ -1,6 +1,6 @@
 # Cloze
 
-Cloze is a clinical conversation platform that enables structured, AI-mediated communication between patients and providers. Providers configure time-boxed conversation windows with specific therapeutic prompts, patients engage asynchronously, and the system generates clinical reports when windows close.
+Cloze is an open-source platform for running controlled, monitored studies of human–AI conversation in mental health research. Researchers configure which large language models participants converse with, how the AI is instructed, how conversations are scheduled over time, and the safety constraints that always apply — while every message is captured with full provenance (model version, prompt configuration, timing). It supports OpenAI, Anthropic, Google, and locally hosted open-weight models (via Ollama) behind one interface, and runs in the cloud or fully on premises so participant data need never leave an institution. Cloze is research infrastructure for building an evidence base on human–AI interaction in mental health — not a therapeutic product.
 
 Live at [cloze.uk](https://cloze.uk)
 
