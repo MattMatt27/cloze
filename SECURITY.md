@@ -7,10 +7,7 @@ security reports seriously.
 
 **Please do not open a public GitHub issue for security problems.**
 
-Instead, report privately by either:
-
-- emailing <hello@cloze.uk> with the details, or
-- using GitHub's [private vulnerability reporting](https://github.com/MattMatt27/cloze/security/advisories/new).
+Instead, report privately using GitHub's [private vulnerability reporting](https://github.com/MattMatt27/cloze/security/advisories/new).
 
 Please include:
 

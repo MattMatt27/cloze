@@ -14,10 +14,9 @@ progress or with our roadmap.
 - **Found a bug?** Open a [GitHub issue](https://github.com/MattMatt27/cloze/issues)
   with steps to reproduce, what you expected, and what happened.
 - **Have a question or want to use Cloze for a study?** Open a
-  [Discussion](https://github.com/MattMatt27/cloze/discussions) or email
-  <hello@cloze.uk>.
+  [Discussion](https://github.com/MattMatt27/cloze/discussions).
 - **Want to propose a feature or a code change?** Open an issue describing the
-  idea first, or email us. We'll discuss scope and approach before any code is
+  idea first. We'll discuss scope and approach before any code is
   written. Unsolicited pull requests may be closed with a request to open an
   issue first — this isn't a rejection of the idea, just how we keep the project
   coordinated.
