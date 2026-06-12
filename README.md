@@ -50,7 +50,7 @@ Open [http://localhost:5051](http://localhost:5051). The first run seeds the dat
 |------|----------|----------|
 | Admin | `admin` | `admin123` |
 | Provider | `provider1` | `provider123` |
-| Patient | `user1` | `user123` |
+| Participant | `user1` | `user123` |
 
 ### PDF Reports (optional)
 
@@ -72,7 +72,7 @@ Provides on-device AI summaries in reports without cloud API calls.
 
 ## Architecture
 
-Flask + SQLAlchemy + Jinja2 templates + Tailwind CSS (CDN). SQLite in development, PostgreSQL-ready for production.
+Flask + SQLAlchemy + Jinja2 templates + Tailwind CSS (CDN). SQLite for local development; PostgreSQL in production (AWS RDS).
 
 ```
 cloze/
@@ -146,19 +146,33 @@ cloze/
 
 ### Chat Windows
 
-A time-boxed period (e.g., one week) during which a patient can have conversations. Providers create windows with one or more **chat templates** — each template has a title, purpose, assigned LLM model, and system prompt. Windows follow a lifecycle: `scheduled` → `active` → `generating_report` → `report_ready`.
+A time-boxed period (e.g., one week) during which a participant can have conversations. Providers create windows with one or more **chat templates** — each template has a title, purpose, assigned LLM model, and system prompt. Windows follow a lifecycle: `scheduled` → `active` → `generating_report` → `report_ready`.
+
+### Study Flows
+
+Windows are organized into **study flows** that define the temporal structure of a study. Three flow types are supported:
+
+- **Always available** — conversations are open for the duration of enrollment, with no scheduling constraints.
+- **Phased** — time-bounded phases (e.g., Baseline → Intervention → Follow-up), each with its own conversation configuration.
+- **Recurring** — conversations repeat on a cadence (e.g., weekly check-ins), each cycle opening a fresh window.
+
+Flows let participants progress through structured, longitudinal designs while the platform tracks enrollment, phase progression, and completion.
 
 ### Prompt System
 
 Four-layer prompt composition:
 1. **Constitutional** — identity, safety boundaries, scope constraints (markdown files)
-2. **Domain** — therapeutic focus area (anxiety, depression, trauma, etc.)
+2. **Domain** — topical focus area (anxiety, depression, trauma, etc.)
 3. **Custom instructions** — provider-written per-template guidance
-4. **Safety plan** — patient-specific warning signs, coping strategies, anti-patterns
+4. **Safety plan** — participant-specific warning signs, coping strategies, anti-patterns
 
 ### Safety Plans
 
-Based on the Stanley-Brown Safety Planning Intervention. Provider creates the clinical framework (anti-patterns, care team, emergency plan), patient fills in their sections (warning signs, coping strategies, support network, reasons for living). Versioned with approval workflow: `draft` → `pending_review` → `active` → `superseded`.
+Based on the Stanley-Brown Safety Planning Intervention. The provider creates the clinical framework (anti-patterns, care team, emergency plan), and the participant fills in their sections (warning signs, coping strategies, support network, reasons for living). Versioned with approval workflow: `draft` → `pending_review` → `active` → `superseded`.
+
+### Safety Alerting (Cloze-Guard)
+
+Cloze-Guard monitors conversations for safety-relevant content and surfaces events to the supervising provider. The shipped version flags messages against a provider-configured keyword list, raises alerts in the provider dashboard, and can send email notifications. Each provider enables and configures it in their settings, and it operates independently of the universal crisis-protocol prompt layer (which is always active).
 
 ### Reports
 
@@ -168,24 +182,42 @@ Generated when a chat window closes. Both **summary** and **detailed** versions 
 - **Descriptive Stats** — message counts, durations, averages
 - **NLP Analysis** — sentiment, active/passive voice, emotional keywords
 - **Co-occurrence Analysis** — word network graph (matplotlib + networkx)
-- **Saved Messages** — patient-flagged quotes from conversations
+- **Saved Messages** — participant-flagged quotes from conversations
 
 Download as HTML or PDF in either summary or detailed format.
 
-### Three User Roles
+### Roles
 
-- **Patient** — conversations, safety plan, view own reports
-- **Provider** — manage windows/templates, review safety plans, view patient reports
-- **Admin** — user management, system overview
+- **Participant** — has conversations, completes their safety-plan sections, views their own reports.
+- **Provider** (researcher/clinician) — designs study flows, windows, and templates; configures models, prompts, and Cloze-Guard; reviews safety plans, conversations, reports, and safety alerts for assigned participants.
+- **Administrator** — user management, platform settings, and the audit log.
+
+> **A note on naming.** This README and the accompanying paper use **participant**; in the codebase that role is `user` (historically `patient`), and some model, route, and template names still read `patient`. They denote the same role.
+
+### Research & IRB support
+
+Features supporting human-subjects research:
+
+- **De-identified participants** — auto-generated credentials; no name or personal email required.
+- **Consent capture** — a per-study disclaimer modal participants acknowledge before conversations begin; acknowledgment is timestamped and logged.
+- **Audit logging** — administrative actions (account creation, prompt edits, password resets, feature-flag changes) are recorded with timestamp and actor.
+- **Data isolation** — one-provider-per-participant assignment enforced at the database level, with role-based access throughout.
 
 ## Deployment
 
-The application runs as a Docker container on AWS ECS. See `.aws/` for task definitions and `.github/workflows/` for CI/CD templates.
+Cloze runs as a standard Flask application. Two common setups:
+
+- **Cloud** — a VM (e.g., AWS EC2) with managed PostgreSQL (e.g., AWS RDS), served by Gunicorn behind a reverse proxy. The reference deployment runs on EC2 behind Cloudflare, managed by `systemd`.
+- **Local / on-premises** — a single machine with SQLite or local PostgreSQL and Ollama for model hosting; no cloud dependencies.
+
+A Dockerfile is also provided:
 
 ```bash
 docker build -t cloze-app .
 docker run -p 5051:5001 --env-file .env cloze-app
 ```
+
+Schema changes are applied separately with `python migrate_schema.py --apply` (deploys do not run migrations automatically).
 
 ## License
 
