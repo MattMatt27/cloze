@@ -189,4 +189,6 @@ docker run -p 5051:5001 --env-file .env cloze-app
 
 ## License
 
-This work is licensed under [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). Free for academic and research use. Commercial use is not permitted.
+Cloze is released under the [GNU Affero General Public License v3.0](LICENSE). You are free to use, study, modify, and self-host it. The AGPL's network clause means that if you run a modified version of Cloze as a network service, you must make your modified source available to its users under the same license.
+
+Copyright © 2024–2026 Francesco Cipriani, Matthew Flathers. See [NOTICE](NOTICE).
