@@ -45,6 +45,9 @@ COLUMN_ADDITIONS = [
     ('provider_feature_flags', 'access_hours_end', 'VARCHAR(5)'),
     ('provider_feature_flags', 'access_hours_timezone', 'VARCHAR(64)'),
     ('provider_feature_flags', 'access_hours_days', 'TEXT'),
+    # Report system v2: FK linkage window→flow (legacy rows stay NULL; the
+    # scope resolver falls back to flow_name matching for them)
+    ('chat_windows', 'flow_id', 'INTEGER'),
 ]
 
 
