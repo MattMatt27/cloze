@@ -949,6 +949,7 @@ def _create_window_from_phase(flow, phase, patient_id, start, end, title_suffix=
         end_date=end,
         report_config=flow.report_config,
         flow_name=flow.name,
+        flow_id=flow.id,
         phase_label=phase_label,
     )
     db.session.add(window)

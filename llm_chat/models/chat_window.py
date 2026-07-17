@@ -17,6 +17,10 @@ class ChatWindow(db.Model):
     status = db.Column(db.String(20), default='scheduled', nullable=False)
     flow_name = db.Column(db.String(200), nullable=True)   # Name of the StudyFlow that generated this window
     phase_label = db.Column(db.String(200), nullable=True)  # Phase name, cycle label, or null for always-available
+    # FK to the generating flow (report-v2 scope resolution). flow_name predates
+    # this and is kept for display; legacy rows have flow_id NULL — the scope
+    # resolver falls back to a flow_name match for those.
+    flow_id = db.Column(db.Integer, db.ForeignKey('study_flows.id'), nullable=True, index=True)
     created_at = db.Column(db.Float, default=lambda: time.time())
     updated_at = db.Column(db.Float, onupdate=lambda: time.time())
 
