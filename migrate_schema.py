@@ -48,6 +48,32 @@ COLUMN_ADDITIONS = [
     # Report system v2: FK linkage window→flow (legacy rows stay NULL; the
     # scope resolver falls back to flow_name matching for them)
     ('chat_windows', 'flow_id', 'INTEGER'),
+    # Report system v2: multi-scope reports
+    ('reports', 'scope', 'VARCHAR(20)'),
+    ('reports', 'conversation_id', 'INTEGER'),
+    ('reports', 'flow_enrollment_id', 'INTEGER'),
+    ('reports', 'flow_id', 'INTEGER'),
+    ('reports', 'analyzer_version', 'VARCHAR(20)'),
+]
+
+
+# ── Data fixups (idempotent; run after column additions) ─────────
+# Format: (table, description, sql, applies_to) — applies_to: 'all' | 'postgresql' | 'sqlite'
+# Skipped when the table doesn't exist yet (fresh installs get correct
+# schema/data from db.create_all + the app itself).
+DATA_FIXUPS = [
+    # Legacy per-window reports predate the scope column
+    ('reports', "backfill reports.scope='window' on legacy rows",
+     "UPDATE reports SET scope = 'window' WHERE scope IS NULL", 'all'),
+    # v2 scopes need these nullable (flow/account reports have no patient;
+    # conversation reports may have no window). SQLite can't ALTER NOT NULL —
+    # local dev DBs are rebuilt instead; harmless there.
+    ('reports', "relax reports.window_id NOT NULL",
+     "ALTER TABLE reports ALTER COLUMN window_id DROP NOT NULL", 'postgresql'),
+    ('reports', "relax reports.patient_id NOT NULL",
+     "ALTER TABLE reports ALTER COLUMN patient_id DROP NOT NULL", 'postgresql'),
+    ('reports', "relax reports.provider_id NOT NULL",
+     "ALTER TABLE reports ALTER COLUMN provider_id DROP NOT NULL", 'postgresql'),
 ]
 
 
@@ -141,6 +167,18 @@ def run_migration(apply=False):
             print(f"  OK    table '{t}' — already exists")
         else:
             print(f"  NEW   table '{t}' — will be created by db.create_all() on app startup")
+
+    # ── Data fixups (idempotent) ─────────────────────────────
+    print()
+    for table_name, description, sql, applies_to in DATA_FIXUPS:
+        if applies_to != 'all' and applies_to != db_type:
+            print(f"  SKIP  fixup ({applies_to}-only): {description}")
+            continue
+        if not table_exists(cursor, table_name, db_type):
+            print(f"  SKIP  fixup (no '{table_name}' table yet): {description}")
+            continue
+        changes.append(sql)
+        print(f"  FIXUP {description}")
 
     # ── Apply or report ──────────────────────────────────────
     print()

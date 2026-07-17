@@ -133,6 +133,9 @@ def _resolve_conversation(conversation_id):
     conversation = _get_or_raise(Conversation, conversation_id, "conversation")
     window = conversation.chat_window
     provider_id = window.provider_id if window else None
+    if provider_id is None:  # window-less legacy chat: owning provider via link
+        link = ProviderPatient.query.filter_by(patient_id=conversation.user_id).first()
+        provider_id = link.provider_id if link else None
     return ScopeSelection(
         scope="conversation",
         scope_id=conversation_id,

@@ -29,11 +29,21 @@ import traceback
 from sqlalchemy import text
 
 from ..extensions import db
-from ..models import ReportJob
+from ..models import Report, ReportJob
 from .artifacts import conversations_missing_artifacts, extract_artifact
 
 STALE_AFTER_SECONDS = 300  # running job with a heartbeat older than this is reclaimable
 MAX_ATTEMPTS = 3           # reclaims beyond this fail the job instead
+
+# scope → the ReportJob/Report FK column that carries the target id
+SCOPE_FK = {
+    "conversation": "conversation_id",
+    "window": "window_id",
+    "enrollment": "flow_enrollment_id",
+    "participant": "patient_id",
+    "flow": "flow_id",
+    "account": "provider_id",
+}
 
 
 def _now():
@@ -65,6 +75,14 @@ def enqueue(kind, *, scope=None, conversation_id=None, window_id=None,
         _mark_running(job)
         execute_job(job)
     return job
+
+
+def enqueue_report(scope, scope_id, *, requested_by=None, payload=None):
+    """Enqueue a scope-report generation job, targeting via the right FK."""
+    if scope not in SCOPE_FK:
+        raise ValueError(f"unknown scope {scope!r}; expected one of {sorted(SCOPE_FK)}")
+    return enqueue("report", scope=scope, requested_by=requested_by,
+                   payload=payload, **{SCOPE_FK[scope]: scope_id})
 
 
 def _mark_running(job):
@@ -161,10 +179,51 @@ def _handle_backfill(job):
             time.sleep(throttle)
 
 
+def _handle_report(job):
+    """Generate a scope report and upsert THE Report row for that scope target.
+
+    One row per (scope, target, report_type='v2') — regeneration updates in
+    place, which is what makes the UI's ready/stale chip model coherent.
+    The row is written only on success (lease re-runs regenerate wholesale)."""
+    from .scope_engine import generate_report_data  # deferred: pulls analyzers
+
+    scope = job.scope
+    if scope not in SCOPE_FK:
+        raise ValueError(f"report job {job.id} has unknown scope {scope!r}")
+    scope_id = getattr(job, SCOPE_FK[scope])
+    if scope_id is None:
+        raise ValueError(f"report job {job.id} ({scope}) has no target id set")
+
+    data = generate_report_data(
+        scope, scope_id,
+        progress_cb=lambda current, total: heartbeat(job, current, total),
+    )
+
+    report = Report.query.filter_by(
+        scope=scope, report_type="v2", **{SCOPE_FK[scope]: scope_id}
+    ).first()
+    if report is None:
+        report = Report(scope=scope, report_type="v2",
+                        **{SCOPE_FK[scope]: scope_id})
+        db.session.add(report)
+
+    report.report_data = json.dumps(data)
+    report.generated_at = data["generated_at"]
+    report.analyzer_version = data["analyzer_version"]
+    # Ownership denormalized onto the row for listing/access checks; follows
+    # current resolution on regenerate (for account/participant scopes these
+    # coincide with the scope-target column and are identical values).
+    report.provider_id = data["provider_id"]
+    report.patient_id = data["patient_id"]
+    db.session.flush()
+    job.report_id = report.id
+    db.session.commit()
+
+
 _HANDLERS = {
     "extract": _handle_extract,
     "backfill": _handle_backfill,
-    # "report": lands with the scope-engine milestone
+    "report": _handle_report,
 }
 
 
