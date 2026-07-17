@@ -12,7 +12,7 @@ import pytest
 
 from llm_chat import create_app
 from llm_chat.extensions import db as _db
-from llm_chat.models.core import User, ProviderPatient
+from llm_chat.models.core import User
 
 
 @pytest.fixture
@@ -61,6 +61,30 @@ def make_user(app):
         _db.session.add(user)
         _db.session.commit()
         return user
+    return _make
+
+
+@pytest.fixture
+def make_conversation(app, make_user):
+    """Factory: a conversation with the given (role, content, timestamp) messages."""
+    from llm_chat.models import Conversation, Message, Model
+
+    model = Model(name="test-model", provider="local")
+    _db.session.add(model)
+    _db.session.commit()
+
+    def _make(messages, user=None):
+        user = user or make_user(f"patient{Conversation.query.count()}")
+        conversation = Conversation(user_id=user.id, model_id=model.id)
+        _db.session.add(conversation)
+        _db.session.commit()
+        for role, content, ts in messages:
+            _db.session.add(Message(
+                conversation_id=conversation.id, role=role, content=content, timestamp=ts,
+            ))
+        _db.session.commit()
+        return conversation
+
     return _make
 
 
