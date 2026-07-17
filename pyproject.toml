@@ -15,3 +15,6 @@ ignore = []
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+markers = [
+    "postgres: queue-concurrency invariants requiring TEST_POSTGRES_URL (throwaway local Postgres; wired into the currently-untracked ci.yml for when CI is enabled)",
+]

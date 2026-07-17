@@ -56,7 +56,8 @@ static/images/logo-concepts/
 # AWS deployment files (ignore for now)
 .aws/
 
-# GitHub Actions workflows (ignore for now)
+# GitHub Actions workflows — deliberately untracked while deploys stay manual
+# (live users; CI/auto-deploy to be revisited alongside the open-science submission)
 .github/
 
 # Docker files (ignore for now)
