@@ -122,4 +122,8 @@ def create_app():
     from .services.llm_interface import LLMInterface
     LLMInterface.initialize_clients()
 
+    # CLI commands (reports-worker — the dedicated job worker process)
+    from .cli import register_cli
+    register_cli(app)
+
     return app
