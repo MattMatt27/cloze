@@ -41,6 +41,14 @@ def _child_report_links(report_data):
     return links
 
 
+@report_pages_bp.route("/provider/reports")
+@login_required
+def reports_hub():
+    if not (current_user.is_provider() or current_user.is_admin()):
+        abort(403)
+    return render_template("provider_reports.html")
+
+
 @report_pages_bp.route("/reports/<int:report_id>")
 @login_required
 def view_report(report_id):

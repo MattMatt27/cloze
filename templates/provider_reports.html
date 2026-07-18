@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Reports — Cloze{% endblock %}
+{% block page_title %}Reports{% endblock %}
+
+{% block header_actions %}
+  <div class="flex items-center gap-1 rounded-md border border-stone-200 bg-white p-0.5 text-sm">
+    <button data-tab="browse" class="hub-tab rounded px-3 py-1 font-medium">Browse</button>
+    <button data-tab="templates" class="hub-tab rounded px-3 py-1 font-medium">Templates</button>
+  </div>
+{% endblock %}
+
+{% block content %}
+<div id="tab-browse">
+  <div class="flex flex-col gap-6 lg:flex-row">
+    <!-- Scope navigator -->
+    <aside class="w-full shrink-0 lg:w-72">
+      <nav id="scopeNav" class="space-y-1 text-sm">
+        <div class="px-2 py-6 text-center text-stone-400">Loading…</div>
+      </nav>
+    </aside>
+
+    <!-- Scope detail -->
+    <main class="min-w-0 flex-1">
+      <div id="scopePane" class="rounded-lg border border-stone-200 bg-white p-6">
+        <p class="text-sm text-stone-400">Select a study flow, participant, or the
+        account overview to see and generate reports.</p>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div id="tab-templates" class="hidden">
+  <div class="flex flex-col gap-6 lg:flex-row">
+    <aside class="w-full shrink-0 lg:w-72">
+      <button id="newTemplateBtn"
+              class="mb-3 w-full rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+        + New template
+      </button>
+      <nav id="templateList" class="space-y-1 text-sm"></nav>
+    </aside>
+    <main class="min-w-0 flex-1">
+      <div id="templatePane" class="rounded-lg border border-stone-200 bg-white p-6">
+        <p class="text-sm text-stone-400">Templates define what a report contains:
+        its scope, which analyses run, whether it auto-generates when a phase
+        ends, and whether participants can see the result.</p>
+      </div>
+    </main>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="/static/js/reports/hub.js"></script>
+{% endblock %}

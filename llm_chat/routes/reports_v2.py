@@ -228,6 +228,65 @@ def download_report(report_id, fmt):
     abort(400, description="format must be html, csv, or pdf")
 
 
+@reports_v2_bp.route("/reports/navigator", methods=["GET"])
+@login_required
+def navigator():
+    """The provider's scope tree — everything the Reports hub can point at.
+
+    Report existence/staleness is deliberately NOT embedded here; the hub
+    joins this tree against GET /reports client-side, so chip updates never
+    require rebuilding the tree."""
+    if current_user.is_provider():
+        provider_id = current_user.id
+    elif current_user.is_admin():
+        provider_id = request.args.get("provider_id", type=int)
+        if provider_id is None:
+            abort(400, description="admin callers must pass provider_id")
+    else:
+        abort(403)
+
+    from ..models import FlowEnrollment, ProviderPatient
+    from ..services.scopes import _windows_for_enrollment
+
+    flows = (StudyFlow.query.filter_by(provider_id=provider_id)
+             .order_by(StudyFlow.created_at).all())
+    flow_nodes = []
+    for flow in flows:
+        enrollment_nodes = []
+        for enrollment in (FlowEnrollment.query.filter_by(flow_id=flow.id)
+                           .order_by(FlowEnrollment.enrolled_at).all()):
+            windows = [{
+                "window_id": w.id,
+                "title": w.title,
+                "phase_label": w.phase_label,
+                "start_date": w.start_date,
+                "end_date": w.end_date,
+            } for w in _windows_for_enrollment(enrollment)]
+            enrollment_nodes.append({
+                "enrollment_id": enrollment.id,
+                "patient_id": enrollment.patient_id,
+                "username": enrollment.patient.username,
+                "windows": windows,
+            })
+        flow_nodes.append({
+            "flow_id": flow.id,
+            "name": flow.name,
+            "flow_type": flow.flow_type,
+            "enrollments": enrollment_nodes,
+        })
+
+    participants = [{
+        "patient_id": link.patient_id,
+        "username": db.session.get(User, link.patient_id).username,
+    } for link in ProviderPatient.query.filter_by(provider_id=provider_id).all()]
+
+    return jsonify({
+        "provider_id": provider_id,
+        "flows": flow_nodes,
+        "participants": participants,
+    })
+
+
 @reports_v2_bp.route("/reports/registry", methods=["GET"])
 @login_required
 def get_registry():
