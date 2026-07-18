@@ -121,7 +121,7 @@
       var results = await Promise.all([
         fetch('/api/provider/patients').then(function(r) { return r.json(); }),
         fetch('/api/windows/').then(function(r) { return r.json(); }),
-        fetch('/api/reports/').then(function(r) { return r.json(); }),
+        fetch('/api/v2/reports').then(function(r) { return r.ok ? r.json() : []; }),
         fetch('/api/safety-plan/pending-reviews').then(function(r) { return r.ok ? r.json() : []; }),
         fetch('/api/provider/escalation-events').then(function(r) { return r.ok ? r.json() : []; })
       ]);
@@ -268,21 +268,19 @@
 
     var items = allReports.slice(0, 5).map(function(report) {
       var patient = patientLookup[report.patient_id];
-      var patientName = (patient && patient.username) || ('Patient #' + report.patient_id);
-      var data = report.report_data || {};
-      var windowTitle = data.window_title || 'Chat Window';
+      var scopeLabel = (report.scope || 'report').replace(/^\w/, function(c) { return c.toUpperCase(); }) + ' report';
+      var subject = patient ? ' — ' + escapeHtml(patient.username) : '';
       var generated = report.generated_at
         ? new Date(report.generated_at * 1000).toLocaleString()
         : 'Recently';
-      var href = '/provider/chat-windows?patient_id=' + report.patient_id;
 
       return '<li class="flex items-center gap-4 py-3">' +
         '<span class="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-50 text-violet-600">' + reportIcon + '</span>' +
         '<div class="flex-1">' +
-          '<p class="text-sm text-stone-700"><span class="font-medium">' + escapeHtml(windowTitle) + '</span> for <span class="font-medium">' + escapeHtml(patientName) + '</span></p>' +
-          '<p class="text-xs text-stone-400">' + generated + '</p>' +
+          '<p class="text-sm text-stone-700"><span class="font-medium">' + escapeHtml(scopeLabel) + '</span>' + subject + '</p>' +
+          '<p class="text-xs text-stone-400">' + generated + (report.is_stale ? ' · <span class="text-amber-600">stale</span>' : '') + '</p>' +
         '</div>' +
-        '<a href="' + href + '" class="inline-flex items-center gap-1 text-xs font-medium text-cloze-indigo hover:text-cloze-hover">' +
+        '<a href="/reports/' + report.id + '" class="inline-flex items-center gap-1 text-xs font-medium text-cloze-indigo hover:text-cloze-hover">' +
           'View <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>' +
         '</a>' +
       '</li>';

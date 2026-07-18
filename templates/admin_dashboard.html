@@ -315,6 +315,24 @@
       </div>
     </section>
 
+    {# Report analysis access (report-v2 tiered components) #}
+    <section class="mb-8 rounded-lg border border-stone-200 bg-white">
+      <div class="border-b border-stone-100 bg-violet-50/60 px-5 py-3">
+        <h3 class="text-sm font-semibold text-stone-900">Report Analysis Access</h3>
+        <p class="mt-0.5 text-xs text-stone-500">Intensive analyses (LLM summaries etc.) require a per-team grant. Requests appear here.</p>
+      </div>
+      <div id="componentGrantsPanel" class="px-5 py-4 text-sm text-stone-500">Loading…</div>
+    </section>
+
+    {# Report job health (report-v2 worker queue) #}
+    <section class="mb-8 rounded-lg border border-stone-200 bg-white">
+      <div class="border-b border-stone-100 bg-violet-50/60 px-5 py-3">
+        <h3 class="text-sm font-semibold text-stone-900">Report Jobs</h3>
+        <p class="mt-0.5 text-xs text-stone-500">Recent generation jobs across all teams (status only, no content).</p>
+      </div>
+      <div id="reportJobsPanel" class="px-5 py-4 text-sm text-stone-500">Loading…</div>
+    </section>
+
     {# Model management #}
     <section class="mb-8 rounded-lg border border-stone-200 bg-white">
       <div class="flex items-center justify-between border-b border-stone-100 bg-violet-50/60 px-5 py-3">
@@ -593,7 +611,7 @@
     // Lazy load tab data
     if (tabId === 'patients' && patientsData.length === 0) loadPatients();
     if (tabId === 'providers' && providersData.length === 0) loadProviders();
-    if (tabId === 'settings') { loadSettings(); loadModels(); loadAdminPrompts(); loadAssignments(); }
+    if (tabId === 'settings') { loadSettings(); loadModels(); loadAdminPrompts(); loadAssignments(); loadComponentGrants(); loadReportJobs(); }
   }
 
   // Listen for hash changes (sidebar clicks)
@@ -1320,6 +1338,85 @@
   // ══════════════════════════════════════════════════════════════
   //  SETTINGS TAB
   // ══════════════════════════════════════════════════════════════
+
+  // ── Report-v2 admin panels ─────────────────────────────────────
+
+  async function loadComponentGrants() {
+    var panel = document.getElementById('componentGrantsPanel');
+    try {
+      var res = await fetch('/api/v2/admin/component-grants');
+      if (!res.ok) throw new Error(res.status);
+      var data = await res.json();
+
+      var pendingHtml = data.pending.length
+        ? '<div class="mb-4"><h4 class="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-700">Pending requests</h4>' +
+          data.pending.map(function(p) {
+            var provider = data.providers.find(function(x) { return x.provider_id === p.provider_id; });
+            return '<div class="mb-2 flex items-center justify-between rounded-md border border-amber-200 bg-amber-50 px-3 py-2">' +
+              '<span class="text-sm text-stone-800">' + escapeHtml(provider ? provider.username : ('provider #' + p.provider_id)) +
+              ' requests <strong>' + escapeHtml(p.component) + '</strong></span>' +
+              '<span class="flex gap-2">' +
+              '<button onclick="setComponentGrant(' + p.provider_id + ', \'' + p.component + '\', true)" class="rounded-md bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-emerald-700">Grant</button>' +
+              '<button onclick="setComponentGrant(' + p.provider_id + ', \'' + p.component + '\', false)" class="rounded-md border border-stone-200 px-2.5 py-1 text-xs text-stone-600 hover:bg-stone-50">Dismiss</button>' +
+              '</span></div>';
+          }).join('') + '</div>'
+        : '';
+
+      var rows = data.providers.map(function(p) {
+        var intensive = Object.keys(p.access).filter(function(k) { return p.access[k] !== 'available'; });
+        var chips = intensive.map(function(k) {
+          var state = p.access[k];
+          var granted = state === 'granted';
+          return '<button onclick="setComponentGrant(' + p.provider_id + ', \'' + k + '\', ' + (!granted) + ')" ' +
+            'class="rounded-full px-2.5 py-0.5 text-xs font-medium ' +
+            (granted ? 'bg-emerald-100 text-emerald-800' : state === 'requested' ? 'bg-amber-100 text-amber-800' : 'bg-stone-100 text-stone-500') + '" ' +
+            'title="Click to ' + (granted ? 'revoke' : 'grant') + '">' + escapeHtml(k) + ': ' + state + '</button>';
+        }).join(' ');
+        return '<div class="flex items-center justify-between border-b border-stone-100 py-2 last:border-0">' +
+          '<span class="text-sm font-medium text-stone-800">' + escapeHtml(p.username) + '</span>' +
+          '<span class="flex flex-wrap justify-end gap-1.5">' + chips + '</span></div>';
+      }).join('');
+
+      panel.innerHTML = pendingHtml + (rows || '<p class="text-stone-400">No provider teams yet.</p>');
+    } catch (e) { panel.innerHTML = '<p class="text-red-600">Failed to load grants (' + e.message + ').</p>'; }
+  }
+
+  async function setComponentGrant(providerId, component, granted) {
+    try {
+      var res = await fetch('/api/v2/admin/component-grants', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider_id: providerId, component: component, granted: granted })
+      });
+      if (!res.ok) throw new Error(res.status);
+      loadComponentGrants();
+    } catch (e) { alert('Failed to update grant: ' + e.message); }
+  }
+
+  async function loadReportJobs() {
+    var panel = document.getElementById('reportJobsPanel');
+    try {
+      var res = await fetch('/api/v2/admin/report-jobs?limit=25');
+      if (!res.ok) throw new Error(res.status);
+      var jobs = await res.json();
+      if (!jobs.length) { panel.innerHTML = '<p class="text-stone-400">No report jobs yet.</p>'; return; }
+      var badge = function(status) {
+        var cls = { done: 'bg-emerald-100 text-emerald-800', failed: 'bg-red-100 text-red-800',
+                    running: 'bg-indigo-100 text-indigo-800', queued: 'bg-stone-100 text-stone-600' }[status] || 'bg-stone-100 text-stone-600';
+        return '<span class="rounded-full px-2 py-0.5 text-xs font-medium ' + cls + '">' + status + '</span>';
+      };
+      panel.innerHTML = '<table class="w-full text-sm"><thead><tr class="text-left text-xs uppercase tracking-wide text-stone-400">' +
+        '<th class="pb-2">Job</th><th class="pb-2">Kind</th><th class="pb-2">Scope</th><th class="pb-2">Status</th><th class="pb-2">Progress</th><th class="pb-2">Created</th></tr></thead><tbody>' +
+        jobs.map(function(j) {
+          return '<tr class="border-t border-stone-100">' +
+            '<td class="py-1.5 text-stone-500">#' + j.id + '</td>' +
+            '<td class="py-1.5">' + escapeHtml(j.kind) + '</td>' +
+            '<td class="py-1.5">' + escapeHtml(j.scope || '—') + '</td>' +
+            '<td class="py-1.5">' + badge(j.status) + '</td>' +
+            '<td class="py-1.5 text-stone-500">' + (j.progress_total ? j.progress_current + '/' + j.progress_total : '—') + '</td>' +
+            '<td class="py-1.5 text-stone-500">' + formatRelativeTime(j.created_at) + '</td></tr>';
+        }).join('') + '</tbody></table>';
+    } catch (e) { panel.innerHTML = '<p class="text-red-600">Failed to load jobs (' + e.message + ').</p>'; }
+  }
 
   async function loadSettings() {
     try {

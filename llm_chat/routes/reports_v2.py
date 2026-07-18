@@ -324,6 +324,21 @@ def create_component_request():
     return jsonify({"component": component, "state": state}), 202
 
 
+@reports_v2_bp.route("/admin/report-jobs", methods=["GET"])
+@login_required
+def admin_list_jobs():
+    """Ops view: recent jobs across all teams (content-free — status only)."""
+    if not current_user.is_admin():
+        abort(403)
+    query = ReportJob.query
+    status = request.args.get("status")
+    if status:
+        query = query.filter_by(status=status)
+    jobs = query.order_by(ReportJob.created_at.desc()).limit(
+        request.args.get("limit", 50, type=int)).all()
+    return jsonify([job.to_dict() for job in jobs])
+
+
 @reports_v2_bp.route("/admin/component-grants", methods=["GET"])
 @login_required
 def list_component_grants():

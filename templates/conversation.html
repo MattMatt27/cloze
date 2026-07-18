@@ -909,22 +909,15 @@
   // ── Report viewing ────────────────────────────────────────────
 
   async function viewWindowReport() {
+    // Report-v2: resolve the shared report for this window and open the
+    // full-page viewer instead of the legacy modal.
     if (!windowId) { showError('No report available for this conversation'); return; }
-
     try {
-      const reportsResponse = await fetch('/api/reports/');
-      if (!reportsResponse.ok) throw new Error('Failed to load reports');
-      const reports = await reportsResponse.json();
-
-      const report = reports.find(r => r.window_id === windowId);
-      if (!report) { showError('No report found for this session'); return; }
-
-      const response = await fetch(`/api/reports/html/${report.id}`);
-      if (!response.ok) throw new Error('Failed to load report');
-      const data = await response.json();
-
-      document.getElementById('reportContent').innerHTML = data.html || '<p class="text-stone-400 text-center py-8">No content available.</p>';
-      document.getElementById('reportModal').classList.remove('hidden');
+      const res = await fetch(`/api/v2/reports?scope=window&scope_id=${windowId}`);
+      if (!res.ok) throw new Error('Failed to load reports');
+      const reports = await res.json();
+      if (!reports.length) { showError('No report has been shared for this session yet'); return; }
+      window.location.href = `/reports/${reports[0].id}`;
     } catch (error) {
       console.error('Error loading report:', error);
       showError('Failed to load report. Please try again.');

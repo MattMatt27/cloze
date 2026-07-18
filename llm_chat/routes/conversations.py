@@ -37,8 +37,10 @@ def new_conversation():
 @conv_bp.route("/my-reports")
 @login_required
 def patient_reports():
-    if current_user.is_patient():
-        return redirect('/dashboard')
+    # Report-v2: the participant-facing reports page (template-shared reports
+    # only). Providers/admins have the Reports hub instead.
+    if not current_user.is_patient():
+        return redirect('/provider/reports')
     return render_template("patient_reports.html")
 
 @conv_bp.route("/api/provider_settings")

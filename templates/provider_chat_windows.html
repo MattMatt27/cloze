@@ -36,10 +36,6 @@
           Previous Conversations
         </button>
         <button class="window-tab-btn relative -mb-px border-b-2 border-transparent px-2 py-3 text-sm font-medium text-stone-600 hover:text-stone-900"
-                data-tab="reports" onclick="setWindowTab('reports')">
-          Reports
-        </button>
-        <button class="window-tab-btn relative -mb-px border-b-2 border-transparent px-2 py-3 text-sm font-medium text-stone-600 hover:text-stone-900"
                 data-tab="safety" onclick="setWindowTab('safety')">
           Safety Plan
           <span id="safetyPlanBadge" class="hidden ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-amber-100 text-[10px] font-bold text-amber-700"></span>
@@ -63,14 +59,6 @@
       </div>
     </div>
 
-    <div id="reportsTab" class="window-tab-panel hidden mt-6" data-tab-panel="reports">
-      <div id="patientReportsList" class="grid gap-4">
-      </div>
-      <div id="reportsEmpty" class="hidden rounded-lg border border-dashed border-stone-200 bg-white p-6 text-center text-sm text-stone-600">
-        No reports yet for this participant.
-      </div>
-    </div>
-
     <div id="safetyTab" class="window-tab-panel hidden mt-6" data-tab-panel="safety">
       <div id="safetyPlanContainer"></div>
     </div>
@@ -83,38 +71,6 @@
 {% endblock %}
 
 {% block modals %}
-<!-- Report Modal -->
-<div id="reportModal" class="fixed inset-0 z-50 hidden bg-black/30 backdrop-blur-[2px]">
-  <div class="flex h-full items-start justify-center overflow-y-auto pt-8 pb-8 px-4" onclick="closeReportModal()">
-    <div class="relative w-full max-w-3xl" onclick="event.stopPropagation()">
-      <div class="sticky top-0 z-10 flex items-center justify-between rounded-t-xl bg-white border-b border-stone-100 px-6 py-3">
-        <h3 class="text-sm font-semibold text-stone-900">Session Report</h3>
-        <div class="flex items-center gap-3">
-          <div class="relative" id="reportDlWrapper">
-            <button id="reportDownloadBtn" type="button" onclick="toggleReportDlMenu()" class="hidden text-xs text-stone-400 hover:text-cloze-indigo transition-colors">Download</button>
-            <div id="reportDlMenu" class="hidden absolute right-0 top-full z-10 mt-1 w-44 rounded-xl bg-white shadow-lg border border-stone-100 py-1">
-              <div class="px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-stone-300">Summary</div>
-              <a id="dlSummaryHtml" href="#" download class="block px-3 py-1.5 text-sm text-stone-600 hover:bg-stone-50">HTML</a>
-              <a id="dlSummaryPdf" href="#" download class="block px-3 py-1.5 text-sm text-stone-600 hover:bg-stone-50">PDF</a>
-              <div class="border-t border-stone-100 mt-1 pt-1 px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-stone-300">Detailed</div>
-              <a id="dlDetailedHtml" href="#" download class="block px-3 py-1.5 text-sm text-stone-600 hover:bg-stone-50">HTML</a>
-              <a id="dlDetailedPdf" href="#" download class="block px-3 py-1.5 text-sm text-stone-600 hover:bg-stone-50">PDF</a>
-            </div>
-          </div>
-          <button onclick="closeReportModal()" class="text-stone-400 hover:text-stone-600 transition-colors">
-            <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-              <path d="M6 6l12 12M6 18L18 6"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-      <div id="reportModalContent" class="rounded-b-xl bg-white px-6 py-6 shadow-lg">
-        <div class="py-12 text-center text-stone-400">Loading report...</div>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- Create/Edit Modal -->
 <div id="windowModal"
      class="hidden fixed inset-0 z-50 items-center justify-center bg-black/50 p-4">
@@ -173,40 +129,11 @@
         </button>
       </div>
 
-      <div id="reportSettingsWrapper">
-        <button type="button" onclick="toggleReportSettings()" class="flex w-full items-center justify-between rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-left transition hover:bg-stone-100">
-          <div>
-            <span class="text-sm font-semibold text-stone-800">Report Settings</span>
-            <span class="ml-2 text-xs text-stone-500">Summary report, all features enabled</span>
-          </div>
-          <svg id="reportSettingsChevron" class="h-4 w-4 text-stone-400 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
-        </button>
-        <div id="reportSettingsPanel" class="hidden mt-3 space-y-4 rounded-lg border border-stone-200 bg-white p-4">
-          <div>
-            <label class="mb-2 block text-sm font-semibold text-stone-800">Report Type</label>
-            <div class="grid grid-cols-2 gap-3" id="windowReportTypeContainer">
-              <label id="window_rt_summary_label" class="flex items-start gap-3 rounded-lg border-2 border-cloze-indigo bg-indigo-50 p-3 cursor-pointer transition">
-                <input type="radio" name="window_report_type" value="summary" checked class="mt-1">
-                <div>
-                  <strong class="text-sm">Summary</strong>
-                  <p class="text-xs text-stone-600 mt-0.5">Concise overview of key findings</p>
-                </div>
-              </label>
-              <label id="window_rt_detailed_label" class="flex items-start gap-3 rounded-lg border-2 border-stone-200 bg-stone-50 p-3 cursor-pointer transition">
-                <input type="radio" name="window_report_type" value="detailed" class="mt-1">
-                <div>
-                  <strong class="text-sm">Detailed</strong>
-                  <p class="text-xs text-stone-600 mt-0.5">Full analysis with citations</p>
-                </div>
-              </label>
-            </div>
-          </div>
-          <div>
-            <label class="mb-2 block text-sm font-semibold text-stone-800">Features</label>
-            <div id="windowFeatureConfigContainer" class="space-y-3"></div>
-          </div>
-        </div>
-      </div>
+      <p class="rounded-lg border border-stone-200 bg-stone-50 px-4 py-3 text-xs text-stone-500">
+        Report content is configured with templates in the
+        <a href="/provider/reports" class="text-cloze-indigo hover:underline">Reports hub</a>,
+        not per window.
+      </p>
 
       <div class="mt-6 flex justify-end gap-3 border-t border-stone-200 pt-4">
         <button type="button" class="rounded-md bg-stone-100 px-4 py-2 font-medium text-stone-700 hover:bg-stone-200"
@@ -281,53 +208,6 @@
   </div>
 </div>
 
-<!-- Report Configuration Modal -->
-<div id="reportConfigModal"
-     class="hidden fixed inset-0 z-50 items-center justify-center bg-black/50 p-4">
-  <div class="w-full max-w-2xl rounded-lg bg-white p-6">
-    <div class="mb-6 flex items-center justify-between">
-      <h2 class="text-xl font-semibold">Configure Enhanced Report</h2>
-      <button class="rounded-md p-1.5 text-stone-500 transition hover:bg-stone-100 hover:text-stone-700" onclick="closeReportConfigModal()">
-        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M6 6l12 12M6 18L18 6"/>
-        </svg>
-      </button>
-    </div>
-
-    <form id="reportConfigForm" class="space-y-5">
-      <div>
-        <p class="mb-2 font-semibold">Report Type:</p>
-        <div class="mb-5 grid grid-cols-2 gap-3" id="configReportTypeContainer">
-          <label id="config_rt_summary_label" class="flex items-start gap-3 rounded-lg border-2 border-cloze-indigo bg-indigo-50 p-3 cursor-pointer transition">
-            <input type="radio" name="config_report_type" value="summary" checked class="mt-1">
-            <div>
-              <strong>Summary</strong>
-              <p class="text-sm text-stone-600 mt-0.5">Concise overview</p>
-            </div>
-          </label>
-          <label id="config_rt_detailed_label" class="flex items-start gap-3 rounded-lg border-2 border-stone-200 bg-stone-50 p-3 cursor-pointer transition">
-            <input type="radio" name="config_report_type" value="detailed" class="mt-1">
-            <div>
-              <strong>Detailed</strong>
-              <p class="text-sm text-stone-600 mt-0.5">Full analysis with citations</p>
-            </div>
-          </label>
-        </div>
-
-        <p class="mb-2 font-semibold">Report Features:</p>
-        <div id="configFeatureContainer" class="space-y-4"></div>
-      </div>
-
-      <div class="mt-6 flex justify-end gap-3 border-t border-stone-200 pt-4">
-        <button type="button" class="rounded-md bg-stone-100 px-4 py-2 font-medium text-stone-700 hover:bg-stone-200"
-                onclick="closeReportConfigModal()">Cancel</button>
-        <button type="submit" class="rounded-md bg-cloze-indigo px-5 py-2 font-semibold text-white hover:bg-cloze-hover">
-          Generate Enhanced Report
-        </button>
-      </div>
-    </form>
-  </div>
-</div>
 {% endblock %}
 
 {% block scripts %}
@@ -336,128 +216,22 @@
   let currentPatient = null;
   let windows = [];
   let models = [];
-  let featureRegistry = null;
 
-  // -- Feature Registry --
-  async function loadFeatureRegistry() {
+  // v2 window reports (report-v2): windowId -> report summary, for the
+  // "Report →" deep-link into the hub viewer. Generation/config lives in
+  // the Reports hub, not here.
+  let v2WindowReports = new Map();
+  async function loadWindowReports() {
     try {
-      const res = await fetch('/api/reports/registry');
-      if (res.ok) featureRegistry = await res.json();
-    } catch (e) {
-      console.error('Error loading feature registry:', e);
-    }
+      const res = await fetch('/api/v2/reports?scope=window');
+      if (!res.ok) return;
+      const reports = await res.json();
+      v2WindowReports = new Map(reports.map(r => [r.scope_id, r]));
+    } catch (e) { console.error('Error loading window reports:', e); }
   }
-
-  function toggleReportSettings() {
-    var panel = document.getElementById('reportSettingsPanel');
-    var chevron = document.getElementById('reportSettingsChevron');
-    panel.classList.toggle('hidden');
-    chevron.classList.toggle('rotate-180');
-  }
-
-  function renderFeatureConfig(containerId, prefix) {
-    if (!featureRegistry) return;
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    container.innerHTML = '';
-
-    for (const group of featureRegistry.groups) {
-      // Skip groups where all features are coming soon
-      const availableFeatures = group.features.filter(f => f.status !== 'coming_soon');
-      if (!availableFeatures.length) continue;
-
-      const groupDiv = document.createElement('div');
-      groupDiv.className = 'mb-3';
-
-      let html = `
-        <div class="flex items-center gap-2 mb-2">
-          <h4 class="font-semibold text-sm text-stone-800">${group.name}</h4>
-        </div>
-        <div class="space-y-2">
-      `;
-
-      for (const feature of availableFeatures) {
-        const checkboxId = `${prefix}_${feature.key}`;
-        html += `
-          <label class="flex gap-3 rounded-lg border-2 border-transparent bg-stone-50 hover:border-cloze-indigo/40 p-3 cursor-pointer">
-            <input id="${checkboxId}" type="checkbox" checked class="mt-1 h-5 w-5">
-            <div>
-              <strong class="text-sm">${feature.name}</strong>
-              <span class="text-sm text-stone-600 block">${feature.description}</span>
-              ${feature.citation ? `<span class="text-xs text-stone-400 block mt-0.5">${feature.citation}</span>` : ''}
-            </div>
-          </label>
-        `;
-      }
-      html += '</div>';
-      groupDiv.innerHTML = html;
-      container.appendChild(groupDiv);
-    }
-  }
-
-  function collectFeatureConfig(prefix) {
-    if (!featureRegistry) return {};
-    const features = {};
-    for (const group of featureRegistry.groups) {
-      for (const feature of group.features) {
-        if (feature.status === 'available') {
-          const cb = document.getElementById(`${prefix}_${feature.key}`);
-          features[feature.key] = cb ? cb.checked : true;
-        }
-      }
-    }
-    return features;
-  }
-
-  function loadFeatureConfigFromData(prefix, config) {
-    if (!featureRegistry) return;
-    const features = config.features || {};
-    for (const group of featureRegistry.groups) {
-      for (const feature of group.features) {
-        if (feature.status === 'available') {
-          const cb = document.getElementById(`${prefix}_${feature.key}`);
-          if (cb) cb.checked = features[feature.key] !== false;
-        }
-      }
-    }
-  }
-
-  function setupReportTypeRadios(containerPrefix, selectedType) {
-    const summaryLabel = document.getElementById(`${containerPrefix}_rt_summary_label`);
-    const detailedLabel = document.getElementById(`${containerPrefix}_rt_detailed_label`);
-    if (!summaryLabel || !detailedLabel) return;
-
-    const radios = [summaryLabel, detailedLabel].map(l => l.querySelector('input[type="radio"]'));
-    radios.forEach(r => {
-      if (r) r.checked = (r.value === selectedType);
-    });
-    updateReportTypeLabels(containerPrefix);
-  }
-
-  function updateReportTypeLabels(containerPrefix) {
-    const summaryLabel = document.getElementById(`${containerPrefix}_rt_summary_label`);
-    const detailedLabel = document.getElementById(`${containerPrefix}_rt_detailed_label`);
-    if (!summaryLabel || !detailedLabel) return;
-
-    const summaryRadio = summaryLabel.querySelector('input[type="radio"]');
-    if (summaryRadio && summaryRadio.checked) {
-      summaryLabel.className = summaryLabel.className.replace('border-stone-200 bg-stone-50', 'border-cloze-indigo bg-indigo-50');
-      detailedLabel.className = detailedLabel.className.replace('border-cloze-indigo bg-indigo-50', 'border-stone-200 bg-stone-50');
-    } else {
-      detailedLabel.className = detailedLabel.className.replace('border-stone-200 bg-stone-50', 'border-cloze-indigo bg-indigo-50');
-      summaryLabel.className = summaryLabel.className.replace('border-cloze-indigo bg-indigo-50', 'border-stone-200 bg-stone-50');
-    }
-  }
-
-  // Attach change listeners to report type radios
-  document.addEventListener('change', (e) => {
-    if (e.target.name === 'window_report_type') updateReportTypeLabels('window');
-    if (e.target.name === 'config_report_type') updateReportTypeLabels('config');
-  });
 
   let systemPrompts = [];
   let currentWindowId = null;
-  let currentReportWindowId = null;
   let activeWindowTab = 'current';
 
   function formatDateTimeLocal(date) {
@@ -488,7 +262,7 @@
     document.getElementById('selectedPatientEmail').textContent = currentPatient.email || '';
     document.getElementById('patientFilter').value = patientId;
 
-    await Promise.all([loadWindows(patientId), loadPatientReports(patientId), loadSafetyPlan(patientId)]);
+    await Promise.all([loadWindows(patientId), loadWindowReports(), loadSafetyPlan(patientId)]);
   }
 
   function filterByPatient() {
@@ -610,15 +384,9 @@
               </div>
             </div>
             <div class="flex gap-2">
-              ${w.status === 'report_ready' ? `
-              <button class="rounded-md bg-cloze-indigo px-3 py-1 text-sm font-medium text-white hover:bg-cloze-hover"
-                      onclick="openReportModal(${w.id})">View Report</button>
-              ` : ''}
-              ${w.status === 'generating_report' ? `
-              <button class="rounded-md bg-cloze-indigo px-3 py-1 text-sm font-medium text-white hover:bg-cloze-hover"
-                      onclick="generateReport(${w.id})">Generate Report</button>
-              <button class="rounded-md border border-stone-200 px-3 py-1 text-sm font-medium text-stone-600 hover:bg-stone-50"
-                      onclick="openReportConfigModal(${w.id})">Configure Report</button>
+              ${v2WindowReports.has(w.id) ? `
+              <a class="rounded-md border border-stone-200 px-3 py-1 text-sm font-medium text-cloze-indigo hover:bg-stone-50"
+                 href="/reports/${v2WindowReports.get(w.id).id}">Report →</a>
               ` : ''}
               ${w.allowEdit ? `
               <button class="rounded-md border border-stone-200 px-2 py-1 text-sm hover:bg-stone-100"
@@ -711,10 +479,6 @@
       patientSelectDiv.classList.add('hidden');
     }
 
-    // Reset report type and feature checkboxes to defaults
-    setupReportTypeRadios('window', 'summary');
-    renderFeatureConfig('windowFeatureConfigContainer', 'window_config');
-
     addTemplateEditor();
     document.getElementById('windowModal').classList.remove('hidden');
     document.getElementById('windowModal').classList.add('flex');
@@ -745,10 +509,6 @@
         const ed = new Date(w.end_date * 1000);
         document.getElementById('endDate').value = formatDateTimeLocal(ed);
       }
-
-      const cfg = w.report_config || {};
-      setupReportTypeRadios('window', cfg.report_type || 'summary');
-      loadFeatureConfigFromData('window_config', cfg);
 
       const editor = document.getElementById('templatesEditor');
       editor.innerHTML = '';
@@ -840,19 +600,12 @@
       });
     });
 
-    const reportTypeEl = document.querySelector('input[name="window_report_type"]:checked');
-    const report_config = {
-      version: 2,
-      report_type: reportTypeEl ? reportTypeEl.value : 'summary',
-      features: collectFeatureConfig('window_config')
-    };
-
     const payload = {
       title: document.getElementById('windowTitle').value,
       description: document.getElementById('windowDescription').value,
       start_date: new Date(document.getElementById('startDate').value).getTime() / 1000,
       end_date: new Date(document.getElementById('endDate').value).getTime() / 1000,
-      templates, report_config
+      templates
     };
 
     // Only include patient_id when creating (not editing)
@@ -898,203 +651,8 @@
     }
   }
 
-  // ===== Reports =====
-  async function generateReport(windowId) {
-    if (!confirm('Generate a basic report for this completed window?')) return;
-    try {
-      const res = await fetch(`/api/reports/window/${windowId}/generate`, { method: 'POST' });
-      if (!res.ok) {
-        const err = await res.json(); throw new Error(err.error || 'Failed to generate report');
-      }
-      await res.json();
-      alert('Basic report generated successfully!');
-      loadWindows(currentPatient.id);
-    } catch (e) {
-      console.error('Error generating report:', e);
-      alert(`Failed to generate report: ${e.message}`);
-    }
-  }
-
-  async function openReportConfigModal(windowId) {
-    currentReportWindowId = windowId;
-    // Render the dynamic feature config into the modal
-    renderFeatureConfig('configFeatureContainer', 'config');
-
-    try {
-      const res = await fetch(`/api/reports/window/${windowId}/config`);
-      if (res.ok) {
-        const cfg = await res.json();
-        setupReportTypeRadios('config', cfg.report_type || 'summary');
-        loadFeatureConfigFromData('config', cfg);
-      }
-    } catch (e) { console.error('Error loading report config:', e); }
-
-    const m = document.getElementById('reportConfigModal');
-    m.classList.remove('hidden'); m.classList.add('flex');
-  }
-
-  function closeReportConfigModal() {
-    const m = document.getElementById('reportConfigModal');
-    m.classList.add('hidden'); m.classList.remove('flex');
-    currentReportWindowId = null;
-  }
-
-  document.getElementById('reportConfigForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if (!currentReportWindowId) return alert('No window selected');
-
-    const configReportTypeEl = document.querySelector('input[name="config_report_type"]:checked');
-    const config = {
-      version: 2,
-      report_type: configReportTypeEl ? configReportTypeEl.value : 'summary',
-      features: collectFeatureConfig('config')
-    };
-
-    try {
-      await fetch(`/api/reports/window/${currentReportWindowId}/config`, {
-        method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ config })
-      });
-
-      const res = await fetch(`/api/reports/window/${currentReportWindowId}/generate-unified`, {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ report_type: config.report_type })
-      });
-      if (!res.ok) {
-        const err = await res.json(); throw new Error(err.error || 'Failed to generate report');
-      }
-      await res.json();
-      alert('Report generated successfully!');
-      closeReportConfigModal();
-      loadWindows(currentPatient.id);
-    } catch (e) {
-      console.error('Error generating enhanced report:', e);
-      alert(`Failed to generate enhanced report: ${e.message}`);
-    }
-  });
-
-  // ===== Report Modal =====
-  async function openReportModal(windowId) {
-    const modal = document.getElementById('reportModal');
-    const content = document.getElementById('reportModalContent');
-
-    modal.classList.remove('hidden');
-    content.innerHTML = '<div class="flex items-center justify-center h-32"><p class="text-stone-500">Loading report...</p></div>';
-
-    try {
-      // First get the report for this window
-      const reportRes = await fetch(`/api/reports/window/${windowId}`);
-      if (!reportRes.ok) throw new Error('Report not found');
-      const report = await reportRes.json();
-
-      // Then get the HTML content
-      const htmlRes = await fetch(`/api/reports/html/${report.id}`);
-      if (!htmlRes.ok) throw new Error('Failed to load report HTML');
-      const htmlData = await htmlRes.json();
-
-      content.innerHTML = htmlData.html;
-
-      // Populate download dropdown links
-      const wid = report.window_id;
-      document.getElementById('dlSummaryHtml').href = `/api/reports/download/window/${wid}/summary/html`;
-      document.getElementById('dlSummaryPdf').href = `/api/reports/download/window/${wid}/summary/pdf`;
-      document.getElementById('dlDetailedHtml').href = `/api/reports/download/window/${wid}/detailed/html`;
-      document.getElementById('dlDetailedPdf').href = `/api/reports/download/window/${wid}/detailed/pdf`;
-      document.getElementById('reportDownloadBtn').classList.remove('hidden');
-    } catch (e) {
-      console.error('Error loading report:', e);
-      content.innerHTML = `<div class="flex items-center justify-center h-32"><p class="text-rose-500">Failed to load report: ${e.message}</p></div>`;
-      document.getElementById('reportDownloadBtn').classList.add('hidden');
-    }
-  }
-
-  function toggleReportDlMenu() {
-    document.getElementById('reportDlMenu').classList.toggle('hidden');
-  }
-
-  document.addEventListener('click', function(e) {
-    if (!e.target.closest('#reportDlWrapper')) {
-      var m = document.getElementById('reportDlMenu');
-      if (m) m.classList.add('hidden');
-    }
-  });
-
-  function closeReportModal() {
-    document.getElementById('reportModal').classList.add('hidden');
-    document.getElementById('reportDownloadBtn').classList.add('hidden');
-    document.getElementById('reportDlMenu').classList.add('hidden');
-  }
-
   function viewTranscript(conversationId) {
     window.location.href = `/conversation/${conversationId}`;
-  }
-
-  // ===== Patient Reports =====
-  async function loadPatientReports(patientId) {
-    try {
-      const res = await fetch(`/api/reports/patient/${patientId}`);
-      if (!res.ok) return;
-      const reports = await res.json();
-      displayPatientReports(reports);
-    } catch (e) { console.error('Error loading patient reports:', e); }
-  }
-
-  function displayPatientReports(reports) {
-    const list = document.getElementById('patientReportsList');
-    const empty = document.getElementById('reportsEmpty');
-
-    if (!reports.length) {
-      list.innerHTML = '';
-      empty.classList.remove('hidden');
-      return;
-    }
-
-    empty.classList.add('hidden');
-    list.innerHTML = reports.map(function(r) {
-      var data = r.report_data || {};
-      var summary = data.summary || {};
-      return `
-        <div class="overflow-hidden rounded-lg border border-stone-200 bg-white">
-          <div class="border-b border-stone-100 px-5 py-3">
-            <div class="flex items-center justify-between">
-              <div>
-                <h4 class="text-sm font-semibold text-stone-900">${escapeHtml(data.window_title || 'Session Report')}</h4>
-                <p class="mt-0.5 text-xs text-stone-500">${formatDate(data.start_date)} \u2013 ${formatDate(data.end_date)}</p>
-              </div>
-              <span class="text-xs text-stone-400">Generated ${formatDate(r.generated_at)}</span>
-            </div>
-          </div>
-          <div class="px-5 py-3">
-            <div class="mb-3 grid grid-cols-4 gap-2 text-center">
-              <div class="rounded-md bg-violet-50/60 px-2 py-1.5">
-                <span class="block text-base font-semibold text-cloze-indigo">${summary.total_conversations || 0}</span>
-                <span class="text-[10px] uppercase tracking-wider text-stone-400">Chats</span>
-              </div>
-              <div class="rounded-md bg-violet-50/60 px-2 py-1.5">
-                <span class="block text-base font-semibold text-cloze-indigo">${summary.total_user_messages || 0}</span>
-                <span class="text-[10px] uppercase tracking-wider text-stone-400">Patient</span>
-              </div>
-              <div class="rounded-md bg-violet-50/60 px-2 py-1.5">
-                <span class="block text-base font-semibold text-cloze-indigo">${summary.total_model_messages || 0}</span>
-                <span class="text-[10px] uppercase tracking-wider text-stone-400">AI</span>
-              </div>
-              <div class="rounded-md bg-violet-50/60 px-2 py-1.5">
-                <span class="block text-base font-semibold text-cloze-indigo">${typeof summary.average_messages_per_chat === 'number' ? summary.average_messages_per_chat.toFixed(1) : '0'}</span>
-                <span class="text-[10px] uppercase tracking-wider text-stone-400">Avg/Chat</span>
-              </div>
-            </div>
-            <div class="flex items-center gap-2">
-              <button onclick="openReportModal(${r.window_id})" class="inline-flex items-center gap-1.5 rounded-md bg-cloze-indigo px-3 py-1.5 text-xs font-medium text-white transition hover:bg-cloze-hover">
-                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5l7 7-7 7"/></svg>
-                View Report
-              </button>
-              <a href="/api/reports/download/window/${r.window_id}/summary/html" download class="inline-flex items-center gap-1.5 rounded-md border border-stone-200 px-3 py-1.5 text-xs font-medium text-stone-600 transition hover:bg-stone-50">
-                Download
-              </a>
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('');
   }
 
   // ===== Safety Plan =====
@@ -1484,15 +1042,6 @@
       providerFlags = await resp.json();
     } catch(e) { providerFlags = {}; }
 
-    // Hide report settings if reports disabled
-    if (providerFlags.enable_nlp_report === false) {
-      var rw = document.getElementById('reportSettingsWrapper');
-      if (rw) rw.classList.add('hidden');
-      // Hide reports tab
-      var reportsBtn = document.querySelector('[data-tab="reports"]');
-      if (reportsBtn) reportsBtn.classList.add('hidden');
-    }
-
     // Hide safety plan tab if safety plans disabled
     if (providerFlags.require_safety_plan === false) {
       var safetyBtn = document.querySelector('[data-tab="safety"]');
@@ -1504,8 +1053,7 @@
     await loadProviderFlags();
     await loadModels();
     await loadSystemPrompts();
-    await loadFeatureRegistry();
-    renderFeatureConfig('windowFeatureConfigContainer', 'window_config');
+    await loadWindowReports();
     await loadPatients();
 
     // Handle patient_id query param for direct navigation

@@ -584,33 +584,18 @@
   // ── Report modal ────────────────────────────────────────────
 
   async function openReportModal(windowId) {
-    const modal = document.getElementById('reportModal');
-    const content = document.getElementById('reportModalContent');
-
-    modal.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
-
-    content.innerHTML = `<div class="flex items-center justify-center h-32">
-      <p class="text-stone-500">Loading report...</p>
-    </div>`;
-
+    // Name kept for existing call sites; behavior is report-v2 — resolve the
+    // shared report for this window and open the full-page viewer.
     try {
-      // First get the report for this window
-      const reportRes = await fetch(`/api/reports/window/${windowId}`);
-      if (!reportRes.ok) throw new Error('Report not found');
-      const report = await reportRes.json();
-
-      // Then get the HTML
-      const htmlRes = await fetch(`/api/reports/html/${report.id}`);
-      if (!htmlRes.ok) throw new Error('Failed to load report HTML');
-      const data = await htmlRes.json();
-
-      content.innerHTML = data.html;
-    } catch (error) {
-      console.error('Error loading report:', error);
-      content.innerHTML = `<div class="flex items-center justify-center h-32">
-        <p class="text-red-600">Failed to load report. Please try again.</p>
-      </div>`;
+      const res = await fetch(`/api/v2/reports?scope=window&scope_id=${windowId}`);
+      if (res.ok) {
+        const reports = await res.json();
+        if (reports.length) { window.location.href = `/reports/${reports[0].id}`; return; }
+      }
+    } catch (error) { console.error('Error resolving report:', error); }
+    if (window.showDialog) {
+      showDialog({ title: 'No report yet',
+                   message: 'No report has been shared with you for this window yet.' });
     }
   }
 

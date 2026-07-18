@@ -734,7 +734,7 @@ async function loadAllData() {
     var results = await Promise.all([
       fetch('/api/conversations').then(function(r) { return r.ok ? r.json() : []; }),
       fetch('/api/windows/current').then(function(r) { return r.ok ? r.json() : []; }),
-      fetch('/api/reports/').then(function(r) { return r.ok ? r.json() : []; }),
+      fetch('/api/v2/reports').then(function(r) { return r.ok ? r.json() : []; }),
       fetch('/api/safety-plan/').then(function(r) { return r.ok ? r.json() : null; }),
       fetch('/api/user/settings-flags').then(function(r) { return r.ok ? r.json() : {}; }),
       fetch('/api/access-window').then(function(r) { return r.ok ? r.json() : { enabled: false }; })
@@ -1398,10 +1398,9 @@ function renderHomeView() {
     allReportsLink.classList.remove('hidden');
     var recentReports = allReports.slice(0, 3);
     reportsCards.innerHTML = recentReports.map(function(r) {
-      var data = r.report_data || {};
-      var title = escapeHtml(data.window_title || 'Session Report');
+      var title = 'Shared report';
       var generated = formatDate(r.generated_at);
-      return '<button onclick="openReportModal(' + r.window_id + ')" ' +
+      return '<button onclick="window.location.href=\'/reports/' + r.id + '\'" ' +
         'class="flex w-full items-center gap-3 rounded-lg border border-stone-200 bg-white p-3 text-left transition hover:border-violet-200 hover:bg-violet-50/30">' +
         '<div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-50 text-violet-600">' +
         '<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">' +
@@ -1858,26 +1857,20 @@ function showTurnLimitReached(max) {
   inputArea.parentNode.appendChild(banner);
 }
 
-/* ── Report modal ───────────────────────────────────────────── */
+/* ── Reports (v2: navigate to the full-page viewer) ─────────── */
 
 async function openReportModal(windowId) {
-  var modal = document.getElementById('reportModal');
-  var content = document.getElementById('reportModalContent');
-  modal.classList.remove('hidden');
-  document.body.style.overflow = 'hidden';
-  content.innerHTML = '<div class="flex items-center justify-center h-32"><p class="text-sm text-stone-500">Loading report...</p></div>';
-
+  // Name kept for existing call sites; behavior is v2 — resolve this
+  // window's shared report and open the document viewer.
   try {
-    var reportRes = await fetch('/api/reports/window/' + windowId);
-    if (!reportRes.ok) throw new Error('Report not found');
-    var report = await reportRes.json();
-    var htmlRes = await fetch('/api/reports/html/' + report.id);
-    if (!htmlRes.ok) throw new Error('Failed to load report HTML');
-    var data = await htmlRes.json();
-    content.innerHTML = data.html;
-  } catch (error) {
-    console.error('Error loading report:', error);
-    content.innerHTML = '<div class="flex items-center justify-center h-32"><p class="text-sm text-red-600">Failed to load report.</p></div>';
+    var res = await fetch('/api/v2/reports?scope=window&scope_id=' + windowId);
+    if (!res.ok) throw new Error('unavailable');
+    var reports = await res.json();
+    if (reports.length) { window.location.href = '/reports/' + reports[0].id; return; }
+  } catch (error) { console.error('Error resolving report:', error); }
+  if (window.showDialog) {
+    showDialog({ title: 'No report yet',
+                 message: 'No report has been shared with you for this window yet.' });
   }
 }
 
@@ -1888,7 +1881,8 @@ function openReportModalForWindow() {
 }
 
 function closeReportModal() {
-  document.getElementById('reportModal').classList.add('hidden');
+  var m = document.getElementById('reportModal');
+  if (m) m.classList.add('hidden');
   document.body.style.overflow = '';
 }
 
@@ -1909,12 +1903,11 @@ function renderAllReportsView() {
     '<th class="px-4 py-2.5 font-medium text-stone-600"></th>' +
     '</tr></thead><tbody>' +
     allReports.map(function(r) {
-      var d = r.report_data || {};
       return '<tr class="border-b border-stone-100 last:border-0">' +
-        '<td class="px-4 py-2.5 text-stone-900">' + escapeHtml(d.window_title || 'Session') + '</td>' +
-        '<td class="px-4 py-2.5 text-stone-500 hidden sm:table-cell">' + formatDate(d.start_date) + ' - ' + formatDate(d.end_date) + '</td>' +
+        '<td class="px-4 py-2.5 text-stone-900">Shared report</td>' +
+        '<td class="px-4 py-2.5 text-stone-500 hidden sm:table-cell"></td>' +
         '<td class="px-4 py-2.5 text-stone-500 hidden sm:table-cell">' + formatDate(r.generated_at) + '</td>' +
-        '<td class="px-4 py-2.5 text-right"><button onclick="openReportModal(' + r.window_id + ')" class="text-xs font-medium text-cloze-indigo hover:text-cloze-hover">View</button></td>' +
+        '<td class="px-4 py-2.5 text-right"><a href="/reports/' + r.id + '" class="text-xs font-medium text-cloze-indigo hover:text-cloze-hover">View</a></td>' +
         '</tr>';
     }).join('') +
     '</tbody></table></div>';
