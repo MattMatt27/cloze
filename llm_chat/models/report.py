@@ -32,6 +32,7 @@ class Report(db.Model):
     flow_enrollment_id = db.Column(db.Integer, db.ForeignKey('flow_enrollments.id'), nullable=True)
     flow_id = db.Column(db.Integer, db.ForeignKey('study_flows.id'), nullable=True)
     analyzer_version = db.Column(db.String(20), nullable=True)  # artifacts version folded in
+    template_id = db.Column(db.Integer, db.ForeignKey('report_templates.id'), nullable=True)
 
     # Relationships
     window = db.relationship('ChatWindow', backref='reports')
@@ -57,4 +58,5 @@ class Report(db.Model):
             'flow_enrollment_id': self.flow_enrollment_id,
             'flow_id': self.flow_id,
             'analyzer_version': self.analyzer_version,
+            'template_id': self.template_id,
         }

@@ -12,6 +12,7 @@ from .routes.provider import provider_bp
 from .routes.admin import admin_bp
 from .routes.chat_windows import window_bp
 from .routes.reports import reports_bp
+from .routes.reports_v2 import reports_v2_bp
 from .routes.safety_plan import safety_bp
 from flask_smorest import Api
 
@@ -95,6 +96,7 @@ def create_app():
     app.register_blueprint(admin_bp)
     app.register_blueprint(window_bp)
     app.register_blueprint(reports_bp)
+    app.register_blueprint(reports_v2_bp)
     app.register_blueprint(safety_bp)
 
     # Error pages

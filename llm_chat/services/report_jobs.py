@@ -54,7 +54,7 @@ def _now():
 
 def enqueue(kind, *, scope=None, conversation_id=None, window_id=None,
             flow_enrollment_id=None, patient_id=None, flow_id=None,
-            provider_id=None, payload=None, requested_by=None):
+            provider_id=None, payload=None, requested_by=None, template_id=None):
     """Create a queued job. In eager mode, execute it inline before returning."""
     job = ReportJob(
         kind=kind,
@@ -67,6 +67,7 @@ def enqueue(kind, *, scope=None, conversation_id=None, window_id=None,
         provider_id=provider_id,
         payload=json.dumps(payload) if payload else None,
         requested_by=requested_by,
+        template_id=template_id,
     )
     db.session.add(job)
     db.session.commit()
@@ -77,12 +78,14 @@ def enqueue(kind, *, scope=None, conversation_id=None, window_id=None,
     return job
 
 
-def enqueue_report(scope, scope_id, *, requested_by=None, payload=None):
+def enqueue_report(scope, scope_id, *, requested_by=None, payload=None,
+                   template_id=None):
     """Enqueue a scope-report generation job, targeting via the right FK."""
     if scope not in SCOPE_FK:
         raise ValueError(f"unknown scope {scope!r}; expected one of {sorted(SCOPE_FK)}")
     return enqueue("report", scope=scope, requested_by=requested_by,
-                   payload=payload, **{SCOPE_FK[scope]: scope_id})
+                   payload=payload, template_id=template_id,
+                   **{SCOPE_FK[scope]: scope_id})
 
 
 def _mark_running(job):
@@ -194,8 +197,15 @@ def _handle_report(job):
     if scope_id is None:
         raise ValueError(f"report job {job.id} ({scope}) has no target id set")
 
+    components = None
+    if job.template_id is not None:
+        from ..models import ReportTemplate
+        template = db.session.get(ReportTemplate, job.template_id)
+        if template is not None:
+            components = template.component_keys()
+
     data = generate_report_data(
-        scope, scope_id,
+        scope, scope_id, components=components,
         progress_cb=lambda current, total: heartbeat(job, current, total),
     )
 
@@ -215,6 +225,7 @@ def _handle_report(job):
     # coincide with the scope-target column and are identical values).
     report.provider_id = data["provider_id"]
     report.patient_id = data["patient_id"]
+    report.template_id = job.template_id
     db.session.flush()
     job.report_id = report.id
     db.session.commit()
@@ -258,3 +269,54 @@ def run_once():
     if job is not None:
         execute_job(job)
     return job
+
+
+# --- auto-generation ----------------------------------------------------------
+
+def run_auto_generation():
+    """Enqueue window reports for expired windows covered by an auto_generate
+    template. Called periodically by the worker loop (the design-doc
+    replacement for the legacy scheduler's in-request generation).
+
+    Opt-in by construction: nothing happens without a template that says so.
+    Idempotent: a target with an existing v2 report or a live job is skipped —
+    a window auto-generates at most once (manual regeneration stays available
+    through the API). Returns the enqueued job ids."""
+    from sqlalchemy import and_, or_
+
+    from ..models import ChatWindow, ReportTemplate, StudyFlow
+
+    now = _now()
+    templates = ReportTemplate.query.filter_by(
+        auto_generate=True, scope="window").all()
+    enqueued = []
+    for template in templates:
+        windows = ChatWindow.query.filter(ChatWindow.end_date < now)
+        if template.flow_id is not None:
+            flow = db.session.get(StudyFlow, template.flow_id)
+            if flow is None:
+                continue
+            windows = windows.filter(or_(
+                ChatWindow.flow_id == flow.id,
+                and_(ChatWindow.flow_id.is_(None),
+                     ChatWindow.flow_name == flow.name),
+            ))
+        else:
+            # provider-wide template: the creator's windows
+            windows = windows.filter(ChatWindow.provider_id == template.created_by)
+
+        for window in windows.all():
+            if Report.query.filter_by(scope="window", window_id=window.id,
+                                      report_type="v2").first():
+                continue
+            live = ReportJob.query.filter(
+                ReportJob.kind == "report",
+                ReportJob.scope == "window",
+                ReportJob.window_id == window.id,
+                ReportJob.status.in_(("queued", "running")),
+            ).first()
+            if live:
+                continue
+            job = enqueue_report("window", window.id, template_id=template.id)
+            enqueued.append(job.id)
+    return enqueued

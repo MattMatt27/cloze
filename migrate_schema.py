@@ -54,6 +54,7 @@ COLUMN_ADDITIONS = [
     ('reports', 'flow_enrollment_id', 'INTEGER'),
     ('reports', 'flow_id', 'INTEGER'),
     ('reports', 'analyzer_version', 'VARCHAR(20)'),
+    ('reports', 'template_id', 'INTEGER'),
 ]
 
 
@@ -160,7 +161,9 @@ def run_migration(apply=False):
 
     # ── Check for new tables (will be created by db.create_all) ──
     new_tables = ['safety_plans', 'audit_log', 'escalation_events', 'provider_feature_flags',
-                   'study_flows', 'flow_phases', 'flow_chats', 'flow_enrollments']
+                   'study_flows', 'flow_phases', 'flow_chats', 'flow_enrollments',
+                   # report system v2
+                   'analysis_artifacts', 'report_jobs', 'report_templates']
     print()
     for t in new_tables:
         if table_exists(cursor, t, db_type):

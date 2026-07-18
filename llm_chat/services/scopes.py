@@ -334,3 +334,38 @@ _RESOLVERS = {
     "flow": _resolve_flow,
     "account": _resolve_account,
 }
+
+
+# --- lightweight ownership (access control) -----------------------------------
+
+def scope_owner(scope, scope_id):
+    """(provider_id, patient_id) for a scope target WITHOUT resolving its
+    conversation set — cheap enough for per-request access checks.
+
+    Raises ScopeNotFoundError / UnknownScopeError like resolve_scope."""
+    if scope == "conversation":
+        conversation = _get_or_raise(Conversation, scope_id, "conversation")
+        window = conversation.chat_window
+        provider_id = window.provider_id if window else None
+        if provider_id is None:
+            link = ProviderPatient.query.filter_by(
+                patient_id=conversation.user_id).first()
+            provider_id = link.provider_id if link else None
+        return provider_id, conversation.user_id
+    if scope == "window":
+        window = _get_or_raise(ChatWindow, scope_id, "window")
+        return window.provider_id, window.patient_id
+    if scope == "enrollment":
+        enrollment = _get_or_raise(FlowEnrollment, scope_id, "enrollment")
+        return enrollment.flow.provider_id, enrollment.patient_id
+    if scope == "participant":
+        _get_or_raise(User, scope_id, "participant")
+        link = ProviderPatient.query.filter_by(patient_id=scope_id).first()
+        return (link.provider_id if link else None), scope_id
+    if scope == "flow":
+        flow = _get_or_raise(StudyFlow, scope_id, "flow")
+        return flow.provider_id, None
+    if scope == "account":
+        _get_or_raise(User, scope_id, "provider")
+        return scope_id, None
+    raise UnknownScopeError(f"unknown scope {scope!r}; expected one of {SCOPES}")

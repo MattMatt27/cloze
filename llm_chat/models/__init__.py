@@ -3,7 +3,7 @@ from .settings import ProviderSettings, AdminSettings, UserSettings, SystemPromp
 from .chat import Model, Conversation, Message, SavedSelection
 from .chat_window import ChatWindow, ChatTemplate
 from .report import Report
-from .report_v2 import AnalysisArtifact, ReportJob
+from .report_v2 import AnalysisArtifact, ReportJob, ReportTemplate
 from .safety_plan import SafetyPlan
 from .audit import AuditLog, EscalationEvent
 from .study_flow import StudyFlow, FlowPhase, FlowChat, FlowEnrollment
@@ -14,7 +14,7 @@ __all__ = [
     "Model", "Conversation", "Message", "SavedSelection",
     "ChatWindow", "ChatTemplate",
     "Report",
-    "AnalysisArtifact", "ReportJob",
+    "AnalysisArtifact", "ReportJob", "ReportTemplate",
     "SafetyPlan",
     "AuditLog", "EscalationEvent",
     "StudyFlow", "FlowPhase", "FlowChat", "FlowEnrollment",

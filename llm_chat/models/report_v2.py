@@ -9,14 +9,51 @@ Design: .docs/roadmap/report-system-v2.md
   worker process (``flask reports-worker``). Claims use FOR UPDATE SKIP LOCKED
   on Postgres; liveness is lease-based via ``heartbeat_at``.
 
-Note: ``template_id`` (per the design doc) is deliberately absent until the
-ReportTemplate model lands in the templates milestone — a FK to a nonexistent
-table would break ``db.create_all()``.
+- ``ReportTemplate`` configures what a report contains per scope, optionally
+  per flow: which components run, whether generation happens automatically
+  when a window expires, and whether participants may see the result.
 """
 
+import json
 import time
 
 from ..extensions import db
+
+
+class ReportTemplate(db.Model):
+    __tablename__ = 'report_templates'
+
+    id = db.Column(db.Integer, primary_key=True)
+    # NULL flow_id = a provider-wide template (usable on any of the owner's
+    # scopes); set = specific to that flow's windows/enrollments/cohort.
+    flow_id = db.Column(db.Integer, db.ForeignKey('study_flows.id'), nullable=True)
+    name = db.Column(db.String(200), nullable=False)
+    scope = db.Column(db.String(20), nullable=False)
+    components = db.Column(db.Text, nullable=True)  # JSON list of component keys; NULL = all for scope
+    auto_generate = db.Column(db.Boolean, nullable=False, default=False)
+    # Participant visibility is template-driven and default-off: cohort- and
+    # account-level aggregates are research artifacts, never participant-facing.
+    participant_visible = db.Column(db.Boolean, nullable=False, default=False)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_at = db.Column(db.Float, default=lambda: time.time())
+
+    flow = db.relationship('StudyFlow')
+
+    def component_keys(self):
+        return json.loads(self.components) if self.components else None
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'flow_id': self.flow_id,
+            'name': self.name,
+            'scope': self.scope,
+            'components': self.component_keys(),
+            'auto_generate': self.auto_generate,
+            'participant_visible': self.participant_visible,
+            'created_by': self.created_by,
+            'created_at': self.created_at,
+        }
 
 
 class AnalysisArtifact(db.Model):
@@ -61,6 +98,7 @@ class ReportJob(db.Model):
     provider_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
 
     payload = db.Column(db.Text, nullable=True)  # JSON — job parameters (e.g. force, throttle)
+    template_id = db.Column(db.Integer, db.ForeignKey('report_templates.id'), nullable=True)
     requested_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
 
     status = db.Column(db.String(20), nullable=False, default='queued', index=True)
