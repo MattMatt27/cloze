@@ -76,7 +76,10 @@ class ProviderFeatureFlags(db.Model):
 
     # NLP / Reports
     enable_nlp_report = db.Column(db.Boolean, nullable=True)
-    report_config = db.Column(db.Text, nullable=True)  # JSON override
+    report_config = db.Column(db.Text, nullable=True)  # JSON override (dead — removed in reports-v2 cleanup)
+    # Report-v2 tiered component access: intensive (compute-heavy) analysis
+    # components require an admin grant. JSON {component_key: "requested"|"granted"}
+    report_component_grants = db.Column(db.Text, nullable=True)
 
     # Prompts
     default_system_prompt_id = db.Column(db.Integer, db.ForeignKey('system_prompts.id'), nullable=True)

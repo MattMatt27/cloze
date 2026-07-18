@@ -204,6 +204,21 @@ def _handle_report(job):
         if template is not None:
             components = template.component_keys()
 
+    # Tiered access, enforced at generation (defense in depth): intensive
+    # components run only for teams holding a grant, regardless of what the
+    # template says or said when it was saved.
+    from report.registry_v2 import COMPONENTS
+
+    from .component_access import usable_components
+    from .scopes import scope_owner
+    provider_id, _ = scope_owner(scope, scope_id)
+    if provider_id is not None:
+        usable = usable_components(provider_id)
+    else:  # orphan scope (no owning provider): standard tier only
+        usable = {key for key, c in COMPONENTS.items() if c.cost == "standard"}
+    components = sorted(set(components) & usable) if components is not None \
+        else sorted(usable)
+
     data = generate_report_data(
         scope, scope_id, components=components,
         progress_cb=lambda current, total: heartbeat(job, current, total),

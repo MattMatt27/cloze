@@ -40,6 +40,13 @@ class ComponentDef:
     builder: Callable[[AggregationContext], Optional[Dict[str, Any]]]
     # Builders may return None to indicate "nothing to show" — the engine
     # omits the section rather than rendering an empty shell.
+    #
+    # cost: "standard" components are freely usable by any team; "intensive"
+    # ones (compute-heavy — the LLM summaries today, heavier NLP as the
+    # analysis library grows) require a per-team admin grant. Everything stays
+    # *visible* to researchers either way — the library is discoverable, the
+    # compute is gated.
+    cost: str = "standard"
 
 
 # --- builders -----------------------------------------------------------------
@@ -260,9 +267,11 @@ COMPONENTS: Dict[str, ComponentDef] = {
         ComponentDef("cooccurrence", "Word co-occurrence",
                      ALL_SCOPES - {"account"}, _cooccurrence),
         ComponentDef("ai_summary", "AI summary",
-                     frozenset({"conversation"}), _ai_summary),
+                     frozenset({"conversation"}), _ai_summary,
+                     cost="intensive"),
         ComponentDef("hierarchical_summary", "AI summary",
-                     AGGREGATE_SCOPES, _hierarchical_summary),
+                     AGGREGATE_SCOPES, _hierarchical_summary,
+                     cost="intensive"),
         ComponentDef("trend_analysis", "Trends over time",
                      frozenset({"enrollment", "participant", "flow", "account"}),
                      _trend_analysis),

@@ -18,7 +18,14 @@ from flask import Blueprint, abort, jsonify, request
 from flask_login import current_user, login_required
 
 from ..extensions import db
-from ..models import Report, ReportJob, ReportTemplate, StudyFlow
+from ..models import Report, ReportJob, ReportTemplate, StudyFlow, User
+from ..services.component_access import (
+    component_access,
+    pending_requests,
+    request_component,
+    set_grant,
+    usable_components,
+)
 from ..services.report_jobs import SCOPE_FK, enqueue_report
 from ..services.scopes import (
     SCOPES,
@@ -110,7 +117,8 @@ def create_report_job():
         template = db.session.get(ReportTemplate, template_id)
         if template is None:
             abort(404, description="template not found")
-        _check_template_access(template)
+        if not _can_use_template(template):
+            abort(403)
         if template.scope != scope:
             abort(400, description="template scope %r does not match %r"
                   % (template.scope, scope))
@@ -179,18 +187,92 @@ def get_report(report_id):
 @reports_v2_bp.route("/reports/registry", methods=["GET"])
 @login_required
 def get_registry():
+    """Component × scope matrix, availability-aware for the caller.
+
+    Everything is listed (the analysis library is discoverable); ``access``
+    tells the caller whether each component is usable:
+    available | granted | requested | requestable."""
+    if current_user.is_provider():
+        access = component_access(current_user.id)
+    else:  # admins (and any other role) see everything as available
+        access = {key: "available" for key in COMPONENTS}
     return jsonify({
         "scopes": list(SCOPES),
         "components": [
-            {"key": c.key, "label": c.label, "scopes": sorted(c.scopes)}
+            {"key": c.key, "label": c.label, "scopes": sorted(c.scopes),
+             "cost": c.cost, "access": access.get(c.key, "available")}
             for c in COMPONENTS.values()
         ],
     })
 
 
+@reports_v2_bp.route("/reports/component-requests", methods=["POST"])
+@login_required
+def create_component_request():
+    """Provider asks for access to an intensive component."""
+    if not current_user.is_provider():
+        abort(403)
+    body = request.get_json(silent=True) or {}
+    component = body.get("component")
+    try:
+        state = request_component(current_user.id, component)
+    except ValueError as exc:
+        abort(400, description=str(exc))
+    return jsonify({"component": component, "state": state}), 202
+
+
+@reports_v2_bp.route("/admin/component-grants", methods=["GET"])
+@login_required
+def list_component_grants():
+    """Admin queue: pending requests + full grant state per provider."""
+    if not current_user.is_admin():
+        abort(403)
+    providers = User.query.filter_by(role="provider").all()
+    return jsonify({
+        "pending": [{"provider_id": pid, "component": key}
+                    for pid, key in pending_requests()],
+        "providers": [
+            {"provider_id": p.id, "username": p.username,
+             "access": component_access(p.id)}
+            for p in providers
+        ],
+    })
+
+
+@reports_v2_bp.route("/admin/component-grants", methods=["PUT"])
+@login_required
+def update_component_grant():
+    if not current_user.is_admin():
+        abort(403)
+    body = request.get_json(silent=True) or {}
+    provider_id = body.get("provider_id")
+    component = body.get("component")
+    granted = body.get("granted")
+    if not isinstance(provider_id, int) or not isinstance(granted, bool):
+        abort(400, description="provider_id (int) and granted (bool) required")
+    if db.session.get(User, provider_id) is None:
+        abort(404, description="provider not found")
+    try:
+        state = set_grant(provider_id, component, granted)
+    except ValueError as exc:
+        abort(400, description=str(exc))
+    return jsonify({"provider_id": provider_id, "component": component,
+                    "state": state or "revoked"})
+
+
 # --- templates ----------------------------------------------------------------
 
+def _is_system_template(template):
+    """Admin-authored, flow-agnostic templates are 'system': every team can
+    use them; only admins edit them."""
+    if template.flow_id is not None or template.created_by is None:
+        return False
+    creator = db.session.get(User, template.created_by)
+    return bool(creator and creator.is_admin())
+
+
 def _check_template_access(template):
+    """Edit/delete rights."""
     if current_user.is_admin():
         return
     if not current_user.is_provider():
@@ -203,7 +285,21 @@ def _check_template_access(template):
         abort(403)
 
 
-def _validated_template_fields(body, *, partial=False):
+def _can_use_template(template):
+    """Usage rights (broader than edit): own, own-flow, or system."""
+    if current_user.is_admin():
+        return True
+    if not current_user.is_provider():
+        return False
+    if _is_system_template(template):
+        return True
+    if template.flow_id is not None:
+        flow = db.session.get(StudyFlow, template.flow_id)
+        return bool(flow and flow.provider_id == current_user.id)
+    return template.created_by == current_user.id
+
+
+def _validated_template_fields(body, *, partial=False, existing=None):
     fields = {}
     if not partial or "name" in body:
         name = (body.get("name") or "").strip()
@@ -224,6 +320,12 @@ def _validated_template_fields(body, *, partial=False):
             unknown = [k for k in components if k not in COMPONENTS]
             if unknown:
                 abort(400, description="unknown components: %s" % ", ".join(unknown))
+            if current_user.is_provider():
+                usable = usable_components(current_user.id)
+                ungranted = [k for k in components if k not in usable]
+                if ungranted:
+                    abort(403, description="components requiring an admin grant: %s"
+                          % ", ".join(ungranted))
         fields["components"] = json.dumps(components) if components else None
     if "flow_id" in body:
         flow_id = body.get("flow_id")
@@ -239,6 +341,16 @@ def _validated_template_fields(body, *, partial=False):
             if not isinstance(body[flag], bool):
                 abort(400, description=f"{flag} must be boolean")
             fields[flag] = body[flag]
+
+    # Participant visibility is structurally limited to a participant's own
+    # units — cohort/account aggregates can never be shared, by construction.
+    effective_scope = fields.get("scope", getattr(existing, "scope", None))
+    effective_visible = fields.get(
+        "participant_visible", getattr(existing, "participant_visible", False))
+    if effective_visible and effective_scope not in (
+            "conversation", "window", "enrollment"):
+        abort(400, description="participant_visible is only allowed for "
+                               "conversation, window, or enrollment scopes")
     return fields
 
 
@@ -250,13 +362,19 @@ def list_templates():
     elif current_user.is_provider():
         own_flows = db.session.query(StudyFlow.id).filter_by(
             provider_id=current_user.id)
+        admin_ids = db.session.query(User.id).filter_by(role="admin")
         templates = ReportTemplate.query.filter(
             (ReportTemplate.created_by == current_user.id)
             | (ReportTemplate.flow_id.in_(own_flows))
+            # system templates: admin-authored, flow-agnostic, usable by all
+            | ((ReportTemplate.flow_id.is_(None))
+               & (ReportTemplate.created_by.in_(admin_ids)))
         ).all()
     else:
         abort(403)
-    return jsonify([t.to_dict() for t in templates])
+    return jsonify([
+        {**t.to_dict(), "is_system": _is_system_template(t)} for t in templates
+    ])
 
 
 @reports_v2_bp.route("/report-templates", methods=["POST"])
@@ -280,7 +398,8 @@ def update_template(template_id):
         abort(404)
     _check_template_access(template)
     body = request.get_json(silent=True) or {}
-    for key, value in _validated_template_fields(body, partial=True).items():
+    for key, value in _validated_template_fields(
+            body, partial=True, existing=template).items():
         setattr(template, key, value)
     db.session.commit()
     return jsonify(template.to_dict())

@@ -55,6 +55,7 @@ COLUMN_ADDITIONS = [
     ('reports', 'flow_id', 'INTEGER'),
     ('reports', 'analyzer_version', 'VARCHAR(20)'),
     ('reports', 'template_id', 'INTEGER'),
+    ('provider_feature_flags', 'report_component_grants', 'TEXT'),
 ]
 
 
