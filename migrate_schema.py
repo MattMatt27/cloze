@@ -138,6 +138,54 @@ def column_exists(cursor, table_name, column_name, db_type):
         return cursor.fetchone() is not None
 
 
+# Canonical reports schema (matches llm_chat/models/report.py) — used for the
+# sqlite table rebuild. All scope-related FKs nullable since report-v2.
+_REPORTS_COLUMNS_SQL = """
+    id INTEGER PRIMARY KEY,
+    window_id INTEGER REFERENCES chat_windows (id),
+    patient_id INTEGER REFERENCES users (id),
+    provider_id INTEGER REFERENCES users (id),
+    report_type VARCHAR(50),
+    report_data TEXT,
+    generated_at FLOAT,
+    file_path VARCHAR(255),
+    scope VARCHAR(20),
+    conversation_id INTEGER REFERENCES conversations (id),
+    flow_enrollment_id INTEGER REFERENCES flow_enrollments (id),
+    flow_id INTEGER REFERENCES study_flows (id),
+    analyzer_version VARCHAR(20),
+    template_id INTEGER REFERENCES report_templates (id)
+"""
+_REPORTS_COLUMN_NAMES = [
+    'id', 'window_id', 'patient_id', 'provider_id', 'report_type',
+    'report_data', 'generated_at', 'file_path', 'scope', 'conversation_id',
+    'flow_enrollment_id', 'flow_id', 'analyzer_version', 'template_id',
+]
+
+
+def _sqlite_reports_needs_rebuild(cursor):
+    """True when any legacy NOT NULL remains on reports' scope FKs."""
+    info = cursor.execute("PRAGMA table_info(reports)").fetchall()
+    # PRAGMA row: (cid, name, type, notnull, dflt_value, pk)
+    return any(row[1] in ('window_id', 'patient_id', 'provider_id') and row[3]
+               for row in info)
+
+
+def _sqlite_rebuild_reports(cursor):
+    """Standard sqlite column-constraint change: rebuild + copy + swap.
+    Runs after column additions in the same transaction, so the legacy table
+    already has all v2 columns when rows are copied."""
+    columns = ", ".join(_REPORTS_COLUMN_NAMES)
+    cursor.execute("PRAGMA foreign_keys=OFF")
+    cursor.execute(f"CREATE TABLE reports__rebuild ({_REPORTS_COLUMNS_SQL})")
+    cursor.execute(
+        f"INSERT INTO reports__rebuild ({columns}) SELECT {columns} FROM reports")
+    cursor.execute("DROP TABLE reports")
+    cursor.execute("ALTER TABLE reports__rebuild RENAME TO reports")
+    cursor.execute("CREATE INDEX IF NOT EXISTS ix_reports_scope ON reports (scope)")
+    cursor.execute("PRAGMA foreign_keys=ON")
+
+
 def run_migration(apply=False):
     conn, db_type = get_connection()
     cursor = conn.cursor()
@@ -184,20 +232,38 @@ def run_migration(apply=False):
         changes.append(sql)
         print(f"  FIXUP {description}")
 
+    # ── SQLite-only: relax legacy NOT NULLs on reports ──────
+    # SQLite cannot ALTER COLUMN, so multi-scope reports (v2: flow/account
+    # reports have no window or patient) need a one-time table rebuild on
+    # legacy databases. Detected via PRAGMA; idempotent.
+    sqlite_rebuild_needed = (
+        db_type == 'sqlite'
+        and table_exists(cursor, 'reports', db_type)
+        and _sqlite_reports_needs_rebuild(cursor)
+    )
+    if sqlite_rebuild_needed:
+        print("  FIXUP rebuild reports table to relax legacy NOT NULLs (sqlite)")
+
     # ── Apply or report ──────────────────────────────────────
     print()
-    if not changes:
+    if not changes and not sqlite_rebuild_needed:
         print("No ALTER TABLE changes needed. All existing tables are up to date.")
         print("New tables (if any) will be created automatically when the app starts.")
     elif not apply:
-        print(f"{len(changes)} change(s) needed. Run with --apply to execute:")
+        print(f"{len(changes) + int(sqlite_rebuild_needed)} change(s) needed. "
+              "Run with --apply to execute:")
         for sql in changes:
             print(f"  {sql}")
+        if sqlite_rebuild_needed:
+            print("  (reports table rebuild — sqlite NOT NULL relaxation)")
     else:
         print(f"Applying {len(changes)} change(s)...")
         for sql in changes:
             print(f"  Executing: {sql}")
             cursor.execute(sql)
+        if sqlite_rebuild_needed:
+            print("  Rebuilding reports table (sqlite NOT NULL relaxation)...")
+            _sqlite_rebuild_reports(cursor)
         conn.commit()
         print("Done. All changes applied successfully.")
 
