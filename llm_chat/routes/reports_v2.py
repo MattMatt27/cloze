@@ -245,8 +245,18 @@ def navigator():
     else:
         abort(403)
 
-    from ..models import FlowEnrollment, ProviderPatient
+    from sqlalchemy import func
+
+    from ..models import Conversation, FlowEnrollment, ProviderPatient
     from ..services.scopes import _windows_for_enrollment
+
+    # conversation counts, one query each: per window and per patient
+    per_window = dict(db.session.query(
+        Conversation.window_id, func.count(Conversation.id)
+    ).filter(Conversation.window_id.isnot(None)).group_by(Conversation.window_id).all())
+    per_patient = dict(db.session.query(
+        Conversation.user_id, func.count(Conversation.id)
+    ).group_by(Conversation.user_id).all())
 
     flows = (StudyFlow.query.filter_by(provider_id=provider_id)
              .order_by(StudyFlow.created_at).all())
@@ -261,23 +271,28 @@ def navigator():
                 "phase_label": w.phase_label,
                 "start_date": w.start_date,
                 "end_date": w.end_date,
+                "conversations": per_window.get(w.id, 0),
             } for w in _windows_for_enrollment(enrollment)]
             enrollment_nodes.append({
                 "enrollment_id": enrollment.id,
                 "patient_id": enrollment.patient_id,
                 "username": enrollment.patient.username,
+                "enrolled_at": enrollment.enrolled_at,
+                "conversations": sum(w["conversations"] for w in windows),
                 "windows": windows,
             })
         flow_nodes.append({
             "flow_id": flow.id,
             "name": flow.name,
             "flow_type": flow.flow_type,
+            "enrollment_count": len(enrollment_nodes),
             "enrollments": enrollment_nodes,
         })
 
     participants = [{
         "patient_id": link.patient_id,
         "username": db.session.get(User, link.patient_id).username,
+        "conversations": per_patient.get(link.patient_id, 0),
     } for link in ProviderPatient.query.filter_by(provider_id=provider_id).all()]
 
     return jsonify({
