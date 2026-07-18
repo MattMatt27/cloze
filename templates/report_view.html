@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}{{ report.patient.username if report.patient else scope_label }} — Report — Cloze{% endblock %}
+{% block page_title %}{{ scope_label }}{% endblock %}
+
+{% block header_actions %}
+  <div class="flex items-center gap-2">
+    {% if is_stale %}
+      <span class="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800"
+            title="The analysis library changed since this report was generated. Regenerate for current results.">
+        Stale analysis
+      </span>
+    {% endif %}
+    <div class="relative">
+      <button id="downloadBtn"
+              class="rounded-md border border-stone-200 bg-white px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50">
+        Download ▾
+      </button>
+      <div id="downloadMenu"
+           class="absolute right-0 z-10 mt-1 hidden w-44 rounded-md border border-stone-200 bg-white py-1 shadow-lg">
+        <a class="block px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50"
+           href="/api/v2/reports/{{ report.id }}/download/pdf">PDF document</a>
+        <a class="block px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50"
+           href="/api/v2/reports/{{ report.id }}/download/html">HTML document</a>
+        {% if can_manage %}
+        <a class="block px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50"
+           href="/api/v2/reports/{{ report.id }}/download/csv">CSV (conversations)</a>
+        <a class="block px-3 py-1.5 text-sm text-stone-700 hover:bg-stone-50"
+           href="/api/v2/reports/{{ report.id }}/download/csv?table=groups">CSV (groups)</a>
+        {% endif %}
+      </div>
+    </div>
+    {% if can_manage %}
+      <button id="regenerateBtn"
+              data-scope="{{ scope }}" data-scope-id="{{ scope_id }}"
+              class="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700">
+        Regenerate
+      </button>
+    {% endif %}
+  </div>
+{% endblock %}
+
+{% block content %}
+  <div class="mb-4 text-sm">
+    {% if current_user.is_patient() %}
+      <a class="text-indigo-600 hover:underline" href="/my-reports">← My Reports</a>
+    {% elif can_manage %}
+      <a class="text-indigo-600 hover:underline" href="/provider/reports">← Reports hub</a>
+    {% endif %}
+  </div>
+  <div id="regenStatus" class="mb-4 hidden rounded-md border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm text-indigo-800"></div>
+  <div class="rounded-lg border border-stone-200 bg-white shadow-sm">
+    {{ document_html | safe }}
+  </div>
+{% endblock %}
+
+{% block scripts %}
+  <script type="module" src="/static/js/reports/viewer.js"></script>
+{% endblock %}

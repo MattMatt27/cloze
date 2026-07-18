@@ -110,5 +110,8 @@ def generate_report_data(scope, scope_id, components=None, progress_cb=None):
              "conversations": len(g.conversation_ids)}
             for g in selection.groups
         ],
+        # tidy per-conversation rows (one per conversation, already scope-
+        # ordered) — the CSV export table and the viewer's raw-data appendix
+        "per_conversation": overall["per_conversation"],
         "sections": sections,
     }

@@ -184,6 +184,50 @@ def get_report(report_id):
     return jsonify(_serialize_report(report, include_data=True))
 
 
+@reports_v2_bp.route("/reports/<int:report_id>/download/<fmt>", methods=["GET"])
+@login_required
+def download_report(report_id, fmt):
+    report = db.session.get(Report, report_id)
+    if report is None or report.report_type != "v2":
+        abort(404)
+    if not _can_read_report(report):
+        abort(403)
+    report_data = json.loads(report.report_data) if report.report_data else {}
+
+    from flask import Response
+
+    from report.renderers.v2_document import render_csv, render_standalone_html
+    filename = f"cloze-report-{report.effective_scope}-{report.id}"
+
+    if fmt == "html":
+        return Response(
+            render_standalone_html(report_data),
+            mimetype="text/html",
+            headers={"Content-Disposition":
+                     f"attachment; filename={filename}.html"})
+    if fmt == "csv":
+        table = request.args.get("table", "conversations")
+        try:
+            payload = render_csv(report_data, table=table)
+        except ValueError as exc:
+            abort(400, description=str(exc))
+        return Response(
+            payload, mimetype="text/csv",
+            headers={"Content-Disposition":
+                     f"attachment; filename={filename}-{table}.csv"})
+    if fmt == "pdf":
+        try:
+            from weasyprint import HTML
+        except Exception:
+            abort(501, description="PDF generation unavailable on this server")
+        pdf_bytes = HTML(string=render_standalone_html(report_data)).write_pdf()
+        return Response(
+            pdf_bytes, mimetype="application/pdf",
+            headers={"Content-Disposition":
+                     f"attachment; filename={filename}.pdf"})
+    abort(400, description="format must be html, csv, or pdf")
+
+
 @reports_v2_bp.route("/reports/registry", methods=["GET"])
 @login_required
 def get_registry():

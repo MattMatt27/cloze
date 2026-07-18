@@ -43,9 +43,10 @@ htmlcov/
 .env
 .env.local
 
-# PDF/Report exports
+# PDF/Report exports (root-level artifacts only — anchored so app templates
+# like templates/report_view.html stay trackable)
 *.pdf
-report*.html
+/report*.html
 
 # Docs
 .docs/
