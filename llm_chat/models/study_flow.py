@@ -38,7 +38,8 @@ class StudyFlow(db.Model):
             'report_config': self.report_config,
             'created_at': self.created_at,
             'phases': [p.to_dict() for p in self.phases],
-            'enrollment_count': len(self.enrollments),
+            # Withdrawn enrollments stay on the row but shouldn't inflate the count.
+            'enrollment_count': sum(1 for e in self.enrollments if e.is_active),
         }
 
 
@@ -104,18 +105,45 @@ class FlowChat(db.Model):
 
 
 class FlowEnrollment(db.Model):
-    """Tracks which patients are enrolled in which flows."""
+    """Tracks which patients are enrolled in which flows.
+
+    Withdrawal is a soft delete: the row survives with status='withdrawn' so
+    historical conversations, reports, and the report-v2 'enrollment' scope
+    (which persists this row's id in ReportJob.scope_id) stay resolvable.
+    """
     __tablename__ = 'flow_enrollments'
+
+    STATUS_ACTIVE = 'active'
+    STATUS_WITHDRAWN = 'withdrawn'
 
     id = db.Column(db.Integer, primary_key=True)
     flow_id = db.Column(db.Integer, db.ForeignKey('study_flows.id'), nullable=False)
     patient_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     enrolled_at = db.Column(db.Float, default=lambda: time.time())
+    # Rows predating withdrawal support have status NULL, which reads as active.
+    # Always test membership with is_active / the active_filter() clause rather
+    # than `status == 'active'`, which would silently exclude those legacy rows.
+    status = db.Column(db.String(20), nullable=True, default=STATUS_ACTIVE)
+    withdrawn_at = db.Column(db.Float, nullable=True)
 
     # Relationships
     patient = db.relationship('User', foreign_keys=[patient_id])
 
     __table_args__ = (db.UniqueConstraint('flow_id', 'patient_id'),)
+
+    @property
+    def is_active(self):
+        return self.status != self.STATUS_WITHDRAWN
+
+    @classmethod
+    def active_filter(cls):
+        """NULL-safe SQL clause for 'not withdrawn'.
+
+        `status != 'withdrawn'` alone drops legacy NULL rows, since NULL != x
+        evaluates to NULL rather than true.
+        """
+        from sqlalchemy import or_
+        return or_(cls.status.is_(None), cls.status != cls.STATUS_WITHDRAWN)
 
     def to_dict(self):
         return {
@@ -124,4 +152,6 @@ class FlowEnrollment(db.Model):
             'patient_id': self.patient_id,
             'patient_name': self.patient.username if self.patient else None,
             'enrolled_at': self.enrolled_at,
+            'status': self.status or self.STATUS_ACTIVE,
+            'withdrawn_at': self.withdrawn_at,
         }

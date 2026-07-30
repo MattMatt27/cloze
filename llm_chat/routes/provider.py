@@ -3,6 +3,7 @@ import time
 import secrets
 from flask import Blueprint, render_template, jsonify, request, abort, redirect
 from flask_login import current_user
+from sqlalchemy import or_, and_
 from sqlalchemy.exc import IntegrityError
 from ..utils.decorators import role_required
 from ..utils.passwords import validate_password
@@ -739,8 +740,15 @@ def delete_flow(flow_id):
     flow = StudyFlow.query.get_or_404(flow_id)
     if flow.provider_id != current_user.id:
         abort(403)
+    # Deletion stays blocked once anyone has ever been enrolled, withdrawn
+    # participants included. Their windows carry a flow_id FK to this row and
+    # their reports resolve through the enrollment, so deleting the flow would
+    # orphan both. Withdrawing everyone retires a flow without destroying data.
     if flow.enrollments:
-        return jsonify({'error': 'Cannot delete a flow with enrolled patients'}), 400
+        if any(e.is_active for e in flow.enrollments):
+            return jsonify({'error': 'Cannot delete a flow with enrolled patients'}), 400
+        return jsonify({'error': 'Cannot delete a flow with withdrawn participants — '
+                                 'their conversations and reports are still linked to it'}), 400
 
     _log_provider_action('flow_deleted', 'study_flow', flow_id, {'name': flow.name})
     db.session.delete(flow)
@@ -832,8 +840,21 @@ def create_flow_chat(phase_id):
         order_index=max_order + 1,
     )
     db.session.add(chat)
+    db.session.flush()
+
+    # phase.chats was loaded above for max_order and won't contain the new row
+    # (we set phase_id directly rather than going through the backref), so drop
+    # it — the backfill re-reads the collection when generating a fresh window.
+    db.session.expire(phase, ['chats'])
+
+    # An always-available flow can be enrolled into before it has any chats;
+    # push this one out to anyone already on the roster.
+    backfilled = _backfill_chat_to_enrollments(phase.flow, phase, chat)
+
     db.session.commit()
-    return jsonify(chat.to_dict()), 201
+    result = chat.to_dict()
+    result['backfilled_enrollments'] = backfilled
+    return jsonify(result), 201
 
 
 @provider_bp.route("/api/provider/chats/<int:chat_id>", methods=['PUT'])
@@ -880,7 +901,13 @@ def enroll_patients(flow_id):
     if flow.provider_id != current_user.id:
         abort(403)
 
-    if not flow.phases or not any(p.chats for p in flow.phases):
+    # Always-available flows may be enrolled into before any chats exist — the
+    # roster is built first and chats are added later, at which point
+    # create_flow_chat backfills them into the enrolled participants' windows.
+    # Phased and recurring flows still require chats up front, because their
+    # windows are dated off the enrollment moment and generated from the chats
+    # that exist at that instant.
+    if flow.flow_type != 'always' and (not flow.phases or not any(p.chats for p in flow.phases)):
         return jsonify({'error': 'Flow must have at least one phase with chats before enrolling'}), 400
 
     data = request.json or {}
@@ -889,22 +916,36 @@ def enroll_patients(flow_id):
         return jsonify({'error': 'No patients specified'}), 400
 
     enrolled = []
+    reactivated = []
     for pid in patient_ids:
         if not current_user.can_access_patient(pid):
             continue
-        # Skip already enrolled
-        if FlowEnrollment.query.filter_by(flow_id=flow_id, patient_id=pid).first():
-            continue
 
         enrollment_time = time.time()
-        enrollment = FlowEnrollment(flow_id=flow_id, patient_id=pid, enrolled_at=enrollment_time)
-        db.session.add(enrollment)
+        existing = FlowEnrollment.query.filter_by(flow_id=flow_id, patient_id=pid).first()
+        if existing is not None:
+            if existing.is_active:
+                continue
+            # Re-enrolling someone previously withdrawn reuses the row. The
+            # unique constraint forbids a second one anyway, and holding the id
+            # stable keeps any saved report-v2 'enrollment' scope pointing at
+            # real data. The withdrawal itself survives in the audit log.
+            existing.status = FlowEnrollment.STATUS_ACTIVE
+            existing.withdrawn_at = None
+            existing.enrolled_at = enrollment_time
+            reactivated.append(pid)
+        else:
+            db.session.add(FlowEnrollment(
+                flow_id=flow_id, patient_id=pid, enrolled_at=enrollment_time,
+                status=FlowEnrollment.STATUS_ACTIVE,
+            ))
 
         _generate_windows_for_enrollment(flow, pid, enrollment_time)
         enrolled.append(pid)
 
     _log_provider_action('patients_enrolled', 'study_flow', flow_id,
-                         {'patient_ids': enrolled, 'count': len(enrolled)})
+                         {'patient_ids': enrolled, 'count': len(enrolled),
+                          'reactivated': reactivated})
     db.session.commit()
     return jsonify({'status': 'success', 'enrolled': len(enrolled)})
 
@@ -950,23 +991,134 @@ def _create_window_from_phase(flow, phase, patient_id, start, end, title_suffix=
         report_config=flow.report_config,
         flow_name=flow.name,
         flow_id=flow.id,
+        phase_id=phase.id,
         phase_label=phase_label,
     )
     db.session.add(window)
     db.session.flush()
 
     for chat in phase.chats:
-        template = ChatTemplate(
-            window_id=window.id,
-            title=chat.title,
-            purpose=chat.purpose,
-            model_id=chat.model_id,
-            system_prompt_id=chat.system_prompt_id,
-            custom_system_prompt=chat.custom_system_prompt,
-            max_messages=chat.max_messages,
-            order_index=chat.order_index,
-        )
-        db.session.add(template)
+        _add_template_to_window(window, chat)
+    return window
+
+
+def _add_template_to_window(window, chat):
+    """Materialise a FlowChat as a ChatTemplate inside an existing window."""
+    template = ChatTemplate(
+        window_id=window.id,
+        title=chat.title,
+        purpose=chat.purpose,
+        model_id=chat.model_id,
+        system_prompt_id=chat.system_prompt_id,
+        custom_system_prompt=chat.custom_system_prompt,
+        max_messages=chat.max_messages,
+        order_index=chat.order_index,
+    )
+    db.session.add(template)
+    return template
+
+
+def _backfill_chat_to_enrollments(flow, phase, chat):
+    """Push a newly-added chat out to participants already enrolled.
+
+    Only always-available flows backfill. Their windows are open-ended, so a
+    chat added later is still reachable by the participant. Phased and
+    recurring windows are pinned to dates computed at enrollment and may
+    already have closed, so injecting a chat into them would rewrite the
+    historical record rather than extend an open one.
+
+    Returns the number of participants whose windows were updated.
+    """
+    if flow.flow_type != 'always':
+        return 0
+
+    enrollments = FlowEnrollment.query.filter(
+        FlowEnrollment.flow_id == flow.id,
+        FlowEnrollment.active_filter(),
+    ).all()
+
+    touched = 0
+    for enrollment in enrollments:
+        window = ChatWindow.query.filter_by(
+            flow_id=flow.id,
+            phase_id=phase.id,
+            patient_id=enrollment.patient_id,
+            visible=True,
+        ).first()
+
+        if window is None:
+            # Enrolled before this phase existed, so there is no window to
+            # extend — generate it now. This also materialises every other
+            # chat already on the phase.
+            start = enrollment.enrolled_at or time.time()
+            _create_window_from_phase(flow, phase, enrollment.patient_id,
+                                      start=start,
+                                      end=start + (365 * DAY_SECONDS),
+                                      phase_label=None)
+        else:
+            _add_template_to_window(window, chat)
+        touched += 1
+
+    return touched
+
+
+@provider_bp.route("/api/provider/flows/<int:flow_id>/enroll/<int:patient_id>", methods=['DELETE'])
+@role_required('provider')
+def unenroll_patient(flow_id, patient_id):
+    """Withdraw a participant from a flow.
+
+    Withdrawal is a soft delete. The enrollment row, every conversation, every
+    finished window and every report generated from them are left untouched —
+    the participant's history is the research record. Only windows that haven't
+    finished yet are hidden, which is enough to remove them from the
+    participant's view and to make send_message reject further messages.
+    """
+    flow = StudyFlow.query.get_or_404(flow_id)
+    if flow.provider_id != current_user.id:
+        abort(403)
+    if not current_user.can_access_patient(patient_id):
+        abort(403)
+
+    enrollment = FlowEnrollment.query.filter_by(
+        flow_id=flow_id, patient_id=patient_id
+    ).first()
+    if enrollment is None or not enrollment.is_active:
+        return jsonify({'error': 'Participant is not enrolled in this flow'}), 404
+
+    now = time.time()
+    enrollment.status = FlowEnrollment.STATUS_WITHDRAWN
+    enrollment.withdrawn_at = now
+    hidden = _hide_unfinished_windows(flow, patient_id, now)
+
+    _log_provider_action('patient_unenrolled', 'study_flow', flow_id,
+                         {'patient_id': patient_id,
+                          'enrollment_id': enrollment.id,
+                          'windows_hidden': hidden})
+    db.session.commit()
+    return jsonify({'status': 'success', 'windows_hidden': hidden})
+
+
+def _hide_unfinished_windows(flow, patient_id, now):
+    """Hide a participant's not-yet-finished windows for one flow.
+
+    Windows whose end_date has already passed are left alone — they and their
+    reports are the historical record. Nothing is ever deleted here.
+
+    Legacy windows generated before the flow_id FK existed are matched on
+    flow_name instead, mirroring the fallback the report-v2 scope resolver uses.
+    """
+    windows = ChatWindow.query.filter(
+        ChatWindow.patient_id == patient_id,
+        ChatWindow.visible.is_(True),
+        ChatWindow.end_date >= now,
+        or_(ChatWindow.flow_id == flow.id,
+            and_(ChatWindow.flow_id.is_(None),
+                 ChatWindow.flow_name == flow.name)),
+    ).all()
+
+    for window in windows:
+        window.visible = False
+    return len(windows)
 
 
 @provider_bp.route("/api/provider/flows/<int:flow_id>/enrollments", methods=['GET'])

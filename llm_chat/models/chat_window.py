@@ -21,6 +21,10 @@ class ChatWindow(db.Model):
     # this and is kept for display; legacy rows have flow_id NULL — the scope
     # resolver falls back to a flow_name match for those.
     flow_id = db.Column(db.Integer, db.ForeignKey('study_flows.id'), nullable=True, index=True)
+    # FK to the generating phase. Needed to backfill templates into the right
+    # window when a chat is added to an already-enrolled always-available flow;
+    # matching on title == phase.name would break the moment a phase is renamed.
+    phase_id = db.Column(db.Integer, db.ForeignKey('flow_phases.id'), nullable=True, index=True)
     created_at = db.Column(db.Float, default=lambda: time.time())
     updated_at = db.Column(db.Float, onupdate=lambda: time.time())
 

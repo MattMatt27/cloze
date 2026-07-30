@@ -48,6 +48,14 @@ COLUMN_ADDITIONS = [
     # Report system v2: FK linkage window→flow (legacy rows stay NULL; the
     # scope resolver falls back to flow_name matching for them)
     ('chat_windows', 'flow_id', 'INTEGER'),
+    # Enrollment lifecycle: withdrawal is a soft delete so historical data and
+    # the report-v2 'enrollment' scope stay resolvable. Existing rows get
+    # status NULL, which the model reads as active (see FlowEnrollment).
+    ('flow_enrollments', 'status', 'VARCHAR(20)'),
+    ('flow_enrollments', 'withdrawn_at', 'REAL'),
+    # FK linkage window→phase, for backfilling chats into already-generated
+    # windows on always-available flows.
+    ('chat_windows', 'phase_id', 'INTEGER'),
 ]
 
 
