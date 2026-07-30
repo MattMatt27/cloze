@@ -695,17 +695,30 @@
     // Get existing enrollments
     var resp = await fetch('/api/provider/flows/' + currentFlow.id + '/enrollments');
     var enrollments = await resp.json();
-    var enrolledIds = new Set(enrollments.map(function(e) { return e.patient_id; }));
+    // Withdrawn participants come back too, so they can be re-enrolled.
+    var activeIds = new Set(enrollments.filter(function(e) { return e.status !== 'withdrawn'; })
+                                       .map(function(e) { return e.patient_id; }));
+    var withdrawnIds = new Set(enrollments.filter(function(e) { return e.status === 'withdrawn'; })
+                                          .map(function(e) { return e.patient_id; }));
 
     var html = patients.map(function(p) {
-      var enrolled = enrolledIds.has(p.id);
-      return '<label class="flex items-center gap-3 rounded-lg px-3 py-2.5 hover:bg-stone-50 cursor-pointer">' +
-        '<input type="checkbox" class="enroll-check h-4 w-4 rounded border-stone-300 text-cloze-indigo" data-patient-id="' + p.id + '"' + (enrolled ? ' checked disabled' : '') + '>' +
-        '<div>' +
-          '<span class="text-sm text-stone-800">' + escapeHtml(p.username) + '</span>' +
-          (enrolled ? '<span class="ml-2 text-xs text-emerald-600">Enrolled</span>' : '') +
-        '</div>' +
-      '</label>';
+      var enrolled = activeIds.has(p.id);
+      var withdrawn = withdrawnIds.has(p.id);
+      var note = '';
+      if (enrolled) note = '<span class="ml-2 text-xs text-emerald-600">Enrolled</span>';
+      else if (withdrawn) note = '<span class="ml-2 text-xs text-stone-400">Withdrawn</span>';
+
+      return '<div class="flex items-center justify-between rounded-lg px-3 py-2.5 hover:bg-stone-50">' +
+        '<label class="flex items-center gap-3 cursor-pointer flex-1">' +
+          '<input type="checkbox" class="enroll-check h-4 w-4 rounded border-stone-300 text-cloze-indigo" data-patient-id="' + p.id + '"' + (enrolled ? ' checked disabled' : '') + '>' +
+          '<div>' +
+            '<span class="text-sm text-stone-800">' + escapeHtml(p.username) + '</span>' + note +
+          '</div>' +
+        '</label>' +
+        (enrolled
+          ? '<button type="button" class="text-xs text-stone-400 hover:text-rose-600 transition-colors" onclick="unenrollParticipant(' + p.id + ')">Remove</button>'
+          : '') +
+      '</div>';
     }).join('');
 
     if (!patients.length) html = '<div class="py-4 text-center text-sm text-stone-400">No participants. Create participants on the Dashboard first.</div>';
@@ -752,6 +765,36 @@
       if (fl) fl.enrollment_count += result.enrolled;
       renderFlowList();
     }, 1500);
+  }
+
+  async function unenrollParticipant(patientId) {
+    var patient = patients.find(function(p) { return p.id === patientId; });
+    var name = patient ? patient.username : 'this participant';
+
+    var ok = await showDialog({
+      title: 'Remove participant',
+      message: 'Remove ' + name + ' from "' + currentFlow.name + '"? ' +
+               'Conversations and reports already collected are kept — only chat windows ' +
+               'that have not finished yet are closed. They can be re-enrolled later.',
+      confirmText: 'Remove',
+      danger: true
+    });
+    if (!ok) return;
+
+    var resp = await fetch('/api/provider/flows/' + currentFlow.id + '/enroll/' + patientId, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    var result = await resp.json();
+    if (!resp.ok) {
+      showDialog({ title: 'Cannot remove', message: result.error || 'Removal failed', confirmText: 'OK' });
+      return;
+    }
+
+    await showEnrollPanel();
+    var fl = flows.find(function(f) { return f.id === currentFlow.id; });
+    if (fl && fl.enrollment_count > 0) fl.enrollment_count -= 1;
+    renderFlowList();
   }
 
   init();
