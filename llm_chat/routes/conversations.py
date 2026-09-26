@@ -311,53 +311,6 @@ def get_conversations():
     return jsonify(payload)
 
 
-@conv_bp.route("/api/conversation", methods=["POST"])
-@login_required
-def create_conversation():
-    data = request.json or {}
-    model_id = data['model_id']
-    model = Model.query.get_or_404(model_id)
-
-    # Provider restrictions
-    if current_user.is_patient():
-        provider_assignment = ProviderPatient.query.filter_by(patient_id=current_user.id).first()
-        if provider_assignment:
-            # Provider-set per-patient model restrictions
-            settings = ProviderSettings.query.filter_by(
-                provider_id=provider_assignment.provider_id,
-                patient_id=current_user.id
-            ).first()
-            if settings and settings.allowed_models:
-                allowed = json.loads(settings.allowed_models)
-                if model_id not in allowed:
-                    return jsonify({'error': 'Model not allowed by provider'}), 403
-            # Admin-enforced provider-level model allowlist
-            flags = ProviderFeatureFlags.query.filter_by(provider_id=provider_assignment.provider_id).first()
-            if flags and flags.allowed_models:
-                admin_allowed = json.loads(flags.allowed_models)
-                if model_id not in admin_allowed:
-                    return jsonify({'error': 'Model not permitted for this study'}), 403
-
-    # Get system prompt content (with custom instructions applied)
-    system_prompt_content = None
-    system_prompt_id = data.get('system_prompt_id')
-    if system_prompt_id:
-        prompts_data = get_system_prompts().get_json()
-        for p in prompts_data:
-            if p['id'] == system_prompt_id:
-                system_prompt_content = p['content']
-                break
-
-    conversation = Conversation(
-        user_id=current_user.id,
-        model_id=model_id,
-        system_prompt_id=system_prompt_id,
-        system_prompt_content=system_prompt_content
-    )
-    db.session.add(conversation)
-    db.session.commit()
-    return jsonify({'id': conversation.id})
-
 @conv_bp.route("/api/conversation/<int:conversation_id>/message", methods=["POST"])
 @login_required
 def send_message(conversation_id):
@@ -366,6 +319,12 @@ def send_message(conversation_id):
     # Access check
     if conversation.user_id != current_user.id and not current_user.can_access_patient(conversation.user_id):
         abort(403)
+
+    # Participant chats must come from a chat window: only that path stores the
+    # composed system prompt, so a windowless conversation would reach the model
+    # without the universal safety layers.
+    if current_user.is_patient() and not conversation.window_id:
+        return jsonify({'error': 'This conversation is not part of a study chat window'}), 403
 
     # Check if conversation belongs to an expired window
     if conversation.window_id:
